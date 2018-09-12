@@ -374,12 +374,8 @@ class Node(IPv4Interface, Hub):
         else:
             raise Exception('Entrada IP nao perminida')
 
-        if isinstance(mac_address, EUI):
-            self._mac = mac_address
-        elif isinstance(mac_address, str):
-            self._mac = EUI(mac_address)
-        else:
-            raise Exception('Entrada MAC nao perminida')
+        # HINT Node: removido teste desnecessario do MAC
+        self._mac = EUI(mac_address)
 
         self._mac.dialect = mac_cisco
         self._mac_address = str(self.mac)
@@ -943,12 +939,77 @@ class UniTree(object):
         self._root = None
 
 
+# %% Funcao get_node
+# HINT Funcao get_node
+def get_node(node: Union[bytes,str]) -> Union[LeafNode,InternalNode]:
+    """Localiza node com base no endereco fornecido
+
+    :param node:
+        Enderedeo em bytes ou string do IP ou MAC do node a ser pesquisado
+    :return: Objeto que representa o node
+    :rtype: LeafNode,InternalNode
+    """
+    if isinstance(node, bytes):
+        address = int.from_bytes(node, 'big')
+        if len(node) > 4:
+            try:
+                EUI(address)
+            except:
+                return None
+        else:
+            try:
+                IPv4Interface(address)
+            except:
+                return None
+        for net_node in Node._all_nodes_set:
+            if net_node.ip.packed == node \
+                or net_node.mac.packed == node:
+                    return net_node
+
+    if isinstance(node, str):
+        try:
+            node_obj = IPv4Interface(node)
+        except:
+            try:
+                node_obj = EUI(node)
+            except:
+                return None
+            else:
+                for net_node in Node._all_nodes_set:
+                    if net_node.mac == node_obj:
+                        return net_node
+        else:
+            for net_node in Node._all_nodes_set:
+                if net_node.ip== node_obj.ip:
+                        return net_node
+
+
+# %% Funcao get_root(subnet: SubNet) -> bool
+def get_root(subnet: SubNet) -> Union[LeafNode, None]:
+    """
+    Identifica o LeafNode definido como root de uma SubNet
+
+    :param subnet:
+        SubNet a ser pesquisada pelo root node
+    :return:
+        Objeto LeafNode definido como root
+    """
+    if subnet.leaf_nodes:
+        for node in subnet.leaf_nodes:
+            if node.is_root:
+                return node
+        subnet.leaf_nodes[0].is_root = True
+        return subnet.leaf_nodes[0]
+    return None
+    # print(f'Root nao definido para {subnet}')
+
+
 # %% Funcao get_port
 # TODO função para identificar porta que leva a node específico v(u)
-def get_port(from_node: Union[str, LeafNode, InternalNode],
+def get_port(from_node: Union[str, InternalNode],
              to_node: Union[str, LeafNode, InternalNode]) -> str:
     """
-    Porta que leva a u. v(u)
+    Porta do node interno v que leva a u. v(u)
 
     :rtype: str
     :type to_node: str, LeafNode, InternalNode
@@ -972,26 +1033,6 @@ def get_port(from_node: Union[str, LeafNode, InternalNode],
     for mac, port in self.aft:
         if to_address == mac:
             return port
-
-
-# %% Funcao get_root(subnet: SubNet) -> bool
-def get_root(subnet: SubNet) -> Union[LeafNode, None]:
-    """
-    Identifica o LeafNode definido como root de uma SubNet
-
-    :param subnet:
-        SubNet a ser pesquisada pelo root node
-    :return:
-        Objeto LeafNode definido como root
-    """
-    if subnet.leaf_nodes:
-        for node in subnet.leaf_nodes:
-            if node.is_root:
-                return node
-        subnet.leaf_nodes[0].is_root = True
-        return subnet.leaf_nodes[0]
-    return None
-    # print(f'Root nao definido para {subnet}')
 
 
 # %% Funcao get_snmp_data
@@ -1302,6 +1343,15 @@ def main():
         #     print(f'Porta {inode.name}(r) para root: {inode.get_port(get_root(rede))}')
         # print()
     pprint(Node._all_nodes_set)
+
+    print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
+    print(repr(get_node(b'\x00>\\\x02\x80\x01')))
+    print("get ip '10.0.20.1' de bytes")
+    print(repr(get_node(b'\n\x00\x14\x01')))
+    print("get ip '10.0.20.1' de str")
+    print(repr(get_node('10.0.20.1')))
+    print("get mac '0050.7966.6802' de str")
+    print(repr(get_node('005079666802')))
 
 # %% executa main()
 if __name__ == '__main__':
