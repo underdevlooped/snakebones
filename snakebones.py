@@ -942,7 +942,7 @@ class UniTree(object):
 # %% Funcao get_node
 # HINT Funcao get_node
 def get_node(node: Union[bytes,str]) -> Union[LeafNode,InternalNode]:
-    """Localiza node com base no endereco fornecido
+    """Localiza e retorna node com base no endereco fornecido
 
     :param node:
         Enderedeo em bytes ou string do IP ou MAC do node a ser pesquisado
