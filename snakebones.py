@@ -153,7 +153,7 @@ class SubNet(IPv4Network):
         if self not in SubNet._allsubnets_set:
             SubNet._allsubnets_set.add(self)
 
-    # FIXME nao removendo do set ao deletar instancia
+    # FIXMEdepois nao removendo do set ao deletar instancia
     # def __del__(self):
     #     print(self)
     #     SubNet.remove_subnet(self)
@@ -287,7 +287,8 @@ class Hub(object):
     def __init__(self):
         """Inicia objeto Hub"""
         self._labeled = False
-        self._port_list = None
+        # HINT Hub: ajustado atributo port_list
+        # self._port_list = None
 
     def __repr__(self):
         return self.__class__.__name__ + '()'
@@ -305,10 +306,13 @@ class Hub(object):
     @property
     def port_list(self):
         """Retorna lista de portas"""
-        if hasattr(self, 'snmp_data'):
-            return self.snmp_data.get('dot1d_tp_fdb_port')
-        else:
-            return self._port_list
+        return ['1']
+
+    # HINT Hub: atributo base port_set para conjunto de portas do node
+    @property
+    def port_set(self):
+        """Retorna conjunto de portas"""
+        return set(self.port_list)
 
 
 # %% classe Node
@@ -394,7 +398,13 @@ class Node(IPv4Interface, Hub):
                + ', ' + "'" + str(self._mac_address) + "')"
 
     @property
-    def all_nodes_set(self):
+    def all_nodes_set(self) -> set:
+        """
+        Retorna conjunto V de todos os nodes criados da arvore G(V, E)
+
+        :return: Conjunto de nodes
+        :rtype: set
+        """
         return self._all_nodes_set
 
     @property
@@ -554,6 +564,18 @@ class InternalNode(Node):
     def __del__(self):
         InternalNode._num_of_inodes -= 1
 
+    # HINT: InternalNode: port_list corrijido para classe
+    @property
+    def port_list(self) -> Union[None, List[str]]:
+        """Retorna lista de portas na ordem coletada pelo snmp
+
+        :return: Lista de portas
+        :rtype: None, list
+        """
+        if hasattr(self, 'snmp_data'):
+            return self._snmp_data.get('dot1d_tp_fdb_port')
+        return None
+
     @property
     def name(self):
         """
@@ -562,7 +584,7 @@ class InternalNode(Node):
         :rtype: str
         :return: sys_name snmp
         """
-        return self.snmp_data.get('sys_name')
+        return self._snmp_data.get('sys_name')
 
     @name.setter
     def name(self, value: str) -> None:
@@ -611,29 +633,45 @@ class InternalNode(Node):
 
         """
         subnet_ports = defaultdict(set)
-        allports = set()
         for subnet in self.associated_subnets:
             if subnet == self.network:
                 continue
             for mac in subnet.mac_set:
-                # breakpoint()
                 for port, mac_set in self.aft_atports.items():
                     if mac in mac_set:
                         subnet_ports[subnet.address].add(port)
-                        allports.add(port)
-        subnet_ports['all'] = allports
+        # HINT InternalNode: simplificado atributo port_activeset
+        subnet_ports['all'] = set(self.port_list)
         return subnet_ports
 
+    # HINT InternalNode: ajustado nome do atributo duplicado
     @property
-    def port_activelist(self) -> List:
+    def port_activelist_named(self) -> List:
         """
-        Retorna lista de portas ativas do node
-        # Dv = potas ativas no formato de lista
+        Retorna lista de portas ativas do node com respectivos nomes
         """
         # return self._port_activelist
-        return self.snmp_data.get('port_activelist')
+        return self._snmp_data.get('port_activelist')
 
-    # FIXME InternalNode: port_root continuar
+    # HINT InternalNode: port_name para nome da porta pelo indice associado
+    @property
+    def port_name(self) -> dict:
+        """
+        Retorna dicionario de portas ativas do node com respectivos nomes
+
+        Exemplo:
+        ----
+        >>> self.port_name['1']
+        ... 'Gi0/0'
+        :return: Dicionario {'porta': 'nome'}
+        :rtype: dict
+        """
+        name_dict = defaultdict(str)
+        for port, name in self._snmp_data.get('port_activelist'):
+            name_dict[port] = name
+        return name_dict
+
+    # FIXME InternalNode: port_root continuar depois de get_port
     @property
     def port_root(self):
         """
@@ -647,7 +685,6 @@ class InternalNode(Node):
                 continue
             root = get_root(subnet)
             for mac in subnet.mac_set:
-                # breakpoint()
                 for port, mac_set in self.aft_atports.items():
                     if mac in mac_set:
                         subnet_ports[subnet.address].add(port)
@@ -698,7 +735,7 @@ class InternalNode(Node):
     @property
     def mac_list(self):
         """Lista com MACs aprendidos"""
-        return self.snmp_data.get('dot1d_tp_fdb_address')
+        return self._snmp_data.get('dot1d_tp_fdb_address')
 
     @property
     def aft(self):
@@ -718,7 +755,7 @@ class InternalNode(Node):
         :return: AFT em cada porta
         """
         atports = defaultdict(set)
-        for mac, port in self.aft:
+        for mac, port in zip(self.mac_list, self.port_list):
             atports[port].add(mac)
         return atports
 
@@ -752,6 +789,7 @@ class InternalNode(Node):
             else:
                 continue
         return atports
+
     # def subnet_port_activeset(self, subnet=None):
     #     """
     #     Retorna conjunto de portas ativas do node
@@ -854,7 +892,7 @@ class Tree(object):
         cls._num_of_trees += 1
         return super().__new__(cls)
 
-    # TODO estruturacao construtor da classe Tree (continuar)
+    # TODO estruturacao construtor da classe Tree (em andamento)
     def __init__(self, subnet: SubNet):
         self.subnet = subnet
         self.nodes = subnet.nodes
@@ -941,7 +979,8 @@ class UniTree(object):
 
 # %% Funcao get_node
 # HINT Funcao get_node
-def get_node(node: Union[bytes,str]) -> Union[LeafNode,InternalNode]:
+def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
+        -> Union[None, LeafNode, InternalNode]:
     """Localiza e retorna node com base no endereco fornecido
 
     :param node:
@@ -963,10 +1002,10 @@ def get_node(node: Union[bytes,str]) -> Union[LeafNode,InternalNode]:
                 return None
         for net_node in Node._all_nodes_set:
             if net_node.ip.packed == node \
-                or net_node.mac.packed == node:
-                    return net_node
+                    or net_node.mac.packed == node:
+                return net_node
 
-    if isinstance(node, str):
+    elif isinstance(node, str):
         try:
             node_obj = IPv4Interface(node)
         except:
@@ -980,8 +1019,17 @@ def get_node(node: Union[bytes,str]) -> Union[LeafNode,InternalNode]:
                         return net_node
         else:
             for net_node in Node._all_nodes_set:
-                if net_node.ip== node_obj.ip:
-                        return net_node
+                if net_node.ip == node_obj.ip:
+                    return net_node
+    # HINT get_node: ajustado para aceitar mais tipos de entradas
+    elif isinstance(node, EUI):
+        for net_node in Node._all_nodes_set:
+            if net_node.mac.packed == node.packed:
+                return net_node
+    else:
+        for net_node in Node._all_nodes_set:
+            if net_node.mac.packed == node.mac.packed:
+                return net_node
 
 
 # %% Funcao get_root(subnet: SubNet) -> bool
@@ -1005,33 +1053,35 @@ def get_root(subnet: SubNet) -> Union[LeafNode, None]:
 
 
 # %% Funcao get_port
-# TODO função para identificar porta que leva a node específico v(u)
-def get_port(from_node: Union[str, InternalNode],
-             to_node: Union[str, LeafNode, InternalNode]) -> str:
+# HINT função para identificar porta que leva a node específico v(u)
+# FIXME: funcao get_port (continuar para self.port_root)
+def get_port(from_node: Union[str, LeafNode, InternalNode],
+             to_node: Union[str, LeafNode, InternalNode]) -> Union[str, None]:
     """
     Porta do node interno v que leva a u. v(u)
 
-    :rtype: str
+    Exemplo:
+    ----
+    >>> get_port('10.0.20.1/24', '10.0.0.2/24')
+    ... '1'
+
+    :param from_node: Node de origem que fornecera dado da porta de saida
+    :param to_node: Destino a ser identificado porta de saida associada
     :type to_node: str, LeafNode, InternalNode
     :return: String com identificacao da porta
-    :param to_node: Destino a ser identificado porta associada
+    :rtype: str
     """
     # pass
-    # FIXME: funcao get_port
-    if isinstance(from_node, str):
-        from_address = from_node
-    elif isinstance(from_node, LeafNode, InternalNode):
-        from_address = from_node.mac_address
-    else:
+    source = get_node(from_node)
+    if not source:
         return None
-    if isinstance(to_node, str):
-        to_address = to_node
-    elif isinstance(to_node, (LeafNode, InternalNode)):
-        to_address = to_node.mac_address
-    else:
+    elif isinstance(source, LeafNode):
+        return '1'
+    destination = get_node(to_node)
+    if not destination:
         return None
-    for mac, port in self.aft:
-        if to_address == mac:
+    for mac, port in source.aft:
+        if destination.mac.packed == mac:
             return port
 
 
@@ -1324,7 +1374,6 @@ def main():
             pprint(f'FN{inode.name},{port}:')
             pprint(macs)
 
-
         print()
 
     # lista Vn de nodes associados com a subrede N
@@ -1345,13 +1394,22 @@ def main():
     pprint(Node._all_nodes_set)
 
     print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
-    print(repr(get_node(b'\x00>\\\x02\x80\x01')))
-    print("get ip '10.0.20.1' de bytes")
-    print(repr(get_node(b'\n\x00\x14\x01')))
-    print("get ip '10.0.20.1' de str")
-    print(repr(get_node('10.0.20.1')))
+    inode_taken = get_node(b'\x00>\\\x02\x80\x01')
+    print(repr(inode_taken))
+    print(inode_taken.port_set)
     print("get mac '0050.7966.6802' de str")
-    print(repr(get_node('005079666802')))
+    leafnode_taken = get_node('005079666802')
+    print(repr(leafnode_taken))
+    print(leafnode_taken.port_set)
+    print(f'v(u) get_port({leafnode_taken}, {inode_taken}):'
+          f' porta {get_port(leafnode_taken, inode_taken)!r}')
+    print(f'v(u) get_port({leafnode_taken}, {inode_taken}):'
+          f' porta {get_port("10.0.20.1/24", "10.0.0.2/24")!r}')
+    print(f'v(u) get_port({inode_taken}, {leafnode_taken}):'
+          f' porta {get_port(inode_taken, leafnode_taken)!r}')
+    for port in inode_taken.port_name.keys():
+        print(f'porta {port}: nome {inode_taken.port_name[port]}')
+
 
 # %% executa main()
 if __name__ == '__main__':
