@@ -1,0 +1,13 @@
+<code_scheme name="Default" version="173">
+  <option name="ALIGN_MULTILINE_PARAMETERS_IN_CALLS" value="true" />
+  <option name="SOFT_MARGINS" value="79,119" />
+  <Python>
+    <option name="NEW_LINE_AFTER_COLON" value="true" />
+    <option name="USE_CONTINUATION_INDENT_FOR_ARGUMENTS" value="true" />
+  </Python>
+  <codeStyleSettings language="Python">
+    <indentOptions>
+      <option name="SMART_TABS" value="true" />
+    </indentOptions>
+  </codeStyleSettings>
+</code_scheme>
