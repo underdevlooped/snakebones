@@ -551,7 +551,7 @@ class InternalNode(Node):
             self._snmp_data = get_snmp_data(self)
 
         # v(r) = porta que leva ao root
-        self._port_root = None
+        # self._port_root = None
         # DNv - v(r) = portas que levam as folhas
         self._port_leaves = None
         # Bv = lista de folhas do node na sub-rede
@@ -671,26 +671,37 @@ class InternalNode(Node):
             name_dict[port] = name
         return name_dict
 
-    # FIXME InternalNode: port_root continuar depois de get_port
+    # FIXME InternalNode: port_root continuar depois de get_subnet
     @property
-    def port_root(self):
+    def port_root(self) -> defaultdict:
         """
-        Retorna a porta que leva ao root
+        Retorna dicionario com portas que levam ao root para rede especificada
+        como chave
         #v(r) = porta que leva ao root
+
+        Exemplo:
+        ----
+        >>> self.port_root
+        ... defaultdict(<class 'str'>,
+        ...     {'10.0.10.0/24': '1',
+        ...      '10.0.20.0/24': '2'})
+        >>> self.port_root['10.0.10.0/24']  # rede existente
+        ... '1'
+        >>> self.port_root['10.0.99.0/24']  # rede inexistente
+        ... None
+
+        :return:  Porta do root
+        :rtype: defaultdict
         """
-        subnet_ports = defaultdict(set)
-        allports = set()
+        # get_subnet()
+        rootports = defaultdict(str)
+        # allports = set()
         for subnet in self.associated_subnets:
             if subnet == self.network:
                 continue
             root = get_root(subnet)
-            for mac in subnet.mac_set:
-                for port, mac_set in self.aft_atports.items():
-                    if mac in mac_set:
-                        subnet_ports[subnet.address].add(port)
-                        allports.add(port)
-
-        return self._port_root
+            rootports[subnet.address] = get_port(self, root)
+        return rootports
 
     @property
     def port_leaves(self):
@@ -1058,7 +1069,7 @@ def get_root(subnet: SubNet) -> Union[LeafNode, None]:
 def get_port(from_node: Union[str, LeafNode, InternalNode],
              to_node: Union[str, LeafNode, InternalNode]) -> Union[str, None]:
     """
-    Porta do node interno v que leva a u. v(u)
+    Retorna porta do node interno v que leva a u. v(u)
 
     Exemplo:
     ----
@@ -1083,6 +1094,43 @@ def get_port(from_node: Union[str, LeafNode, InternalNode],
     for mac, port in source.aft:
         if destination.mac.packed == mac:
             return port
+
+
+# HINT: função get_subnet: retotna objeto SubNet dentre os existentes
+def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Union[None, SubNet]:
+    """Retorna se endereco de rede fornecido existe entre os objetos SubNet
+    criados.
+
+    Exemplo:
+    ----
+    >>> get_subnet('10.0.10.0/24')
+    ... SubNet('10.0.10.0/24')
+    >>> get_subnet('10.0.10.0/255.255.255.0')
+    ... SubNet('10.0.10.0/24')
+    >>> get_subnet('10.0.10.0/0.0.0.255')
+    ... SubNet('10.0.10.0/24')
+    >>> get_subnet(IPv4Network('10.0.10.0/24'))
+    ... SubNet('10.0.10.0/24')
+    >>> get_subnet(SubNet('10.0.10.0/24'))
+    ... SubNet('10.0.10.0/24')
+
+    :param subnet: Rede a ser localizada
+    :return: Objeto SubNet
+    """
+    # breakpoint()
+    if isinstance(subnet, str):
+        try:
+            net_obj = IPv4Network(subnet, strict=False)
+        except:
+            return None
+    elif isinstance(subnet, (SubNet, IPv4Network)):
+        net_obj = subnet
+    else:
+        return None
+    for net in SubNet._allsubnets_set:
+        if net == net_obj:
+            return net
+    return None
 
 
 # %% Funcao get_snmp_data
@@ -1393,6 +1441,7 @@ def main():
         # print()
     pprint(Node._all_nodes_set)
 
+    print("\n\nTESTE DE FUNÇÕES")
     print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
     inode_taken = get_node(b'\x00>\\\x02\x80\x01')
     print(repr(inode_taken))
@@ -1409,7 +1458,18 @@ def main():
           f' porta {get_port(inode_taken, leafnode_taken)!r}')
     for port in inode_taken.port_name.keys():
         print(f'porta {port}: nome {inode_taken.port_name[port]}')
-
+    pprint(get_subnet('10.0.10.0/24'))
+    pprint(get_subnet('10.0.10.0/255.255.255.0'))
+    pprint(get_subnet('10.0.10.1/24'))
+    net4 = IPv4Network('10.0.10.0/24')
+    pprint(get_subnet(net4))
+    pprint(get_subnet('10.0.10.1/0.0.0.255'))
+    pprint(get_subnet(inode_taken.associated_subnets.pop()))
+    print(inode_taken)
+    pprint(inode_taken.port_root)
+    pprint(inode_taken.port_root['10.0.10.0/24'])
+    if not inode_taken.port_root['10.0.40.0/27']:
+        pprint('sem root')
 
 # %% executa main()
 if __name__ == '__main__':
