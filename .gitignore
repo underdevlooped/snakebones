@@ -1,3 +1,9 @@
+### andre kern ###
+*.gslides
+*gdoc
+__init__.py
+*.jar
+
 
 # Created by https://www.gitignore.io/api/linux,python,windows,pycharm,pycharm+all
 
