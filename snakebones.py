@@ -287,8 +287,6 @@ class Hub(object):
     def __init__(self):
         """Inicia objeto Hub"""
         self._labeled = False
-        # HINT Hub: ajustado atributo port_list
-        # self._port_list = None
 
     def __repr__(self):
         return self.__class__.__name__ + '()'
@@ -308,7 +306,6 @@ class Hub(object):
         """Retorna lista de portas"""
         return ['1']
 
-    # HINT Hub: atributo base port_set para conjunto de portas do node
     @property
     def port_set(self):
         """Retorna conjunto de portas"""
@@ -378,7 +375,6 @@ class Node(IPv4Interface, Hub):
         else:
             raise Exception('Entrada IP nao perminida')
 
-        # HINT Node: removido teste desnecessario do MAC
         self._mac = EUI(mac_address)
 
         self._mac.dialect = mac_cisco
@@ -564,7 +560,6 @@ class InternalNode(Node):
     def __del__(self):
         InternalNode._num_of_inodes -= 1
 
-    # HINT: InternalNode: port_list corrijido para classe
     @property
     def port_list(self) -> Union[None, List[str]]:
         """Retorna lista de portas na ordem coletada pelo snmp
@@ -641,11 +636,9 @@ class InternalNode(Node):
                 for port, mac_set in self.aft_atports.items():
                     if mac in mac_set:
                         subnet_ports[subnet.address].add(port)
-        # HINT InternalNode: simplificado atributo port_activeset
         subnet_ports['all'] = set(self.port_list)
         return subnet_ports
 
-    # HINT InternalNode: ajustado nome do atributo duplicado
     @property
     def port_activelist_named(self) -> List:
         """
@@ -654,7 +647,6 @@ class InternalNode(Node):
         # return self._port_activelist
         return self._snmp_data.get('port_activelist')
 
-    # HINT InternalNode: port_name para nome da porta pelo indice associado
     @property
     def port_name(self) -> dict:
         """
@@ -672,7 +664,6 @@ class InternalNode(Node):
             name_dict[port] = name
         return name_dict
 
-    # HINT InternalNode: port_root portas ao root para rede especificada
     @property
     def port_root(self) -> defaultdict:
         """
@@ -706,7 +697,6 @@ class InternalNode(Node):
             rootports[subnet.address] = get_port(self, root)
         return rootports
 
-    # HINT: InternalNode: port_leaves portas das folhas para rede informada
     @property
     def port_leaves(self) -> defaultdict:
         """
@@ -733,7 +723,6 @@ class InternalNode(Node):
             ports[key] = (self.port_activeset[key] - {self.port_root[key]})
         return ports
 
-    # HINT InternalNode: leaves com folhas para cada rede associada
     @property
     def leaves(self) -> defaultdict:
         """
@@ -891,27 +880,16 @@ class InternalNode(Node):
                 self.associated_subnets.add(subnet)
                 subnet._nodes.append(self)
 
-    # HINT: metodo set_port_root obsoleto removido
-    # def set_port_root(self, subnet: SubNet):
-    #     """Define porta que liga ao root: port_root"""
-    #     pass
-
-    # HINT: metodo set_port_leaves obsoleto removido
-    # def set_port_leaves(self):
-    #     """Define lista de portas que ligam aos leave nodes: port_leaves"""
-    #     pass
-
-    # TODO: metodo set: set_leaves (get_root primeiro)
-    # TODO: testar set_leaves
-    def set_leaves(self, subnet: SubNet):
-        """Define lista de folhas do node na sub-rede: leaves"""
-        root = get_root(subnet)
-        if not root:
-            return f'{subnet!r} nao possui leaf nodes'
-        self.leaves[subnet.address] = []
-        for node in subnet.leaf_nodes:
-            if node != root:
-                self.leaves[subnet.address].append(node)
+    # HINT: InternalNode: removido método obsoleto **set_leaves**
+    # def set_leaves(self, subnet: SubNet):
+    #     """Define lista de folhas do node na sub-rede: leaves"""
+    #     root = get_root(subnet)
+    #     if not root:
+    #         return f'{subnet!r} nao possui leaf nodes'
+    #     self.leaves[subnet.address] = []
+    #     for node in subnet.leaf_nodes:
+    #         if node != root:
+    #             self.leaves[subnet.address].append(node)
 
     # TODO: metodo set: set_leaves_size (set_leaves primeiro)
     def set_leaves_size(self):
@@ -1037,7 +1015,6 @@ class UniTree(object):
 
 
 # %% Funcao get_node
-# HINT Funcao get_node
 def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
         -> Union[None, LeafNode, InternalNode]:
     """Localiza e retorna node com base no endereco fornecido
@@ -1080,7 +1057,6 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
             for net_node in Node._all_nodes_set:
                 if net_node.ip == node_obj.ip:
                     return net_node
-    # HINT get_node: ajustado para aceitar mais tipos de entradas
     elif isinstance(node, EUI):
         for net_node in Node._all_nodes_set:
             if net_node.mac.packed == node.packed:
@@ -1112,7 +1088,6 @@ def get_root(subnet: SubNet) -> Union[LeafNode, None]:
 
 
 # %% Funcao get_port
-# HINT função para identificar porta que leva a node específico v(u)
 def get_port(from_node: Union[str, LeafNode, InternalNode],
              to_node: Union[str, LeafNode, InternalNode]) -> Union[str, None]:
     """
@@ -1143,7 +1118,6 @@ def get_port(from_node: Union[str, LeafNode, InternalNode],
             return port
 
 
-# HINT: função get_subnet: retotna objeto SubNet dentre os existentes
 def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Union[None, SubNet]:
     """Retorna se endereco de rede fornecido existe entre os objetos SubNet
     criados.
