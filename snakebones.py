@@ -498,20 +498,6 @@ class LeafNode(Node):
             self._is_root = value
 
 
-# %% classe InternalNode
-# propriedades das folhas Bv, basic property 1
-#    if node in nodes:
-#        assert node.leaves_size != 0
-# funcoes dos nos
-#    #numero nv do no para classificar em L
-#    set_value()
-#        if node == root
-#            node.value = len(subnet.nodes) + 1/2
-#        elif node in nodes and node.type
-#            node.value = leaves_size - 1/2
-#        else
-#            node.value = leaves_size
-
 class InternalNode(Node):
     """
     Classe define switches envolvidos na sub-rede (nodes - leaf_nodes)
@@ -546,14 +532,7 @@ class InternalNode(Node):
         else:
             self._snmp_data = get_snmp_data(self)
 
-        # v(r) = porta que leva ao root
-        # self._port_root = None
-        # DNv - v(r) = portas que levam as folhas
-        # self._port_leaves = None
-        # Bv = lista de folhas do node na sub-rede
-        # self.leaves = dict()
-        # |Bv| = numero de folhas Bv do node
-        self._leaves_size = None
+        # HINT InternalNode: removido atributo desnecessario _leaves_size
         InternalNode._allinodes_set.add(self)
         Node._all_nodes_set.add(self)
 
@@ -603,14 +582,6 @@ class InternalNode(Node):
         :return: nodes internos
         """
         return self._allinodes_set
-
-    # @property
-    # def port_activeset(self, subnet=None):
-    #     """
-    #     Retorna lista de portas ativas do node
-    #     # Dv = potas ativas
-    #     """
-    #     return {port for port, _ in self.snmp_data.get('port_activelist')}
 
     @property
     def port_activeset(self):
@@ -767,6 +738,14 @@ class InternalNode(Node):
         Retorna quantidade de nodes folhas para rede informada
         #|Bv| = numero de folhas do node
 
+        Exemplo:
+        ----
+        >>> self.leaves_size
+        ... defaultdict(<class 'int'>, {'10.0.10.0/24': 5, '10.0.20.0/24': 2})
+
+        >>> self.leaves_size['10.0.10.0/24']
+        ... 5
+
         :return: Quantidade de folhas
         :rtype: defaultdict
         """
@@ -843,22 +822,6 @@ class InternalNode(Node):
             else:
                 continue
         return atports
-
-    # def subnet_port_activeset(self, subnet=None):
-    #     """
-    #     Retorna conjunto de portas ativas do node
-    #     # DNv = potas ativas na subrede N
-    #     """
-    #     subnet_ports = set()
-    #     if isinstance(subnet,str):
-    #         for rede in SubNet._allsubnets_set:
-    #             if rede.address == subnet:
-    #                 for mac in rede.mac_set:
-    #                     # breakpoint()
-    #                     for port, mac_set in self.aft_atports.items():
-    #                         if mac in mac_set:
-    #                             subnet_ports.add(port)
-    #     return subnet_ports
 
     def set_associated_subnets(self):
         """
