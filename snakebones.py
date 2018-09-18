@@ -760,14 +760,20 @@ class InternalNode(Node):
 
         return all_leaves
 
-    # TODO InternalNode: leaves_size
+    # HINT InternalNode: leaves_size retorna quantidade de folhas |Bv|
     @property
-    def leaves_size(self):
+    def leaves_size(self) -> defaultdict:
         """
-        Retorna quantidade de nos folhas
-        #|Bv| = numero de folhas do no
+        Retorna quantidade de nodes folhas para rede informada
+        #|Bv| = numero de folhas do node
+
+        :return: Quantidade de folhas
+        :rtype: defaultdict
         """
-        return self._leaves_size
+        size = defaultdict(int)
+        for rede, leaves in self.leaves.items():
+            size[rede] = len(leaves)
+        return size
 
     @property
     def num_of_inodes(self):
@@ -881,20 +887,8 @@ class InternalNode(Node):
                 subnet._nodes.append(self)
 
     # HINT: InternalNode: removido método obsoleto **set_leaves**
-    # def set_leaves(self, subnet: SubNet):
-    #     """Define lista de folhas do node na sub-rede: leaves"""
-    #     root = get_root(subnet)
-    #     if not root:
-    #         return f'{subnet!r} nao possui leaf nodes'
-    #     self.leaves[subnet.address] = []
-    #     for node in subnet.leaf_nodes:
-    #         if node != root:
-    #             self.leaves[subnet.address].append(node)
 
-    # TODO: metodo set: set_leaves_size (set_leaves primeiro)
-    def set_leaves_size(self):
-        """Define quantidades de folhas: leaves_size"""
-        pass
+    # HINT: método redundante set_leaves_size removido
 
 
 # %% classe Tree Tn(Vn, En)
@@ -1497,6 +1491,8 @@ def main():
     pprint(inode_taken.port_leaves['10.0.20.0/24'])
     pprint(inode_taken.port_leaves)
     pprint(inode_taken.leaves)
+    pprint(inode_taken.leaves_size)
+    pprint(inode_taken.leaves_size['10.0.10.0/24'])
 
     # for inode in redes[0].internal_nodes:
     #     print(f'Node interno {inode} , rede "10.0.10.0/24":\n'
