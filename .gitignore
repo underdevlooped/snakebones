@@ -1,6 +1,8 @@
 ### andre kern ###
 *.gslides
-*gdoc
+*.gdslides
+*.gdoc
+*.gddoc
 __init__.py
 *.jar
 
