@@ -527,6 +527,8 @@ class InternalNode(Node):
 
     def __init__(self, ip_address, mac_address, auto_fill=AUTOFILL_MODE):
         super().__init__(ip_address, mac_address)
+        # HINT InternalNode>ports_onsubnet movido para inicializacao da classe
+        self.ports_onsubnet = defaultdict(set)
         if auto_fill and SNMP_DATA.get(self.compressed):
             self._snmp_data = SNMP_DATA.get(self.compressed)
         else:
@@ -829,7 +831,6 @@ class InternalNode(Node):
         atribuindo a associated_subnets caso necessario
         v pertence a Vn
         """
-        self.ports_onsubnet = defaultdict(set)
         for subnet in SubNet._allsubnets_set:
             # for self in InternalNode._allinodes_set:
             if subnet == self.network:
