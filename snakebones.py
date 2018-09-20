@@ -393,6 +393,34 @@ class Node(IPv4Interface, Hub):
         return self.__class__.__name__ + '(' + repr(self.with_prefixlen) \
                + ', ' + "'" + str(self._mac_address) + "')"
 
+    # HINT Node: port_activeset para node base (Dv e DNv)
+    @property
+    def port_activeset(self):
+        """
+        Retorna conjunto de portas ativas do node. mantido padrao
+        de InternalNode. Para objetos Node e LeafNode retorna sempre {'1'}
+        # Dv = potas ativas do node
+        # DNv = potas ativas do node na subrede N
+
+        Exemblo:
+        ----
+        >>> # para nodes '10.0.10.X/24'
+        >>> self.port_activeset['all']  # Dv
+        ... {'1'}
+
+        >>> self.port_activeset['10.0.10.0/24']  # DNv
+        ... {'1'}
+
+        >>> self.port_activeset['10.0.20.0/24']  # rede diferente da do node
+        ... set()
+
+        """
+        subnet_ports = defaultdict(set)
+        for subnet in self.associated_subnets:
+            subnet_ports[subnet.address] = {'1'}
+        subnet_ports['all'] = {'1'}
+        return subnet_ports
+
     @property
     def all_nodes_set(self) -> set:
         """
@@ -1427,7 +1455,7 @@ def main():
     print("\n\nTESTE DE FUNÇÕES")
     print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
     inode_taken = get_node(b'\x00>\\\x02\x80\x01')
-    print(repr(inode_taken))
+    print(f'Inode taken {repr(inode_taken)}')
     print(inode_taken.port_set)
     print("get mac '0050.7966.6802' de str")
     leafnode_taken = get_node('005079666802')
@@ -1457,6 +1485,12 @@ def main():
     pprint(inode_taken.leaves)
     pprint(inode_taken.leaves_size)
     pprint(inode_taken.leaves_size['10.0.10.0/24'])
+    pprint(f'{leafnode_taken!r} Dv:{leafnode_taken.port_activeset}')
+    pprint(f'{leafnode_taken!r} DNv "10.0.10.0/24":{leafnode_taken.port_activeset["10.0.10.0/24"]}')
+    pprint(f'{leafnode_taken!r} DNv "10.0.20.0/24":{leafnode_taken.port_activeset["10.0.20.0/24"]}')
+    pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':{leafnode_taken.port_activeset['all']}")
+    pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':{leafnode_taken.port_activeset[leafnode_taken.network.compressed]}")
+
 
     # for inode in redes[0].internal_nodes:
     #     print(f'Node interno {inode} , rede "10.0.10.0/24":\n'
