@@ -395,7 +395,7 @@ class Node(IPv4Interface, Hub):
 
     # HINT Node: port_activeset para node base (Dv e DNv)
     @property
-    def port_activeset(self):
+    def port_activeset(self, subnet=None):
         """
         Retorna conjunto de portas ativas do node. mantido padrao
         de InternalNode. Para objetos Node e LeafNode retorna sempre {'1'}
@@ -415,6 +415,8 @@ class Node(IPv4Interface, Hub):
         ... set()
 
         """
+        if isinstance(self, LeafNode):
+            pass
         subnet_ports = defaultdict(set)
         for subnet in self.associated_subnets:
             subnet_ports[subnet.address] = {'1'}
@@ -613,6 +615,7 @@ class InternalNode(Node):
         """
         return self._allinodes_set
 
+    # TODO InternalNode: remover
     @property
     def port_activeset(self):
         """
@@ -804,6 +807,7 @@ class InternalNode(Node):
         """Tabela de emcaminhamento (MAC, PORTA)"""
         return list(zip(self.mac_list, self.port_list))
 
+# TODO InternalNode: converter aft_atports em função independente
     @property
     def aft_atports(self) -> defaultdict:
         """Dicionario com tabela AFT de emcaminhamento para determinada porta
@@ -1142,6 +1146,64 @@ def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Union[None, SubNet]:
         if net == net_obj:
             return net
     return None
+
+
+# HINT port_activeset (Dv e DNv) convertido em função independente da classe
+def port_activeset(node: Union[LeafNode,InternalNode],
+                   subnet: str = None) -> set:
+    """
+    Retorna conjunto de portas ativas do node. Para objetos LeafNode retorna
+    sempre {'1'}
+
+    # Dv = potas ativas do node
+    # DNv = potas ativas do node na subrede N (parametro subnet)
+
+    Exemblo:
+    ----
+    >>> # para nodes '10.0.10.X/24'
+    >>> port_activeset(LeafNode)# Dv
+    ... {'1'}
+    >>> port_activeset(InternalNode)  # Dv
+    ... {'3', '16', '1', '2'}
+
+    >>> port_activeset(LeafNode, '10.0.10.0/24')  # DNv
+    ... {'1'}
+    >>> port_activeset(LeafNode, '10.0.20.0/24')  # DNv
+    ... set()
+
+    >>> port_activeset(InternalNode, '10.0.20.0/24')  # DNv existente
+    ... {'3', '16', '2'}
+    >>> port_activeset(InternalNode, '10.0.30.0/24')  # DNv inexistene
+    ... set()
+    :return:
+    :param node: LeafNode ou InternalNode
+    :param subnet: subrede no formato 'ip/mascara'
+    :return: Conjunto de portas ativas
+    :rtype: set
+
+    """
+    if isinstance(node, LeafNode):
+        if not subnet:
+            return {'1'}
+        else:
+            for rede in node.associated_subnets:
+                if rede.compressed == subnet:
+                    return {'1'}
+            return set()
+
+    elif isinstance(node, InternalNode):
+        if not subnet:
+            return node.port_set
+        else:
+            subnet_ports = set()
+            for rede in node.associated_subnets:
+                if rede.compressed == subnet:
+                    # continue
+                    for mac in rede.mac_set:
+                        for port, mac_set in node.aft_atports.items():
+                            if mac in mac_set:
+                                subnet_ports.add(port)
+            return subnet_ports
 
 
 # %% Funcao get_snmp_data
@@ -1489,7 +1551,11 @@ def main():
     pprint(f'{leafnode_taken!r} DNv "10.0.10.0/24":{leafnode_taken.port_activeset["10.0.10.0/24"]}')
     pprint(f'{leafnode_taken!r} DNv "10.0.20.0/24":{leafnode_taken.port_activeset["10.0.20.0/24"]}')
     pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':{leafnode_taken.port_activeset['all']}")
-    pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':{leafnode_taken.port_activeset[leafnode_taken.network.compressed]}")
+    pprint(f"Func {leafnode_taken!r} DNv '10.0.20.0/24':{port_activeset(leafnode_taken)}")
+    pprint(f"Func {leafnode_taken!r} DNv '10.0.20.0/24':{port_activeset(leafnode_taken, '10.0.10.0/24')}")
+    print(f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken)}")
+    print(f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.20.0/24')}")
+    print(f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
 
 
     # for inode in redes[0].internal_nodes:
