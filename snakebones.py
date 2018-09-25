@@ -611,8 +611,8 @@ class InternalNode(Node):
             name_dict[port] = name
         return name_dict
 
-    @property
-    def port_root(self) -> defaultdict:
+    # HINT InternalNode: método port_root corrigido
+    def port_root(self, subnet: Union[str, IPv4Network, SubNet]) -> str:
         """
         Retorna dicionario com portas que levam ao root para rede especificada
         como chave
@@ -620,33 +620,20 @@ class InternalNode(Node):
 
         Exemplo:
         ----
-        >>> self.port_root
-        ... defaultdict(<class 'str'>,
-        ...     {'10.0.10.0/24': '1',
-        ...      '10.0.20.0/24': '2'})
-
-        >>> self.port_root['10.0.10.0/24']  # rede existente
+        >>> self.port_root('10.0.10.0/24')  # rede existente
         ... '1'
 
-        >>> self.port_root['10.0.99.0/24']  # rede inexistente
+        >>> self.port_root('10.0.99.0/24')  # rede inexistente
         ... None
 
-        :return:  Porta do root
-        :rtype: defaultdict
+        :param subnet: rede a ser retornado root port
+        :return:  Porta ao root
+        :rtype: str
         """
-        # get_subnet()
-        rootports = defaultdict(str)
-        # allports = set()
-        for subnet in self.associated_subnets:
-            if subnet == self.network:
-                continue
-            root = get_root(subnet)
-            rootports[subnet.address] = get_port(self, root)
-        return rootports
+        return get_port(self, get_root(get_subnet(subnet)))
 
     # HINT InternalNode: método port_leaves simplificado e corrigido bug
-    # TODO InternalNode: ajustar docstring
-    def port_leaves(self, subnet) -> defaultdict:
+    def port_leaves(self, subnet: Union[str, IPv4Network, SubNet]) -> set:
         """
         Retorna portas que levam aos nos folhas
         leaf ports = active - root
@@ -654,22 +641,19 @@ class InternalNode(Node):
 
         Exemplo:
         ----
-        >>> self.port_leaves
-        ... defaultdict(<class 'set'>,
-        ...     {'10.0.10.0/24': {'3'}, '10.0.20.0/24': {'3', '16'}})
-
-        >>> self.port_leaves['10.0.20.0/24']
+        >>> self.port_leaves('10.0.20.0/24')
         ... {'3', '16'}
 
+        :param subnet: rede a ser retornado portas folhas
         :return: Portas para folhas
-        :rtype: defaultdict
+        :rtype: set
         """
         subnet = get_subnet(subnet)
-        return port_activeset(self, subnet) - {get_port(self, get_root(subnet))}
+        port_root = set(self.port_root(subnet))
+        return port_activeset(self, subnet) - port_root
 
-    # FIXME InternalNode: leaves -> subnet_aft_atports
-    # @property
-    def leaves(self, subnet) -> defaultdict:
+    # HINT InternalNode: método leaves corrigido
+    def leaves(self, subnet: Union[str, IPv4Network, SubNet]) -> set:
         """
         Retorna conjunto de nos folhas em relacao ao root para subrede fornecida
         #leaves = nodes - root
@@ -678,56 +662,37 @@ class InternalNode(Node):
 
         Exemplo:
         ----
-        >>> self.leaves
-        ... defaultdict(<class 'set'>,
-        ...     {'10.0.10.0/24': {LeafNode('10.0.10.2/24', '0050.7966.6805'),
-        ...                       LeafNode('10.0.10.3/24', '0050.7966.6809'),
-        ...                       LeafNode('10.0.10.4/24', '0050.7966.680a'),
-        ...                       LeafNode('10.0.10.5/24', '0050.7966.6808'),
-        ...                       LeafNode('10.0.10.6/24', '0050.7966.6807')},
-        ...      '10.0.20.0/24': {LeafNode('10.0.20.3/24', '0050.7966.6804'),
-        ...                       LeafNode('10.0.20.4/24', '0050.7966.6806')}})
-
-        >>> self.leaves['10.0.20.0/24']
+        >>> self.leaves('10.0.20.0/24')
         ... {LeafNode('10.0.20.3/24', '0050.7966.6804'),
         ...  LeafNode('10.0.20.4/24', '0050.7966.6806')}
 
+        :param subnet: rede a ser retornado LeafNodes
         :return: Conjunto de folhas
-        :rtype: defaultdict
+        :rtype: set
         """
         subnet = get_subnet(subnet)
-        all_leaves = defaultdict(set)
-        for rede in self.associated_subnets:
-            for port, mac_set in self.subnet_aft_atports(rede.address).items():
-                leaves = {get_node(node) for node in mac_set}
-                for leaf_port in self.port_leaves(subnet):
-                    if port in leaf_port:
-                        all_leaves[rede.address].update(leaves)
+        leaves = set()
+        for port in self.port_leaves(subnet):
+            for mac in self.aft_atports(port, subnet):
+                leaves.add(get_node(mac))
+        return leaves
 
-        return all_leaves
-
-    # FIXME InternalNode: leaves_size
-    @property
-    def leaves_size(self) -> defaultdict:
+    # HINT InternalNode: leaves_size
+    def leaves_size(self, subnet) -> int:
         """
         Retorna quantidade de nodes folhas para rede informada
         #|Bv| = numero de folhas do node
 
         Exemplo:
         ----
-        >>> self.leaves_size
-        ... defaultdict(<class 'int'>, {'10.0.10.0/24': 5, '10.0.20.0/24': 2})
-
-        >>> self.leaves_size['10.0.10.0/24']
+        >>> self.leaves_size('10.0.10.0/24')
         ... 5
 
+        :param subnet: rede a ser retornado quantidade de folhas
         :return: Quantidade de folhas
-        :rtype: defaultdict
+        :rtype: int
         """
-        size = defaultdict(int)
-        for rede, leaves in self.leaves.items():
-            size[rede] = len(leaves)
-        return size
+        return len(self.leaves(get_subnet(subnet)))
 
     @property
     def num_of_inodes(self):
@@ -750,19 +715,32 @@ class InternalNode(Node):
         return list(zip(self.mac_list, self.port_list))
 
 # HINT InternalNode: convertido aft_atports em método para correcao de bug
-# TODO InternalNode: aft_atports docstring
-    def aft_atports(self, porta, subnet=None) -> defaultdict:
-        """Dicionario com tabela AFT de emcaminhamento para determinada porta
-        Fv,k
+    def aft_atports(self,
+                    porta: str,
+                    subnet: Union[str, IPv4Network, SubNet] = None) -> set:
+        """Retorna tabela AFT de emcaminhamento para determinada porta, podendo
+        filtrar rede especifica
+
+        Fv,k e FNv,k
 
         Exemplo:
+        ----
+        >>> self.aft_atports('1')  # Fv,k
+        ... {b'\x00>\\\x01\x80\x01',
+        ...  b'\x00>\\\x06\x80\x01',
+        ...  b'\x00Pyfh\x00',
+        ...  b'\x00Pyfh\x01',
+        ...  b'\x00Pyfh\x0b',
+        ...  b'\x00Pyfh\x0c'}
 
-        >>> self.aft_atports['2']
-        ... {b'\x00>\\\x04\x80\x01', b'\x00Pyfh\x02', b'\x00Pyfh\x03'}
-        :rtype: defaultdict
+        >>> self.aft_atports('1','10.0.10.0/24')  # FNv,k
+        ... {b'\x00Pyfh\x0c'}
+
+        :param porta: indice da porta a analisar
+        :param subnet:  rede a ser retornado aft
         :return: AFT em cada porta
+        :rtype: set
         """
-        atports = defaultdict(set)
         if not subnet:
             return {mac for mac, port in zip(self.mac_list, self.port_list)
                     if port == porta}
@@ -953,7 +931,8 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
 
     :param node:
         Enderedeo em bytes ou string do IP ou MAC do node a ser pesquisado
-    :return: Objeto que representa o node
+    :
+: Objeto que representa o node
     :rtype: LeafNode,InternalNode
     """
     if isinstance(node, bytes):
@@ -1075,7 +1054,6 @@ def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Union[None, SubNet]:
     :param subnet: Rede a ser localizada
     :return: Objeto SubNet
     """
-    # breakpoint()
     if isinstance(subnet, str):
         try:
             net_obj = IPv4Network(subnet, strict=False)
@@ -1444,7 +1422,7 @@ def main():
         if not get_root(rede):
             print()
             continue
-        print('Vn - r: ')''
+        print('Vn - r: ')
         pprint(rede.nodes_set - {get_root(rede)})
         print()
         # for inode in redes[0].internal_nodes:
@@ -1469,23 +1447,16 @@ def main():
           f' porta {get_port(inode_taken, leafnode_taken)!r}')
     for port in inode_taken.port_name.keys():
         print(f'porta {port}: nome {inode_taken.port_name[port]}')
-    pprint(get_subnet('10.0.10.0/24'))
-    pprint(get_subnet('10.0.10.0/255.255.255.0'))
-    pprint(get_subnet('10.0.10.1/24'))
-    net4 = IPv4Network('10.0.10.0/24')
-    pprint(get_subnet(net4))
-    pprint(get_subnet('10.0.10.1/0.0.0.255'))
-    pprint(get_subnet(inode_taken.associated_subnets.pop()))
+
     print()
     print(inode_taken)
-    pprint(inode_taken.port_root)
-    pprint(port_activeset(inode_taken))
-    pprint(inode_taken.port_leaves('10.0.20.0/24'))
-    pprint(inode_taken.port_leaves)
+    print(f"portas ativas {port_activeset(inode_taken)}")
+    print(f"port root: {inode_taken.port_root('10.0.20.0/24')!r}")
+    print(f"portas folhas {inode_taken.port_leaves('10.0.20.0/24')!r}")
+    print(f"folhas {inode_taken.leaves('10.0.20.0/24')!r}")
+    pprint(f"tamanho folhas {inode_taken.leaves_size('10.0.20.0/24')!r}")
+    print()
     breakpoint()
-    pprint(inode_taken.leaves('10.0.20.0/24'))
-    pprint(inode_taken.leaves_size)
-    pprint(inode_taken.leaves_size['10.0.10.0/24'])
     pprint(f"{leafnode_taken!r} Dv:{port_activeset(leafnode_taken)}")
     pprint(f"{leafnode_taken!r} DNv '10.0.10.0/24':"
            f"{port_activeset(leafnode_taken,'10.0.10.0/24')}")
