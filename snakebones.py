@@ -393,36 +393,7 @@ class Node(IPv4Interface, Hub):
         return self.__class__.__name__ + '(' + repr(self.with_prefixlen) \
                + ', ' + "'" + str(self._mac_address) + "')"
 
-    # HINT Node: port_activeset para node base (Dv e DNv)
-    @property
-    def port_activeset(self, subnet=None):
-        """
-        Retorna conjunto de portas ativas do node. mantido padrao
-        de InternalNode. Para objetos Node e LeafNode retorna sempre {'1'}
-        # Dv = potas ativas do node
-        # DNv = potas ativas do node na subrede N
-
-        Exemblo:
-        ----
-        >>> # para nodes '10.0.10.X/24'
-        >>> self.port_activeset['all']  # Dv
-        ... {'1'}
-
-        >>> self.port_activeset['10.0.10.0/24']  # DNv
-        ... {'1'}
-
-        >>> self.port_activeset['10.0.20.0/24']  # rede diferente da do node
-        ... set()
-
-        """
-        if isinstance(self, LeafNode):
-            pass
-        subnet_ports = defaultdict(set)
-        for subnet in self.associated_subnets:
-            subnet_ports[subnet.address] = {'1'}
-        subnet_ports['all'] = {'1'}
-        return subnet_ports
-
+    # HINT Node: port_activeset removido
     @property
     def all_nodes_set(self) -> set:
         """
@@ -557,14 +528,12 @@ class InternalNode(Node):
 
     def __init__(self, ip_address, mac_address, auto_fill=AUTOFILL_MODE):
         super().__init__(ip_address, mac_address)
-        # HINT InternalNode>ports_onsubnet movido para inicializacao da classe
         self.ports_onsubnet = defaultdict(set)
         if auto_fill and SNMP_DATA.get(self.compressed):
             self._snmp_data = SNMP_DATA.get(self.compressed)
         else:
             self._snmp_data = get_snmp_data(self)
 
-        # HINT InternalNode: removido atributo desnecessario _leaves_size
         InternalNode._allinodes_set.add(self)
         Node._all_nodes_set.add(self)
 
@@ -615,33 +584,7 @@ class InternalNode(Node):
         """
         return self._allinodes_set
 
-    # TODO InternalNode: remover
-    @property
-    def port_activeset(self):
-        """
-        Retorna conjunto de portas ativas do node
-        # Dv = potas ativas do node
-        # DNv = potas ativas do node na subrede N
-
-        Exemblo:
-        ----
-        >>> self.port_activeset['all']  # Dv
-        ... {'3', '15', '16', '2'}
-
-        >>> self.port_activeset['10.0.10.0/24']  # DNv
-        ... {'3', '15'}
-
-        """
-        subnet_ports = defaultdict(set)
-        for subnet in self.associated_subnets:
-            if subnet == self.network:
-                continue
-            for mac in subnet.mac_set:
-                for port, mac_set in self.aft_atports.items():
-                    if mac in mac_set:
-                        subnet_ports[subnet.address].add(port)
-        subnet_ports['all'] = set(self.port_list)
-        return subnet_ports
+    # HINT InternalNode: removido port_activeset
 
     @property
     def port_activelist_named(self) -> List:
@@ -701,8 +644,9 @@ class InternalNode(Node):
             rootports[subnet.address] = get_port(self, root)
         return rootports
 
-    @property
-    def port_leaves(self) -> defaultdict:
+    # HINT InternalNode: método port_leaves simplificado e corrigido bug
+    # TODO InternalNode: ajustar docstring
+    def port_leaves(self, subnet) -> defaultdict:
         """
         Retorna portas que levam aos nos folhas
         leaf ports = active - root
@@ -720,15 +664,12 @@ class InternalNode(Node):
         :return: Portas para folhas
         :rtype: defaultdict
         """
-        ports = defaultdict(set)
-        for key in self.port_activeset.keys():
-            if key == 'all':
-                continue
-            ports[key] = (self.port_activeset[key] - {self.port_root[key]})
-        return ports
+        subnet = get_subnet(subnet)
+        return port_activeset(self, subnet) - {get_port(self, get_root(subnet))}
 
-    @property
-    def leaves(self) -> defaultdict:
+    # FIXME InternalNode: leaves -> subnet_aft_atports
+    # @property
+    def leaves(self, subnet) -> defaultdict:
         """
         Retorna conjunto de nos folhas em relacao ao root para subrede fornecida
         #leaves = nodes - root
@@ -754,17 +695,18 @@ class InternalNode(Node):
         :return: Conjunto de folhas
         :rtype: defaultdict
         """
+        subnet = get_subnet(subnet)
         all_leaves = defaultdict(set)
         for rede in self.associated_subnets:
             for port, mac_set in self.subnet_aft_atports(rede.address).items():
                 leaves = {get_node(node) for node in mac_set}
-                for leaf_port in self.port_leaves.values():
+                for leaf_port in self.port_leaves(subnet):
                     if port in leaf_port:
                         all_leaves[rede.address].update(leaves)
 
         return all_leaves
 
-    # HINT InternalNode: leaves_size retorna quantidade de folhas |Bv|
+    # FIXME InternalNode: leaves_size
     @property
     def leaves_size(self) -> defaultdict:
         """
@@ -807,9 +749,9 @@ class InternalNode(Node):
         """Tabela de emcaminhamento (MAC, PORTA)"""
         return list(zip(self.mac_list, self.port_list))
 
-# TODO InternalNode: converter aft_atports em função independente
-    @property
-    def aft_atports(self) -> defaultdict:
+# HINT InternalNode: convertido aft_atports em método para correcao de bug
+# TODO InternalNode: aft_atports docstring
+    def aft_atports(self, porta, subnet=None) -> defaultdict:
         """Dicionario com tabela AFT de emcaminhamento para determinada porta
         Fv,k
 
@@ -821,9 +763,13 @@ class InternalNode(Node):
         :return: AFT em cada porta
         """
         atports = defaultdict(set)
-        for mac, port in zip(self.mac_list, self.port_list):
-            atports[port].add(mac)
-        return atports
+        if not subnet:
+            return {mac for mac, port in zip(self.mac_list, self.port_list)
+                    if port == porta}
+        else:
+            subnet = get_subnet(subnet)
+            return {mac for mac in subnet.mac_set
+                    if mac in self.aft_atports(porta)}
 
     def subnet_aft_atports(self, subnet: str) -> defaultdict:
         """
@@ -881,10 +827,6 @@ class InternalNode(Node):
                         and (arp_set < subnet.mac_set)):
                 self.associated_subnets.add(subnet)
                 subnet._nodes.append(self)
-
-    # HINT: InternalNode: removido método obsoleto **set_leaves**
-
-    # HINT: método redundante set_leaves_size removido
 
 
 # %% classe Tree Tn(Vn, En)
@@ -1108,6 +1050,7 @@ def get_port(from_node: Union[str, LeafNode, InternalNode],
             return port
 
 
+# %% Funcao get_subnet
 def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Union[None, SubNet]:
     """Retorna se endereco de rede fornecido existe entre os objetos SubNet
     criados.
@@ -1148,7 +1091,8 @@ def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Union[None, SubNet]:
     return None
 
 
-# HINT port_activeset (Dv e DNv) convertido em função independente da classe
+# %% Funcao port_activeset
+# HINT port_activeset: ajustado subnet input
 def port_activeset(node: Union[LeafNode,InternalNode],
                    subnet: str = None) -> set:
     """
@@ -1186,8 +1130,9 @@ def port_activeset(node: Union[LeafNode,InternalNode],
         if not subnet:
             return {'1'}
         else:
+            subnet = get_subnet(subnet)
             for rede in node.associated_subnets:
-                if rede.compressed == subnet:
+                if rede.compressed == subnet.compressed:
                     return {'1'}
             return set()
 
@@ -1195,14 +1140,12 @@ def port_activeset(node: Union[LeafNode,InternalNode],
         if not subnet:
             return node.port_set
         else:
+            subnet = get_subnet(subnet)
             subnet_ports = set()
-            for rede in node.associated_subnets:
-                if rede.compressed == subnet:
-                    # continue
-                    for mac in rede.mac_set:
-                        for port, mac_set in node.aft_atports.items():
-                            if mac in mac_set:
-                                subnet_ports.add(port)
+            for mac in subnet.mac_set:
+                for port in node.port_set:
+                    if mac in node.aft_atports(port):
+                        subnet_ports.add(port)
             return subnet_ports
 
 
@@ -1480,20 +1423,15 @@ def main():
         print(f'SubNet associadas: '
               f'{inode.associated_subnets.difference({inode.network})}')
         print(f'D{inode.name}:')
-        pprint(inode.port_activeset['all'])
+        pprint(port_activeset(inode))
         print(f'DN{inode.name} N=10.0.10.0:')
-        print(inode.port_activeset['10.0.10.0/24'])
+        print(port_activeset(inode, '10.0.10.0/24'))
 
-        print(f'F{inode.name},k: {inode.aft_atports}')
-        for port in inode.aft_atports.keys():
+        for port in inode.port_set:
             pprint(f'F{inode.name},{port}:')
-            pprint(inode.aft_atports[port])
-        print()
-        print(f'FN{inode.name},k N=10.0.10.0:')
-        print(inode.subnet_aft_atports('10.0.10.0/24'))
-        for port, macs in inode.subnet_aft_atports('10.0.10.0/24').items():
-            pprint(f'FN{inode.name},{port}:')
-            pprint(macs)
+            pprint(inode.aft_atports(port))
+            print(f'FN{inode.name},{port} N=10.0.10.0:')
+            pprint(inode.aft_atports(port,'10.0.10.0/24'))
 
         print()
 
@@ -1541,21 +1479,21 @@ def main():
     print()
     print(inode_taken)
     pprint(inode_taken.port_root)
-    pprint(inode_taken.port_activeset)
-    pprint(inode_taken.port_leaves['10.0.20.0/24'])
+    pprint(port_activeset(inode_taken))
+    pprint(inode_taken.port_leaves('10.0.20.0/24'))
     pprint(inode_taken.port_leaves)
-    pprint(inode_taken.leaves)
+    breakpoint()
+    pprint(inode_taken.leaves('10.0.20.0/24'))
     pprint(inode_taken.leaves_size)
     pprint(inode_taken.leaves_size['10.0.10.0/24'])
-    pprint(f'{leafnode_taken!r} Dv:{leafnode_taken.port_activeset}')
-    pprint(f'{leafnode_taken!r} DNv "10.0.10.0/24":{leafnode_taken.port_activeset["10.0.10.0/24"]}')
-    pprint(f'{leafnode_taken!r} DNv "10.0.20.0/24":{leafnode_taken.port_activeset["10.0.20.0/24"]}')
-    pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':{leafnode_taken.port_activeset['all']}")
-    pprint(f"Func {leafnode_taken!r} DNv '10.0.20.0/24':{port_activeset(leafnode_taken)}")
-    pprint(f"Func {leafnode_taken!r} DNv '10.0.20.0/24':{port_activeset(leafnode_taken, '10.0.10.0/24')}")
+    pprint(f"{leafnode_taken!r} Dv:{port_activeset(leafnode_taken)}")
+    pprint(f"{leafnode_taken!r} DNv '10.0.10.0/24':"
+           f"{port_activeset(leafnode_taken,'10.0.10.0/24')}")
+    pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':"
+           f"{port_activeset(leafnode_taken, '10.0.20.0/24')}")
     print(f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken)}")
     print(f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.20.0/24')}")
-    print(f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
+    print(f"Func {inode_taken!r} DNv '10.0.30.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
 
 
     # for inode in redes[0].internal_nodes:
