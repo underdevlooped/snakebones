@@ -1444,7 +1444,7 @@ def main():
         if not get_root(rede):
             print()
             continue
-        print('Vn - r: ')
+        print('Vn - r: ')''
         pprint(rede.nodes_set - {get_root(rede)})
         print()
         # for inode in redes[0].internal_nodes:
