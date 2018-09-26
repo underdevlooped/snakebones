@@ -1298,16 +1298,27 @@ class SkeletonTree(object):
 
     """
 
-    # TODO SkeletonTree: inicialicazao da classe
-    def __init__(self, subnet: SubNet):
+    # HINT SkeletonTree: inicialicazao da classe
+    def __init__(self, subnet):
         """
         Inicializa a skeleton-tree
 
-        :param subnet: Objeto SubNet que induz a topologia
+        :param subnet: subrede que induz a topologia
         """
+        # for inode in InternalNode._allinodes_set:
+        #     inode.set_associated_subnets()
+        subnet = get_subnet(subnet)
         self.subnet = subnet
-        self.nodes = subnet.nodes
         self.root = get_root(subnet)
+        self.nodes = set()
+        self.folhas = set()
+        for node in subnet.nodes:
+            self.nodes.add(node)  # Vn
+            if isinstance(node, LeafNode):
+                self.folhas.add(node)  # N
+        for node in self.nodes - {self.root}:
+            pprint(node)
+
 
 
 #    #1
@@ -1434,6 +1445,9 @@ def main():
     print(f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.20.0/24')}")
     print(f"Func {inode_taken!r} DNv '10.0.30.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
 
+    print()
+    SkeletonTree(get_subnet('10.0.10.0/24'))
+    # SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
 
     # for inode in redes[0].internal_nodes:
     #     print(f'Node interno {inode} , rede "10.0.10.0/24":\n'
