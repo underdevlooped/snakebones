@@ -5,6 +5,10 @@
 *.gddoc
 __init__.py
 *.jar
+snakebones_BACKUP_8020.py
+snakebones_BASE_8020.py
+snakebones_LOCAL_8020.py
+snakebones_REMOTE_8020.py
 
 
 # Created by https://www.gitignore.io/api/linux,python,windows,pycharm,pycharm+all
