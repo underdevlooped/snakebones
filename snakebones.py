@@ -1299,6 +1299,7 @@ class SkeletonTree(object):
     """
 
     # HINT SkeletonTree: inicialicazao da classe
+    # FIXME SkeletonTree: corrigir calculo value_in_set do node
     def __init__(self, subnet):
         """
         Inicializa a skeleton-tree
@@ -1311,14 +1312,28 @@ class SkeletonTree(object):
         self.subnet = subnet
         self.root = get_root(subnet)
         self.nodes = set()
-        self.folhas = set()
+        self.leaves = set()
         for node in subnet.nodes:
             self.nodes.add(node)  # Vn
             if isinstance(node, LeafNode):
-                self.folhas.add(node)  # N
+                self.leaves.add(node)  # N
+        bv_set = self.nodes - {self.root}
         for node in self.nodes - {self.root}:
             pprint(node)
+            # if isinstance(node, InternalNode):
+            #     bv_set = node.leaves(subnet)
+            #     if len(node.port_leaves(subnet)) != 2:
+            #         node._value_in_set = len(bv_set) - 0.5
+            if node in self.leaves \
+                    or (isinstance(node, InternalNode)
+                        and len(port_activeset(node, subnet)) != 2):
+                breakpoint()
+                node._value_in_set = len(bv_set) - 0.5
+            print(f"bv: {node.value_in_set}")
 
+    # HINT SkeletonTree: corrigido representacao da classe
+    def __repr__(self):
+        return self.__class__.__name__ + f"({self.subnet.compressed!r})"
 
 
 #    #1
