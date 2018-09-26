@@ -32,7 +32,7 @@ from collections import Counter, defaultdict
 from netaddr import EUI
 from netaddr.strategy.eui48 import mac_cisco
 from pprint import pprint
-from typing import List, Union, Dict  # Tuple, Callable, Any, Union
+from typing import List, Union, Dict, Optional  # Tuple, Callable, Any, Union
 from easysnmp import Session
 
 # from easysnmp.exceptions import EasySNMPTimeoutError, EasySNMPConnectionError
@@ -717,7 +717,7 @@ class InternalNode(Node):
 # HINT InternalNode: convertido aft_atports em método para correcao de bug
     def aft_atports(self,
                     porta: str,
-                    subnet: Union[str, IPv4Network, SubNet] = None) -> set:
+                    subnet: Union[str, IPv4Network, SubNet, None] = None) -> set:
         """Retorna tabela AFT de emcaminhamento para determinada porta, podendo
         filtrar rede especifica
 
@@ -749,38 +749,7 @@ class InternalNode(Node):
             return {mac for mac in subnet.mac_set
                     if mac in self.aft_atports(porta)}
 
-    def subnet_aft_atports(self, subnet: str) -> defaultdict:
-        """
-        Retorna para enderecos MAC em porta especifica de uma subrede FNv,k
-
-        :rtype: defaultdict
-        :param subnet: Endereco da subrede
-        :return: Dicionario portas como chaves e MACs da subrede como valor
-
-        Exemplo:
-        ----
-        >>> self.subnet_aft_atports('10.0.10.0/24')
-        ... defaultdict(<class 'set'>, {
-        ...     '1': {b'\x00Pyfh\x05',
-        ...           b'\x00Pyfh\x07',
-        ...           b'\x00Pyfh\x0c',
-        ...           b'\x00Pyfh\x08'},
-        ...     '16': {b'\x00Pyfh\n'},
-        ...     '15': {b'\x00Pyfh\t'}})
-
-        >>> self.subnet_aft_atports('10.0.10.0/24')['15']
-        ... {b'\x00Pyfh\t'}
-        """
-        atports = defaultdict(set)
-        for rede in self.associated_subnets:
-            if rede.address == subnet:
-                for port, macs in self.aft_atports.items():
-                    if rede.mac_set.intersection(macs):
-                        atports[port].update(rede.mac_set.intersection(macs))
-            else:
-                continue
-        return atports
-
+    # HINT InternalNode: removido subnet_aft_atports
     def set_associated_subnets(self):
         """
         Define redes associadas ao internal node 'v' dentre redes criadas,
@@ -979,7 +948,7 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
 
 
 # %% Funcao get_root(subnet: SubNet) -> bool
-def get_root(subnet: SubNet) -> Union[LeafNode, None]:
+def get_root(subnet: SubNet) -> Optional[LeafNode]:
     """
     Identifica o LeafNode definido como root de uma SubNet
 
@@ -1000,7 +969,7 @@ def get_root(subnet: SubNet) -> Union[LeafNode, None]:
 
 # %% Funcao get_port
 def get_port(from_node: Union[str, LeafNode, InternalNode],
-             to_node: Union[str, LeafNode, InternalNode]) -> Union[str, None]:
+             to_node: Union[str, LeafNode, InternalNode]) -> Optional[str]:
     """
     Retorna porta do node interno v que leva a u. v(u)
 
@@ -1030,7 +999,7 @@ def get_port(from_node: Union[str, LeafNode, InternalNode],
 
 
 # %% Funcao get_subnet
-def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Union[None, SubNet]:
+def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Optional[SubNet]:
     """Retorna se endereco de rede fornecido existe entre os objetos SubNet
     criados.
 
@@ -1072,7 +1041,7 @@ def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Union[None, SubNet]:
 # %% Funcao port_activeset
 # HINT port_activeset: ajustado subnet input
 def port_activeset(node: Union[LeafNode,InternalNode],
-                   subnet: str = None) -> set:
+                   subnet: Optional[str] = None) -> set:
     """
     Retorna conjunto de portas ativas do node. Para objetos LeafNode retorna
     sempre {'1'}
@@ -1128,7 +1097,7 @@ def port_activeset(node: Union[LeafNode,InternalNode],
 
 
 # %% Funcao get_snmp_data
-def get_snmp_data(*internal_nodes, net_bits=24) -> dict:
+def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
     """
     Executa coleta SNMP dos dados:
         sysname:
@@ -1456,7 +1425,6 @@ def main():
     print(f"folhas {inode_taken.leaves('10.0.20.0/24')!r}")
     pprint(f"tamanho folhas {inode_taken.leaves_size('10.0.20.0/24')!r}")
     print()
-    breakpoint()
     pprint(f"{leafnode_taken!r} Dv:{port_activeset(leafnode_taken)}")
     pprint(f"{leafnode_taken!r} DNv '10.0.10.0/24':"
            f"{port_activeset(leafnode_taken,'10.0.10.0/24')}")
