@@ -477,6 +477,8 @@ class LeafNode(Node):
         self.is_root = is_root
         LeafNode._all_leaves_set.add(self)
         Node._all_nodes_set.add(self)
+# HINT LeafNode: definido name para nodes criados
+        self.name = f"n{len(LeafNode._all_leaves_set)}"
 
     @property
     def is_root(self):
@@ -649,7 +651,8 @@ class InternalNode(Node):
         :rtype: set
         """
         subnet = get_subnet(subnet)
-        port_root = set(self.port_root(subnet))
+        # HINT InternalNode: bug corrigido em port_leaves
+        port_root = {self.port_root(subnet)}
         return port_activeset(self, subnet) - port_root
 
     # HINT InternalNode: método leaves corrigido
@@ -948,15 +951,17 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
 
 
 # %% Funcao get_root(subnet: SubNet) -> bool
-def get_root(subnet: SubNet) -> Optional[LeafNode]:
+def get_root(subnet: Union[str, IPv4Network, SubNet]) -> Optional[LeafNode]:
     """
     Identifica o LeafNode definido como root de uma SubNet
 
     :param subnet:
-        SubNet a ser pesquisada pelo root node
+        Rede a ser pesquisada pelo root node
     :return:
         Objeto LeafNode definido como root
     """
+    # HINT get_root: ajustado atributo subnet de entrada
+    subnet = get_subnet(subnet)
     if subnet.leaf_nodes:
         for node in subnet.leaf_nodes:
             if node.is_root:
@@ -1299,8 +1304,8 @@ class SkeletonTree(object):
     """
 
     # HINT SkeletonTree: inicialicazao da classe
-    # FIXME SkeletonTree: corrigir calculo value_in_set do node
-    def __init__(self, subnet):
+    # HINT SkeletonTree: value_in_set corrigido calculo
+    def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
         """
         Inicializa a skeleton-tree
 
@@ -1310,25 +1315,23 @@ class SkeletonTree(object):
         #     inode.set_associated_subnets()
         subnet = get_subnet(subnet)
         self.subnet = subnet
-        self.root = get_root(subnet)
-        self.nodes = set()
-        self.leaves = set()
-        for node in subnet.nodes:
-            self.nodes.add(node)  # Vn
-            if isinstance(node, LeafNode):
-                self.leaves.add(node)  # N
-        bv_set = self.nodes - {self.root}
+        self.nodes = set(subnet.nodes)  # Vn
+        self.netnodes = set(subnet.leaf_nodes)  # N
+        self.root = get_root(subnet)  # r
+        self.root._value_in_set = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
+        self.leaves = self.netnodes - {self.root}  # N - r
         for node in self.nodes - {self.root}:
-            pprint(node)
-            # if isinstance(node, InternalNode):
-            #     bv_set = node.leaves(subnet)
-            #     if len(node.port_leaves(subnet)) != 2:
-            #         node._value_in_set = len(bv_set) - 0.5
-            if node in self.leaves \
-                    or (isinstance(node, InternalNode)
-                        and len(port_activeset(node, subnet)) != 2):
-                breakpoint()
+            print(f"DN{node.name}: {port_activeset(node, subnet)}")
+            print(f"|DN{node.name}|: {len(port_activeset(node, subnet))}")
+            if isinstance(node, InternalNode):
+                bv_set = node.leaves(subnet)
+            else:
+                bv_set = {node}
+            if node in self.netnodes or len(port_activeset(node, subnet)) != 2:
                 node._value_in_set = len(bv_set) - 0.5
+            else:
+                node._value_in_set = len(bv_set)
+
             print(f"bv: {node.value_in_set}")
 
     # HINT SkeletonTree: corrigido representacao da classe
@@ -1461,8 +1464,10 @@ def main():
     print(f"Func {inode_taken!r} DNv '10.0.30.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
 
     print()
-    SkeletonTree(get_subnet('10.0.10.0/24'))
-    # SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
+    bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
+    pprint([node.value_in_set for node in bone1.nodes])
+    breakpoint()
+# SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
 
     # for inode in redes[0].internal_nodes:
     #     print(f'Node interno {inode} , rede "10.0.10.0/24":\n'
