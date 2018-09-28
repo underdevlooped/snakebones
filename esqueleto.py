@@ -19,7 +19,7 @@ from netaddr.strategy.eui48 import mac_cisco, mac_unix_expanded
 # from scapy.sendrecv import srp
 # from scapy.layers.l2 import Ether, ARP
 # from scapy.config import conf
-from typing import Union, Tuple, List, Dict
+from typing import Union, Tuple, List, Dict, Optional
 
 # Tuple, List, Callable, Any
 # from snakebones import InternalNode, Node, LeafNode
@@ -604,13 +604,14 @@ ARP_TABLE_DATA = auto_arp_table_data()
 
 
 # %% funcao update_arp_table
-# TODO rever doctring update_arp_table
-def set_arp_table(subnet,
-                  probes=1,
-                  auto_fill=None,
-                  manual_fill=None,
-                  post=None,
-                  include_me=None):
+# HINT set_arp_table: doctring corrigida
+def set_arp_table(subnet: str,
+                  probes: int = 1,
+                  auto_fill: Optional[bool] = None,
+                  manual_fill: Optional[List[Tuple[str,str]]] = None,
+                  post: Optional[bool] = None,
+                  include_me: Optional[bool] = None)\
+        -> List[Tuple[IPv4Interface, EUI]]:
     """
     Envia pacotes ARP em broadcast p/ atualizar a tabela MAC dos elementos
     Retorna tupla para cada rede fornecida contendo lista de IPs, de MACs e
@@ -638,6 +639,14 @@ def set_arp_table(subnet,
                                ('10.0.0.4', '003e.5c04.8001'),
                                ('10.0.0.5', '003e.5c05.8001'),
                                ('10.0.0.6', '003e.5c06.8001')])
+    :param subnet: Rede a ter elementos rastreados
+    :param probes: quantidade de quadros para cada elemento destino
+    :param auto_fill: atribuido automaticamente da constante ARP_TABLE_DATA
+    :param manual_fill: tuplas de (ip: str, mac: str)
+    :param post: imprime etapas na tela
+    :param include_me: True para incluir o NMS na arp table
+    :return: Lista com tupla (IPv4Interface, EUI) dos elementos identificados
+    :rtype: List[Tupla[IPv4Interface, EUI]]
     """
     if manual_fill:
         print('Valores da Tabela ARP atribuidos manualmente')
