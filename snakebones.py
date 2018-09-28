@@ -53,8 +53,8 @@ mymac = None
 
 
 # %% definicao de dados
-def config(internal_nodes: List[Union[str, None]] = None,
-           autofill: bool = AUTOFILL_MODE) -> None:
+# HINT funcao config: removido parametro desnecessario
+def config(internal_nodes: List[Union[str, None]] = None) -> None:
     """
     Configura atribuicao de dados SNMP e tabela ARP
     :rtype: None
@@ -228,6 +228,7 @@ class SubNet(IPv4Network):
         """Define atributo 'arp_table' da SubNet. Caso nao seja atribuido
         auto_fill, atualiza tabela ARP do elemento.
         """
+        # TODO: SubNet: update_arp_table (testar)
         self._arp_table = set_arp_table(
                 self, probes, auto_fill, manual_fill, post)
 
@@ -1241,8 +1242,12 @@ class Edges(object):
     pass
 
 
-#    #ligacoes fisicas entre 2 elementos
-#    ports
+# %% classe
+# TODO Vertex: estruturar classe
+class Vertex(object):
+    pass
+
+
 # %% classe SkeletonTree
 class SkeletonTree(object):
     """
@@ -1311,18 +1316,15 @@ class SkeletonTree(object):
 
         :param subnet: subrede que induz a topologia
         """
-        # for inode in InternalNode._allinodes_set:
-        #     inode.set_associated_subnets()
         subnet = get_subnet(subnet)
         self.subnet = subnet
         self.nodes = set(subnet.nodes)  # Vn
         self.netnodes = set(subnet.leaf_nodes)  # N
         self.root = get_root(subnet)  # r
         self.root._value_in_set = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
-        self.leaves = self.netnodes - {self.root}  # N - r
+
+        # definindo |Bv| para cada node
         for node in self.nodes - {self.root}:
-            print(f"DN{node.name}: {port_activeset(node, subnet)}")
-            print(f"|DN{node.name}|: {len(port_activeset(node, subnet))}")
             if isinstance(node, InternalNode):
                 bv_set = node.leaves(subnet)
             else:
@@ -1332,12 +1334,34 @@ class SkeletonTree(object):
             else:
                 node._value_in_set = len(bv_set)
 
-            print(f"bv: {node.value_in_set}")
 
     # HINT SkeletonTree: corrigido representacao da classe
     def __repr__(self):
         return self.__class__.__name__ + f"({self.subnet.compressed!r})"
 
+    # HINT SkeletonTree: atributo leaves ajustado como propriedade
+    @property
+    def leaves(self) -> set:
+        """
+        Conjunto de folhas da skeleton-tree (sem o root node)
+        # N - r
+
+        :return: Folhas da skeleton-tree
+        :rtype: set
+        """
+        return self.netnodes - {self.root}
+
+    # HINT SkeletonTree: sorted_l com lista ordenada de nodes segundo valores nv
+    @property
+    def sorted_l(self) -> list:
+        """
+        Lista L de todos os nodes ordenado decrescentemente segundo valores nv
+        associados a suas folhas |Bv| (value_in_set)
+
+        :return: Nodes ordenados (L)
+        """
+        node_values = [(node.value_in_set, node) for node in self.nodes]
+        return [node for (value, node) in sorted(node_values, reverse=True)]
 
 #    #1
 #    set_root_ports(nodes)
@@ -1465,8 +1489,9 @@ def main():
 
     print()
     bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
-    pprint([node.value_in_set for node in bone1.nodes])
-    breakpoint()
+    pprint(sorted([(node.value_in_set, node) for node in bone1.nodes], reverse=True))
+    pprint(bone1.sorted_l)
+
 # SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
 
     # for inode in redes[0].internal_nodes:
