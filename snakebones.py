@@ -16,10 +16,10 @@ Ethernet explorada
 import sys
 
 sys.path.append(
-        '/mnt/hgfs/Projeto Final Dissertacao/snakebones'
+    '/mnt/hgfs/Projeto Final Dissertacao/snakebones'
 )
 sys.path.append(
-        '/media/sf_Projeto_Final_Dissertacao/snakebones'
+    '/media/sf_Projeto_Final_Dissertacao/snakebones'
 )
 
 from pdb import set_trace as breakpoint
@@ -230,7 +230,7 @@ class SubNet(IPv4Network):
         """
         # TODO: SubNet: update_arp_table (testar)
         self._arp_table = set_arp_table(
-                self, probes, auto_fill, manual_fill, post)
+            self, probes, auto_fill, manual_fill, post)
 
     def set_all_nodes(self, auto_fill=AUTOFILL_MODE):
         """
@@ -247,27 +247,27 @@ class SubNet(IPv4Network):
                 if self._has_switches:
                     # if self._has_switches and mac != get_mymac():
                     self._internal_nodes.append(
-                            InternalNode(interface.compressed, str(mac))
+                        InternalNode(interface.compressed, str(mac))
                     )
                     self._internal_nodes[-1]._snmp_data = \
                         SNMP_DATA[interface.compressed]
                     self._nodes.append(self._internal_nodes[-1])
                 else:
                     self._leaf_nodes.append(
-                            LeafNode(interface.compressed, str(mac))
+                        LeafNode(interface.compressed, str(mac))
                     )
                     self._nodes.append(self._leaf_nodes[-1])
 
             elif is_internal_node(interface.ip.compressed):
                 self._internal_nodes.append(
-                        InternalNode(interface.compressed, str(mac))
+                    InternalNode(interface.compressed, str(mac))
                 )
                 self._internal_nodes[-1]._snmp_data = \
                     get_snmp_data(self._internal_nodes[-1])
                 self._nodes.append(self._internal_nodes[-1])
             else:
                 self._leaf_nodes.append(
-                        LeafNode(interface.compressed, str(mac))
+                    LeafNode(interface.compressed, str(mac))
                 )
                 self._nodes.append(self._leaf_nodes[-1])
 
@@ -331,7 +331,7 @@ class Node(IPv4Interface, Hub):
         numero total de nodes criados
     port_list:
         postas de conexao com o elemento.
-    value_in_set:
+    value_nv:
         numero nv do no para classificar em L
             - se node eh root, valor = quantidade de nodes +1/2
             - se node eh interno, valor = quantidade de nodes -1/2
@@ -388,7 +388,8 @@ class Node(IPv4Interface, Hub):
         else:
             self.associated_subnets = {SubNet(self.compressed)}
             SubNet._allsubnets_set.update(self.associated_subnets)
-        self._value_in_set = None  # valor do no para a lista L
+        # HINT Node: value_in_set renomeado para evitar conflito SkeletonTree
+        self._value_nv = None  # valor do no para a lista L
 
     def __repr__(self):
         return self.__class__.__name__ + '(' + repr(self.with_prefixlen) \
@@ -449,9 +450,9 @@ class Node(IPv4Interface, Hub):
                     self._associated_subnets.add(subnet)
 
     @property
-    def value_in_set(self):
+    def value_nv(self):
         """ Retorna valor do no para a lista L """
-        return self._value_in_set
+        return self._value_nv
 
     @property
     def num_of_nodes(self):
@@ -478,7 +479,7 @@ class LeafNode(Node):
         self.is_root = is_root
         LeafNode._all_leaves_set.add(self)
         Node._all_nodes_set.add(self)
-# HINT LeafNode: definido name para nodes criados
+        # HINT LeafNode: definido name para nodes criados
         self.name = f"n{len(LeafNode._all_leaves_set)}"
 
     @property
@@ -718,10 +719,11 @@ class InternalNode(Node):
         """Tabela de emcaminhamento (MAC, PORTA)"""
         return list(zip(self.mac_list, self.port_list))
 
-# HINT InternalNode: convertido aft_atports em método para correcao de bug
+    # HINT InternalNode: convertido aft_atports em método para correcao de bug
     def aft_atports(self,
                     porta: str,
-                    subnet: Union[str, IPv4Network, SubNet, None] = None) -> set:
+                    subnet: Union[str, IPv4Network, SubNet, None] = None) \
+            -> set:
         """Retorna tabela AFT de emcaminhamento para determinada porta, podendo
         filtrar rede especifica
 
@@ -1046,7 +1048,7 @@ def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Optional[SubNet]:
 
 # %% Funcao port_activeset
 # HINT port_activeset: ajustado subnet input
-def port_activeset(node: Union[LeafNode,InternalNode],
+def port_activeset(node: Union[LeafNode, InternalNode],
                    subnet: Optional[str] = None) -> set:
     """
     Retorna conjunto de portas ativas do node. Para objetos LeafNode retorna
@@ -1191,7 +1193,7 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
         stp_port_indexes = []
         while dot1dstpport in resposta_snmp.oid:
             stp_port_indexes.append(
-                    resposta_snmp.oid.rsplit(sep='.', maxsplit=1)[-1])
+                resposta_snmp.oid.rsplit(sep='.', maxsplit=1)[-1])
             resposta_snmp = snmp.get_next(resposta_snmp.oid)
 
         ifname = 'mib-2.31.1.1.1.1'  # 'iFname'
@@ -1243,9 +1245,36 @@ class Edges(object):
 
 
 # %% classe
+# HINT Vertex: inicializacao da classe
 # TODO Vertex: estruturar classe
 class Vertex(object):
-    pass
+    """Representa o vertice na skeleton-tree. Cada vertice contem um conjunto
+    associado de um ou mais nodes em Vn
+
+    """
+
+    def __init__(self, node):
+        self._nodes_set = set(node)
+        self._value_ny = node.value_nv
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(Node)'
+
+    @property
+    def nodes_set(self):
+        return self._nodes_set
+
+    @nodes_set.setter
+    def nodes_set(self, value):
+        self._nodes_set = value
+
+    @property
+    def value_n(self):
+        return self._value_ny
+
+    @value_n.setter
+    def value_n(self, value):
+        self._value_ny = value
 
 
 # %% classe SkeletonTree
@@ -1263,7 +1292,7 @@ class SkeletonTree(object):
     #atributos da skeleton
         root_node - identifica o no raiz da skeleton-tree
         leaf_nodes - lista N - internal nodes de nos exclusivos da sub-rede
-        nodes - lista VN dos elementos da sub-rede, leaf_nodes + internalnodes
+        nodes - lista Vn dos elementos da sub-rede, leaf_nodes + internalnodes
         sem HUBs
         sorted_nodes - lista L decrescente dos nos
         mac_table - tabela de enderecos mac das interfaces
@@ -1309,7 +1338,7 @@ class SkeletonTree(object):
     """
 
     # HINT SkeletonTree: inicialicazao da classe
-    # HINT SkeletonTree: value_in_set corrigido calculo
+    # HINT SkeletonTree: value_nv corrigido calculo
     def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
         """
         Inicializa a skeleton-tree
@@ -1321,7 +1350,7 @@ class SkeletonTree(object):
         self.nodes = set(subnet.nodes)  # Vn
         self.netnodes = set(subnet.leaf_nodes)  # N
         self.root = get_root(subnet)  # r
-        self.root._value_in_set = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
+        self.root._value_nv = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
 
         # definindo |Bv| para cada node
         for node in self.nodes - {self.root}:
@@ -1330,9 +1359,17 @@ class SkeletonTree(object):
             else:
                 bv_set = {node}
             if node in self.netnodes or len(port_activeset(node, subnet)) != 2:
-                node._value_in_set = len(bv_set) - 0.5
+                node._value_nv = len(bv_set) - 0.5
             else:
-                node._value_in_set = len(bv_set)
+                node._value_nv = len(bv_set)
+
+        # HINT SkeletonTree: sorted_l com lista ordenada de nodes segundo valores nv
+        node_values = [(node.value_nv, node) for node in self.nodes]
+        self.sorted_l = [node for (value, node)
+                         in sorted(node_values, reverse=True)]
+
+        # FIXME SkeletonTree: criacao do vertice inicial
+        vertex = Vertex(self.sorted_l.pop(0))
 
 
     # HINT SkeletonTree: corrigido representacao da classe
@@ -1351,17 +1388,6 @@ class SkeletonTree(object):
         """
         return self.netnodes - {self.root}
 
-    # HINT SkeletonTree: sorted_l com lista ordenada de nodes segundo valores nv
-    @property
-    def sorted_l(self) -> list:
-        """
-        Lista L de todos os nodes ordenado decrescentemente segundo valores nv
-        associados a suas folhas |Bv| (value_in_set)
-
-        :return: Nodes ordenados (L)
-        """
-        node_values = [(node.value_in_set, node) for node in self.nodes]
-        return [node for (value, node) in sorted(node_values, reverse=True)]
 
 #    #1
 #    set_root_ports(nodes)
@@ -1431,7 +1457,7 @@ def main():
             pprint(f'F{inode.name},{port}:')
             pprint(inode.aft_atports(port))
             print(f'FN{inode.name},{port} N=10.0.10.0:')
-            pprint(inode.aft_atports(port,'10.0.10.0/24'))
+            pprint(inode.aft_atports(port, '10.0.10.0/24'))
 
         print()
 
@@ -1483,25 +1509,27 @@ def main():
            f"{port_activeset(leafnode_taken,'10.0.10.0/24')}")
     pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':"
            f"{port_activeset(leafnode_taken, '10.0.20.0/24')}")
-    print(f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken)}")
-    print(f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.20.0/24')}")
-    print(f"Func {inode_taken!r} DNv '10.0.30.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
+    print(
+        f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken)}")
+    print(
+        f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.20.0/24')}")
+    print(
+        f"Func {inode_taken!r} DNv '10.0.30.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
 
     print()
     bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
-    pprint(sorted([(node.value_in_set, node) for node in bone1.nodes], reverse=True))
+    pprint(
+        sorted([(node.value_nv, node) for node in bone1.nodes], reverse=True))
     pprint(bone1.sorted_l)
+
 
 # SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
 
-    # for inode in redes[0].internal_nodes:
-    #     print(f'Node interno {inode} , rede "10.0.10.0/24":\n'
-    #           f'redes associadas: {inode.associated_subnets}\n'
-    #           f'root port {inode.port_root["10.0.10.0/24"]}\n'
-    #           f'leaves port {inode.port_leaves["10.0.10.0/24"]}')
-
-
-
+# for inode in redes[0].internal_nodes:
+#     print(f'Node interno {inode} , rede "10.0.10.0/24":\n'
+#           f'redes associadas: {inode.associated_subnets}\n'
+#           f'root port {inode.port_root["10.0.10.0/24"]}\n'
+#           f'leaves port {inode.port_leaves["10.0.10.0/24"]}')
 
 
 # %% executa main()
