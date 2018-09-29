@@ -1244,7 +1244,7 @@ class Edges(object):
     pass
 
 
-# %% classe
+# %% classe Vertex
 # HINT Vertex: inicializacao da classe
 # TODO Vertex: estruturar classe
 class Vertex(object):
@@ -1254,7 +1254,7 @@ class Vertex(object):
     """
 
     def __init__(self, node):
-        self._nodes_set = set(node)
+        self._nodes_set = {node}
         self._value_ny = node.value_nv
 
     def __repr__(self):
@@ -1275,6 +1275,21 @@ class Vertex(object):
     @value_n.setter
     def value_n(self, value):
         self._value_ny = value
+
+
+# %% classe Arch
+# HINT Arch: inicializacao da classe
+# TODO Arch: estruturar classe
+class Arch(object):
+
+
+    def __init__(self, endpoint_a, port_a, endpoint_b=None):
+        self._endpoint_a = endpoint_a
+        self._endpoint_b = endpoint_b
+        self._reachable_nodes_set = set()  # Ba
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(Node)'
 
 
 # %% classe SkeletonTree
@@ -1369,7 +1384,9 @@ class SkeletonTree(object):
                          in sorted(node_values, reverse=True)]
 
         # FIXME SkeletonTree: criacao do vertice inicial
-        vertex = Vertex(self.sorted_l.pop(0))
+        Vertex(self.sorted_l.pop(0))
+        for port in port_activeset(self.root, self.subnet):
+            Arch(self.root, port)
 
 
     # HINT SkeletonTree: corrigido representacao da classe
