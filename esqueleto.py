@@ -604,7 +604,6 @@ ARP_TABLE_DATA = auto_arp_table_data()
 
 
 # %% funcao update_arp_table
-# HINT set_arp_table: doctring corrigida
 def set_arp_table(subnet: str,
                   probes: int = 1,
                   auto_fill: Optional[bool] = None,

@@ -53,7 +53,6 @@ mymac = None
 
 
 # %% definicao de dados
-# HINT funcao config: removido parametro desnecessario
 def config(internal_nodes: List[Union[str, None]] = None) -> None:
     """
     Configura atribuicao de dados SNMP e tabela ARP
@@ -388,14 +387,12 @@ class Node(IPv4Interface, Hub):
         else:
             self.associated_subnets = {SubNet(self.compressed)}
             SubNet._allsubnets_set.update(self.associated_subnets)
-        # HINT Node: value_in_set renomeado para evitar conflito SkeletonTree
         self._value_nv = None  # valor do no para a lista L
 
     def __repr__(self):
         return self.__class__.__name__ + '(' + repr(self.with_prefixlen) \
                + ', ' + "'" + str(self._mac_address) + "')"
 
-    # HINT Node: port_activeset removido
     @property
     def all_nodes_set(self) -> set:
         """
@@ -479,7 +476,6 @@ class LeafNode(Node):
         self.is_root = is_root
         LeafNode._all_leaves_set.add(self)
         Node._all_nodes_set.add(self)
-        # HINT LeafNode: definido name para nodes criados
         self.name = f"n{len(LeafNode._all_leaves_set)}"
 
     @property
@@ -502,7 +498,50 @@ class LeafNode(Node):
         if isinstance(value, bool):
             self._is_root = value
 
+    # HINT LeafNode: método criado aft_atports
+    def aft_atports(self,
+                    porta: str,
+                    subnet: Union[str, IPv4Network, SubNet, None] = None) \
+            -> set:
+        """Retorna tabela AFT de emcaminhamento para porta. LeafNode difinido
+        com apenas porta '1', retornando None se solicitado porta diferente ou
+        outra subnet diferente da sua. Mac do LeafNode (self) nao incluido no
+        retorno
 
+        Fv,k e FNv,k
+
+        Exemplo:
+        ----
+        >>> self.aft_atports('1')  # Fv,k
+        ... {b'\\x00Pyfh\\x04',
+        ...  b'\\x00Pyfh\\x06',
+        ...  b'\\x00Pyfh\\x03'}
+
+        >>> self.aft_atports('1','10.0.20.0/24')  # FNv,k N==self.network
+        ... {b'\\x00Pyfh\\x04',
+        ...  b'\\x00Pyfh\\x06',
+        ...  b'\\x00Pyfh\\x03'}
+
+        >>> self.aft_atports('1','10.0.10.0/24')  # FNv,k N!=self.network
+        ... None
+
+        :param porta: indice da porta a analisar
+        :param subnet:  rede a ser retornado aft
+        :return: AFT em cada porta
+        :rtype: set
+        """
+        subnet = get_subnet(subnet)
+        node_port = port_activeset(self)
+        if not subnet and node_port == {porta}:
+            return get_subnet(self.network.compressed).mac_set - {self.mac.packed}
+        elif subnet and node_port == {porta}:
+            if subnet.compressed == self.network.compressed:
+                return subnet.mac_set - {self.mac.packed}
+            else:
+                return None
+
+
+# %% classe InternalNode
 class InternalNode(Node):
     """
     Classe define switches envolvidos na sub-rede (nodes - leaf_nodes)
@@ -588,7 +627,6 @@ class InternalNode(Node):
         """
         return self._allinodes_set
 
-    # HINT InternalNode: removido port_activeset
 
     @property
     def port_activelist_named(self) -> List:
@@ -615,7 +653,6 @@ class InternalNode(Node):
             name_dict[port] = name
         return name_dict
 
-    # HINT InternalNode: método port_root corrigido
     def port_root(self, subnet: Union[str, IPv4Network, SubNet]) -> str:
         """
         Retorna dicionario com portas que levam ao root para rede especificada
@@ -636,7 +673,6 @@ class InternalNode(Node):
         """
         return get_port(self, get_root(get_subnet(subnet)))
 
-    # HINT InternalNode: método port_leaves simplificado e corrigido bug
     def port_leaves(self, subnet: Union[str, IPv4Network, SubNet]) -> set:
         """
         Retorna portas que levam aos nos folhas
@@ -653,11 +689,9 @@ class InternalNode(Node):
         :rtype: set
         """
         subnet = get_subnet(subnet)
-        # HINT InternalNode: bug corrigido em port_leaves
         port_root = {self.port_root(subnet)}
         return port_activeset(self, subnet) - port_root
 
-    # HINT InternalNode: método leaves corrigido
     def leaves(self, subnet: Union[str, IPv4Network, SubNet]) -> set:
         """
         Retorna conjunto de nos folhas em relacao ao root para subrede fornecida
@@ -682,7 +716,6 @@ class InternalNode(Node):
                 leaves.add(get_node(mac))
         return leaves
 
-    # HINT InternalNode: leaves_size
     def leaves_size(self, subnet) -> int:
         """
         Retorna quantidade de nodes folhas para rede informada
@@ -719,7 +752,6 @@ class InternalNode(Node):
         """Tabela de emcaminhamento (MAC, PORTA)"""
         return list(zip(self.mac_list, self.port_list))
 
-    # HINT InternalNode: convertido aft_atports em método para correcao de bug
     def aft_atports(self,
                     porta: str,
                     subnet: Union[str, IPv4Network, SubNet, None] = None) \
@@ -755,7 +787,6 @@ class InternalNode(Node):
             return {mac for mac in subnet.mac_set
                     if mac in self.aft_atports(porta)}
 
-    # HINT InternalNode: removido subnet_aft_atports
     def set_associated_subnets(self):
         """
         Define redes associadas ao internal node 'v' dentre redes criadas,
@@ -963,7 +994,6 @@ def get_root(subnet: Union[str, IPv4Network, SubNet]) -> Optional[LeafNode]:
     :return:
         Objeto LeafNode definido como root
     """
-    # HINT get_root: ajustado atributo subnet de entrada
     subnet = get_subnet(subnet)
     if subnet.leaf_nodes:
         for node in subnet.leaf_nodes:
@@ -1047,7 +1077,6 @@ def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Optional[SubNet]:
 
 
 # %% Funcao port_activeset
-# HINT port_activeset: ajustado subnet input
 def port_activeset(node: Union[LeafNode, InternalNode],
                    subnet: Optional[str] = None) -> set:
     """
@@ -1245,17 +1274,20 @@ class Edges(object):
 
 
 # %% classe Vertex
-# HINT Vertex: inicializacao da classe
+# TODO Vertex: inicializacao da classe
 # TODO Vertex: estruturar classe
 class Vertex(object):
     """Representa o vertice na skeleton-tree. Cada vertice contem um conjunto
     associado de um ou mais nodes em Vn
 
     """
-
+    _allvertex_set = set()  # set Y de H(Y, A)
     def __init__(self, node):
         self._nodes_set = {node}
         self._value_ny = node.value_nv
+        # HINT Vertex: _allvertex_set para conjunto Y de todos os vertices
+        Vertex._allvertex_set.add(self)
+
 
     def __repr__(self):
         return self.__class__.__name__ + '(Node)'
@@ -1278,18 +1310,23 @@ class Vertex(object):
 
 
 # %% classe Arch
-# HINT Arch: inicializacao da classe
+# TODO Arch: inicializacao da classe
 # TODO Arch: estruturar classe
 class Arch(object):
-
+    _allarch_set = set()  # set A de H(Y, A)
 
     def __init__(self, endpoint_a, port_a, endpoint_b=None):
         self._endpoint_a = endpoint_a
         self._endpoint_b = endpoint_b
+        self._port_a = port_a
         self._reachable_nodes_set = set()  # Ba
+        # HINT Arch: _allarch_set para conjunto A de todos os arcos
+        Arch._allarch_set.add(self)
 
+    # HINT Arch: corrigido representacao da classe
     def __repr__(self):
-        return self.__class__.__name__ + '(Node)'
+        return f"{self.__class__.__name__}" \
+               f"({self._endpoint_a!r}, {self._port_a!r}, {self._endpoint_b})"
 
 
 # %% classe SkeletonTree
@@ -1352,8 +1389,7 @@ class SkeletonTree(object):
 
     """
 
-    # HINT SkeletonTree: inicialicazao da classe
-    # HINT SkeletonTree: value_nv corrigido calculo
+    # TODO SkeletonTree: inicialicazao da classe
     def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
         """
         Inicializa a skeleton-tree
@@ -1366,8 +1402,9 @@ class SkeletonTree(object):
         self.netnodes = set(subnet.leaf_nodes)  # N
         self.root = get_root(subnet)  # r
         self.root._value_nv = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
+        self.frontier_set = set()  # Z
 
-        # definindo |Bv| para cada node
+    # definindo |Bv| para cada node
         for node in self.nodes - {self.root}:
             if isinstance(node, InternalNode):
                 bv_set = node.leaves(subnet)
@@ -1378,22 +1415,19 @@ class SkeletonTree(object):
             else:
                 node._value_nv = len(bv_set)
 
-        # HINT SkeletonTree: sorted_l com lista ordenada de nodes segundo valores nv
         node_values = [(node.value_nv, node) for node in self.nodes]
         self.sorted_l = [node for (value, node)
                          in sorted(node_values, reverse=True)]
 
         # FIXME SkeletonTree: criacao do vertice inicial
         Vertex(self.sorted_l.pop(0))
-        for port in port_activeset(self.root, self.subnet):
-            Arch(self.root, port)
+        for port in port_activeset(self.root, subnet):
+            self.frontier_set.add(Arch(self.root, port))
 
 
-    # HINT SkeletonTree: corrigido representacao da classe
     def __repr__(self):
         return self.__class__.__name__ + f"({self.subnet.compressed!r})"
 
-    # HINT SkeletonTree: atributo leaves ajustado como propriedade
     @property
     def leaves(self) -> set:
         """
@@ -1538,6 +1572,7 @@ def main():
     pprint(
         sorted([(node.value_nv, node) for node in bone1.nodes], reverse=True))
     pprint(bone1.sorted_l)
+    pprint(bone1.frontier_set)
 
 
 # SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
