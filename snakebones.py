@@ -378,7 +378,6 @@ class Node(IPv4Interface, Hub):
         self._mac = EUI(mac_address)
 
         self._mac.dialect = mac_cisco
-        self._mac_address = str(self.mac)
         self._labeled = True
         if self.network in SubNet._allsubnets_set:
             for subnet in SubNet._allsubnets_set:
@@ -391,7 +390,7 @@ class Node(IPv4Interface, Hub):
 
     def __repr__(self):
         return self.__class__.__name__ + '(' + repr(self.with_prefixlen) \
-               + ', ' + "'" + str(self._mac_address) + "')"
+               + ', ' + "'" + str(self.mac_address) + "')"
 
     @property
     def all_nodes_set(self) -> set:
@@ -409,9 +408,10 @@ class Node(IPv4Interface, Hub):
         return self._mac
 
     @property
+    # HINT Node: atributo _mac_address duplicado removido
     def mac_address(self):
         """ Retorna mac addres do node """
-        return self._mac_address
+        return str(self.mac)
 
     @property
     def ip_address(self):
@@ -448,6 +448,12 @@ class Node(IPv4Interface, Hub):
 
     @property
     def value_nv(self):
+        """ Retorna valor do no para a lista L """
+        return self._value_nv
+
+    # HINT Node: propriedade value_n para facilitar comparação
+    @property
+    def value_n(self):
         """ Retorna valor do no para a lista L """
         return self._value_nv
 
@@ -533,7 +539,8 @@ class LeafNode(Node):
         subnet = get_subnet(subnet)
         node_port = port_activeset(self)
         if not subnet and node_port == {porta}:
-            return get_subnet(self.network.compressed).mac_set - {self.mac.packed}
+            return get_subnet(self.network.compressed).mac_set - {
+            self.mac.packed}
         elif subnet and node_port == {porta}:
             if subnet.compressed == self.network.compressed:
                 return subnet.mac_set - {self.mac.packed}
@@ -626,7 +633,6 @@ class InternalNode(Node):
         :return: nodes internos
         """
         return self._allinodes_set
-
 
     @property
     def port_activelist_named(self) -> List:
@@ -1282,15 +1288,16 @@ class Vertex(object):
 
     """
     _allvertex_set = set()  # set Y de H(Y, A)
+
     def __init__(self, node):
         self._nodes_set = {node}
         self._value_ny = node.value_nv
         # HINT Vertex: _allvertex_set para conjunto Y de todos os vertices
         Vertex._allvertex_set.add(self)
 
-
     def __repr__(self):
-        return self.__class__.__name__ + '(Node)'
+        # HINT Vertex: corrigido representacao da classe
+        return f"{self.__class__.__name__}({self.nodes_set})"
 
     @property
     def nodes_set(self):
@@ -1315,11 +1322,20 @@ class Vertex(object):
 class Arch(object):
     _allarch_set = set()  # set A de H(Y, A)
 
-    def __init__(self, endpoint_a, port_a, endpoint_b=None):
+    # HINT Arch: especificados tipos para inicializacao da classe
+    def __init__(self,
+                 endpoint_a: Vertex,
+                 port_a: str,
+                 endpoint_b: Optional[Vertex] = None) -> None:
+        # HINT Arch: corrigido endpoints em vertex
         self._endpoint_a = endpoint_a
         self._endpoint_b = endpoint_b
         self._port_a = port_a
-        self._reachable_nodes_set = set()  # Ba
+        # HINT Arch: Atribuido conjunto _reachable_nodes_set (Ba)
+        # Ba
+        node_a = list(endpoint_a.nodes_set)[0]
+        self._reachable_nodes_set = {get_node(mac)
+                                     for mac in node_a.aft_atports(port_a)}
         # HINT Arch: _allarch_set para conjunto A de todos os arcos
         Arch._allarch_set.add(self)
 
@@ -1404,26 +1420,44 @@ class SkeletonTree(object):
         self.root._value_nv = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
         self.frontier_set = set()  # Z
 
-    # definindo |Bv| para cada node
+        # definindo |Bv| para cada node
+        # HINT SkeletonTree: corrigido bug em bv_set e calculo do valor do node
         for node in self.nodes - {self.root}:
             if isinstance(node, InternalNode):
-                bv_set = node.leaves(subnet)
+                node.bv_set = node.leaves(subnet)
             else:
-                bv_set = {node}
+                node.bv_set = {node}
             if node in self.netnodes or len(port_activeset(node, subnet)) != 2:
-                node._value_nv = len(bv_set) - 0.5
+                node._value_nv = len(node.bv_set) - 0.5
             else:
-                node._value_nv = len(bv_set)
+                node._value_nv = len(node.bv_set)
 
         node_values = [(node.value_nv, node) for node in self.nodes]
         self.sorted_l = [node for (value, node)
                          in sorted(node_values, reverse=True)]
 
-        # FIXME SkeletonTree: criacao do vertice inicial
-        Vertex(self.sorted_l.pop(0))
+        vertex = Vertex(self.sorted_l.pop(0))
         for port in port_activeset(self.root, subnet):
-            self.frontier_set.add(Arch(self.root, port))
+            self.frontier_set.add(Arch(vertex, port))
 
+        # main loop
+        # HINT SkeletonTree: iniciado loop principal
+        while self.sorted_l:
+            node = self.sorted_l.pop(0)  # v'
+            z_set = self.frontier_set.copy()
+            for arch in z_set:
+                # HINT SkeletonTree: definido conjunto Bv pada LeafNodes
+                if node.bv_set <= arch._reachable_nodes_set:
+                    vertex = arch._endpoint_a  # y
+                    if vertex.value_n == node.value_nv:
+                        vertex._nodes_set.add(node)
+                    else:
+                        # breakpoint()
+                        self.frontier_set.remove(arch)
+                        next_vertex = Vertex(node)  # y'
+                        pprint(f" v: {vertex}")
+                        pprint(f" v': {next_vertex}")
+                        # FIXME criar arcos para next_vertex
 
     def __repr__(self):
         return self.__class__.__name__ + f"({self.subnet.compressed!r})"
@@ -1573,6 +1607,7 @@ def main():
         sorted([(node.value_nv, node) for node in bone1.nodes], reverse=True))
     pprint(bone1.sorted_l)
     pprint(bone1.frontier_set)
+    pprint(Vertex._allvertex_set)
 
 
 # SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
