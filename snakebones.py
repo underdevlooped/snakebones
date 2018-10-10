@@ -1286,9 +1286,13 @@ class Vertex(object):
     _allvertex_set = set()  # set Y de H(Y, A)
 
     # HINT Vertex: corrigido parametro node e atributo _value_ny
+    # HINT Vertex: incluido tratamento de Hub()
     def __init__(self, node=None):
         self._nodes_set = {node}
-        self._value_ny = node.value_nv if node else None
+        if isinstance(node, (LeafNode, InternalNode)):
+            self._value_ny = node.value_nv
+        else:
+            self._value_ny = None
         Vertex._allvertex_set.add(self)  # y U Y
 
     def __repr__(self):
@@ -1329,7 +1333,8 @@ class Arch(object):
         # Ba
         node_a = list(endpoint_a.nodes_set)[0]
         # HINT Arch: corrigido _reachable_nodes_set
-        if node_a:
+        # HINT Arch: incluido tratamento de Hub()
+        if node_a and isinstance(node_a, (LeafNode, InternalNode)):
             self._reachable_nodes_set = {get_node(mac)
                                          for mac in node_a.aft_atports(port_a)}
         else:
@@ -1368,35 +1373,20 @@ class SkeletonTree(object):
             #Ba
             leaf_nodes
         frontier_arcs - grupo Z de arcos com 1 end-point
-    """
-    # atributos da skeleton
-    #    root_node
-    #    leaf_nodes
-    #    nodes
-    #    sorted_nodes
-    #    mac_table
-    #    vertex
-    #        nodes
-    #    vertexes
-    #    arcs
-    #        ports
-    #        leaf_nodes
-    #    frontier_arcs
-    """
+
     passo 1 - coleta dados
         - encontra porta root dos nos
         - calcula folhas dos nos
         - calcula valores dos nos para lista L sorted_nodes
     passo 2 - inicializa skeleton-tree
-        - compila lista L sorted_nodes em ordem decrescente
+        - compila lista L sorted_l em ordem decrescente
         - inicializa skeleton-tree com primeiro vertex.nodes = root_node
-          e set_node_value(root_node)
-        - inicializa o grupo frontier_arcs com numero de port_activelist
+        - inicializa o grupo frontier_set com numero de port_activelist
           do root
-        - cada arco arc de frontier_arcs eh associado ao grupo de folhas
+        - cada arco arc de frontier_set eh associado ao grupo de folhas
           abaixo dele (macs na porta)
     passo 3 - modifica skeleton-tree
-        - extrai primeiro no de L sorted_nodes
+        - extrai primeiro no de L sorted_l
         - identifica arco frontier_arcs que sera conectado ao no extraido
 
     """
@@ -1437,48 +1427,52 @@ class SkeletonTree(object):
 
         # main loop
         # HINT SkeletonTree: Concluido loop principal
+        # HINT SkeletonTree: ajustado localização do arco
         # FIXME SkeletonTree: debug erro na criacao de vertex
         while self.sorted_l:
             node = self.sorted_l.pop(0)  # v'
             z_set = self.frontier_set.copy()  # Z com arcos fronteira
             # FIXME SkeletonTree: criar funcao para achar arco
-            for arch in z_set:  # find a
-                if arch._reachable_nodes_set >= node.bv_set:
-                    vertex = arch._endpoint_a  # y = start a in Y
-                    if vertex.value_n == node.value_nv:
-                        vertex._nodes_set.add(node)  # Cy U {v'}
-                    else:
-                        self.frontier_set.remove(arch)  # Z - {a}
-                        next_vertex = Vertex(node)  # new y'
-                        pprint(f" v: {vertex}")
-                        pprint(f" v': {next_vertex}")
-                        ports = port_activeset(node, subnet)
-                        port_leaves = ports - {get_port(node, self.root)}
-                        for port in port_leaves:  # port_leaves = DNv' - {v(r)}
-                            self.frontier_set.add(Arch(next_vertex, port))  # a'
+            arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
+            vertex = arch_a._endpoint_a  # y = start a in Y
+            if vertex.value_n == node.value_nv:
+                vertex._nodes_set.add(node)  # Cy U {v'}
+            else:
+                # breakpoint()
+                self.frontier_set.remove(arch_a)  # Z - {a}
+                next_vertex = Vertex(node)  # new y'
+                pprint(f" v: {vertex}")
+                pprint(f" v': {next_vertex}")
+                ports = port_activeset(node, subnet)
+                port_leaves = ports - {get_port(node, self.root)}
+                for port in port_leaves:  # port_leaves = DNv' - {v(r)}
+                    # breakpoint()
+                    self.frontier_set.add(Arch(next_vertex, port))  # a'
 
-                        if arch._reachable_nodes_set == node.bv_set:  # Ba = Bv'
-                            arch._endpoint_b = next_vertex  # y' connect to a
-                        elif not vertex.nodes_set:  # Cy = 0
-                            new_arch = Arch(vertex)  # â
-                            new_arch._reachable_nodes_set \
-                                = arch._reachable_nodes_set - node.bv_set
-                            self.frontier_set.add(new_arch)  # Z U â
-                            arch._endpoint_b = next_vertex  # y' connect to a
-                            arch._reachable_nodes_set = node.bv_set
-                        else:
-                            vertex_x = Vertex()  # create x with Cx = 0
-                            num_nodes = len(arch._reachable_nodes_set)  # |Ba|
-                            vertex_x._value_ny = num_nodes - 0.5  # nx=|Ba|-1/2
-                            arch_a1 = Arch(vertex_x)
-                            arch_a1._reachable_nodes_set \
-                                = arch._reachable_nodes_set  # Ba1 = Bv'
-                            arch_a2 = Arch(vertex_x)
-                            arch_a2._reachable_nodes_set \
-                                = arch._reachable_nodes_set - node.bv_set  # Ba2
-                            self.frontier_set.add(arch_a2)
-                            arch._endpoint_b = vertex_x  # x connect to a
-                            arch_a1._endpoint_b = next_vertex  # y' to a1
+                if arch_a._reachable_nodes_set == node.bv_set:  # Ba = Bv'
+                    arch_a._endpoint_b = next_vertex  # y' connect to a
+                elif not vertex.nodes_set:  # Cy = 0
+                    # breakpoint()
+                    new_arch = Arch(vertex)  # â
+                    new_arch._reachable_nodes_set \
+                        = arch_a._reachable_nodes_set - node.bv_set
+                    self.frontier_set.add(new_arch)  # Z U â
+                    arch_a._endpoint_b = next_vertex  # y' connect to a
+                    arch_a._reachable_nodes_set = node.bv_set
+                else:
+                    # breakpoint()
+                    vertex_x = Vertex(Hub())  # create HUB x with Cx = 0
+                    num_nodes = len(arch_a._reachable_nodes_set)  # |Ba|
+                    vertex_x._value_ny = num_nodes - 0.5  # nx=|Ba|-1/2
+                    arch_a1 = Arch(vertex_x)
+                    arch_a1._reachable_nodes_set \
+                        = arch_a._reachable_nodes_set  # Ba1 = Bv'
+                    arch_a2 = Arch(vertex_x)
+                    arch_a2._reachable_nodes_set \
+                        = arch_a._reachable_nodes_set - node.bv_set  # Ba2
+                    self.frontier_set.add(arch_a2)
+                    arch_a._endpoint_b = vertex_x  # x connect to a
+                    arch_a1._endpoint_b = next_vertex  # y' to a1
 
     def __repr__(self):
         return self.__class__.__name__ + f"({self.subnet.compressed!r})"
@@ -1494,22 +1488,11 @@ class SkeletonTree(object):
         """
         return self.netnodes - {self.root}
 
-
-#    #1
-#    set_root_ports(nodes)
-#    set_leaves(nodes)
-#    set_values(nodes)
-#    #2
-#    set_sorted_nodes()
-#    start()
-#    set_frontiers()
-#    #3
-#    set_vertexes()
-#        set_sorted()
-#    #4
-
-""" After the initialization stage, the algorithm iteratively extracts """
-
+    # HINT SkeletonTree: método find_arch criado retorna arco para folhas Bv
+    def find_arch(self, reachable_leaves):
+        for arch in self.frontier_set:
+            if arch._reachable_nodes_set >= reachable_leaves:
+                return arch
 
 # %% main
 def main():
@@ -1629,7 +1612,8 @@ def main():
     pprint(f"sorted l: {bone1.sorted_l}")
     pprint(f"arcos frontera: {bone1.frontier_set}")
     pprint(f"conjunto Y({len(Vertex._allvertex_set)}): {Vertex._allvertex_set}")
-    pprint(f"All Arch: {len(Arch._allarch_set)}")
+    pprint(f"All Arch A: {len(Arch._allarch_set)}")
+    pprint(f"All Vertex Y: {len(Vertex._allvertex_set)}")
 
 # SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
 
