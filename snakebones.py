@@ -1287,15 +1287,20 @@ class Vertex(object):
 
     # HINT Vertex: corrigido parametro node e atributo _value_ny
     # HINT Vertex: incluido tratamento de Hub()
-    def __init__(self, node=None):
-        self._nodes_set = {node}
-        if isinstance(node, (LeafNode, InternalNode)):
-            self._value_ny = node.value_nv
-        else:
-            self._value_ny = None
+    # HINT Vertex: corrigido logica de inicialização e representação da classe
+    def __init__(self, *nodes):
+        self._nodes_set = set()
+        for node in nodes:
+            self._nodes_set.add(node)
+            if isinstance(node, (LeafNode, InternalNode)):
+                self._value_ny = node.value_nv
+            else:
+                self._value_ny = None
         Vertex._allvertex_set.add(self)  # y U Y
 
     def __repr__(self):
+        if not self.nodes_set:
+            return f"{self.__class__.__name__}()"
         return f"{self.__class__.__name__}({self.nodes_set})"
 
     @property
@@ -1341,9 +1346,11 @@ class Arch(object):
             self._reachable_nodes_set = None
         Arch._allarch_set.add(self)  # a U A
 
+    # HINT Arch: corrigido representação da classe
     def __repr__(self):
         return f"{self.__class__.__name__}" \
-               f"({self._endpoint_a!r}, {self._port_a!r}, {self._endpoint_b})"
+               f"({self._endpoint_a!r}, {self._port_a!r}, {self._endpoint_b}, " \
+               f"{self._port_b!r})"
 
 
 # %% classe SkeletonTree
@@ -1614,6 +1621,7 @@ def main():
     pprint(f"conjunto Y({len(Vertex._allvertex_set)}): {Vertex._allvertex_set}")
     pprint(f"All Arch A: {len(Arch._allarch_set)}")
     pprint(f"All Vertex Y: {len(Vertex._allvertex_set)}")
+    pprint(f"Vertex teste: {Vertex()!r}")
 
 # SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
 
