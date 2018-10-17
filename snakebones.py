@@ -106,11 +106,11 @@ class SubNet(IPv4Network):
     """
 
     _num_of_nets = 0
-    _allsubnets_set = set()
+    _all = set()
 
     def __new__(cls, *args, **kargs):
         """Cria objeto SubNet e incrementa contador"""
-        if cls not in SubNet._allsubnets_set:
+        if cls not in SubNet._all:
             cls._num_of_nets += 1
         return super().__new__(cls)
 
@@ -149,8 +149,8 @@ class SubNet(IPv4Network):
         self._internal_nodes = []
         self._leaf_nodes = []
         self._nodes = []
-        if self not in SubNet._allsubnets_set:
-            SubNet._allsubnets_set.add(self)
+        if self not in SubNet._all:
+            SubNet._all.add(self)
 
     # FIXMEdepois nao removendo do set ao deletar instancia
     # def __del__(self):
@@ -161,12 +161,12 @@ class SubNet(IPv4Network):
     @classmethod
     def remove_subnet(cls, subnet):
         """
-        Remove SubNet do set de redes criadas (allsubnets_set)
+        Remove SubNet do set de redes criadas (all)
         Decrementa contador de redes
 
         :param subnet:
         """
-        cls._allsubnets_set.remove(subnet)
+        cls._all.remove(subnet)
         cls._num_of_nets -= 1
 
     @property
@@ -175,9 +175,9 @@ class SubNet(IPv4Network):
         return self._num_of_nets
 
     @property
-    def allsubnets_set(self):
+    def all(self):
         """Retorna lista com instancias SubNet criadas"""
-        return self._allsubnets_set
+        return self._all
 
     @property
     def address(self):
@@ -283,10 +283,15 @@ class Hub(object):
         - port_list: postas de conexao com os elementos.
             - Apenas um item caso seja host.
     """
+    # HINT Hub: definido nome e total de hubs criados para diferenciação
+    _all_hubs = set()
 
     def __init__(self):
         """Inicia objeto Hub"""
         self._labeled = False
+        if isinstance(self, Hub):
+            Hub._all_hubs.add(self)
+        self.name = f"hub{len(Hub._all_hubs)}"
 
     def __repr__(self):
         return self.__class__.__name__ + '()'
@@ -348,7 +353,7 @@ class Node(IPv4Interface, Hub):
         verifica se node pertence a SubNet fornecida
     """
     _num_of_nodes = 0
-    _all_nodes_set = set()
+    _all = set()
 
     def __new__(cls, *args, **kargs):
         """Cria objeto Node e incrementa contador"""
@@ -379,13 +384,13 @@ class Node(IPv4Interface, Hub):
 
         self._mac.dialect = mac_cisco
         self._labeled = True
-        if self.network in SubNet._allsubnets_set:
-            for subnet in SubNet._allsubnets_set:
+        if self.network in SubNet._all:
+            for subnet in SubNet._all:
                 if self.network == subnet:
                     self.associated_subnets = {subnet}
         else:
             self.associated_subnets = {SubNet(self.compressed)}
-            SubNet._allsubnets_set.update(self.associated_subnets)
+            SubNet._all.update(self.associated_subnets)
         self._value_nv = None  # valor do no para a lista L
 
     def __repr__(self):
@@ -393,14 +398,14 @@ class Node(IPv4Interface, Hub):
                + ', ' + "'" + str(self.mac_address) + "')"
 
     @property
-    def all_nodes_set(self) -> set:
+    def all(self) -> set:
         """
         Retorna conjunto V de todos os nodes criados da arvore G(V, E)
 
         :return: Conjunto de nodes
         :rtype: set
         """
-        return self._all_nodes_set
+        return self._all
 
     @property
     def mac(self):
@@ -473,14 +478,15 @@ class Node(IPv4Interface, Hub):
 class LeafNode(Node):
     """Classe destinada a leaf nodes (hosts)
     """
-    _all_leaves_set = set()
+    _all_leaves = set()
 
+    # HINT LeafNode: ajustado representação
     def __init__(self, ip_address, mac_address, is_root=NO):
         super().__init__(ip_address, mac_address)
         self.is_root = is_root
-        LeafNode._all_leaves_set.add(self)
-        Node._all_nodes_set.add(self)
-        self.name = f"n{len(LeafNode._all_leaves_set)}"
+        LeafNode._all_leaves.add(self)
+        Node._all.add(self)
+        self.name = f"leaf{len(LeafNode._all_leaves)}"
 
     @property
     def is_root(self):
@@ -488,14 +494,14 @@ class LeafNode(Node):
         return self._is_root
 
     @property
-    def all_leaves_set(self) -> set:
+    def all_leaves(self) -> set:
         """
         Conjunto com instancias LeafNode criadas
 
         :rtype: set
         :return: nodes do tipo folha/leave
         """
-        return self._all_leaves_set
+        return self._all_leaves
 
     @is_root.setter
     def is_root(self, value: bool):
@@ -582,7 +588,7 @@ class InternalNode(Node):
             self._snmp_data = get_snmp_data(self)
 
         InternalNode._allinodes_set.add(self)
-        Node._all_nodes_set.add(self)
+        Node._all.add(self)
 
     def __del__(self):
         InternalNode._num_of_inodes -= 1
@@ -796,7 +802,7 @@ class InternalNode(Node):
         atribuindo a associated_subnets caso necessario
         v pertence a Vn
         """
-        for subnet in SubNet._allsubnets_set:
+        for subnet in SubNet._all:
             # for self in InternalNode._allinodes_set:
             if subnet == self.network:
                 continue
@@ -956,7 +962,7 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
                 IPv4Interface(address)
             except:
                 return None
-        for net_node in Node._all_nodes_set:
+        for net_node in Node._all:
             if net_node.ip.packed == node \
                     or net_node.mac.packed == node:
                 return net_node
@@ -970,19 +976,19 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
             except:
                 return None
             else:
-                for net_node in Node._all_nodes_set:
+                for net_node in Node._all:
                     if net_node.mac == node_obj:
                         return net_node
         else:
-            for net_node in Node._all_nodes_set:
+            for net_node in Node._all:
                 if net_node.ip == node_obj.ip:
                     return net_node
     elif isinstance(node, EUI):
-        for net_node in Node._all_nodes_set:
+        for net_node in Node._all:
             if net_node.mac.packed == node.packed:
                 return net_node
     else:
-        for net_node in Node._all_nodes_set:
+        for net_node in Node._all:
             if net_node.mac.packed == node.mac.packed:
                 return net_node
 
@@ -1073,7 +1079,7 @@ def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Optional[SubNet]:
         net_obj = subnet
     else:
         return None
-    for net in SubNet._allsubnets_set:
+    for net in SubNet._all:
         if net == net_obj:
             return net
     return None
@@ -1277,17 +1283,13 @@ class Edges(object):
 
 
 # %% classe Vertex
-# HINT Vertex: concluido inicializacao e estruturacao da classe
 class Vertex(object):
     """Representa o vertice na skeleton-tree. Cada vertice contem um conjunto
     associado de um ou mais nodes em Vn
 
     """
-    _allvertex_set = set()  # set Y de H(Y, A)
-
-    # HINT Vertex: corrigido parametro node e atributo _value_ny
-    # HINT Vertex: incluido tratamento de Hub()
-    # HINT Vertex: corrigido logica de inicialização e representação da classe
+    _all = set()  # set Y de H(Y, A)
+    _verbose_name = False
     def __init__(self, *nodes):
         self._nodes_set = set()
         for node in nodes:
@@ -1296,12 +1298,16 @@ class Vertex(object):
                 self._value_ny = node.value_nv
             else:
                 self._value_ny = None
-        Vertex._allvertex_set.add(self)  # y U Y
+        Vertex._all.add(self)  # y U Y
 
+    # HINT Vertex: opção de representação simplificada da classe
     def __repr__(self):
         if not self.nodes_set:
             return f"{self.__class__.__name__}()"
-        return f"{self.__class__.__name__}({self.nodes_set})"
+        elif Vertex._verbose_name:
+            return f"{self.__class__.__name__}({self.nodes_set})"
+        nodes = {node.name for node in self.nodes_set}
+        return f"{self.__class__.__name__}({nodes})"
 
     @property
     def nodes_set(self):
@@ -1321,32 +1327,35 @@ class Vertex(object):
 
 
 # %% classe Arch
-# HINT Arch: concluido inicializacao e estruturacao da classe
 class Arch(object):
-    _allarch_set = set()  # set A de H(Y, A)
+    _all = set()  # set A de H(Y, A)
 
-    # HINT Arch: parametros opcionais para portas que ligam a cada vertex
     def __init__(self,
                  endpoint_a: Vertex,
                  port_a: Optional[str] = None,
                  endpoint_b: Optional[Vertex] = None,
-                 port_b: Optional[str] = None) -> None:
+                 port_b: Optional[str] = None,
+                 subnet = None) -> None:
         self._endpoint_a = endpoint_a
         self._endpoint_b = endpoint_b
         self._port_a = port_a
         self._port_b = port_b
+        self.subnet = get_subnet(subnet)
         # Ba
         node_a = list(endpoint_a.nodes_set)[0]
-        # HINT Arch: corrigido _reachable_nodes_set
-        # HINT Arch: incluido tratamento de Hub()
+        # FIXME Arch: _reachable_nodes_set
         if node_a and isinstance(node_a, (LeafNode, InternalNode)):
-            self._reachable_nodes_set = {get_node(mac)
-                                         for mac in node_a.aft_atports(port_a)}
+            self._reachable_nodes_set = \
+                {get_node(mac)
+                 for mac in node_a.aft_atports(port_a, self.subnet)}
+            # nodes_set = {get_node(mac)
+            #              for mac in node_a.aft_atports(port_a)
+            #              if get_node(mac) in get_node(mac).network}
+            # self._reachable_nodes_set = nodes_set - InternalNode._allinodes_set
         else:
             self._reachable_nodes_set = None
-        Arch._allarch_set.add(self)  # a U A
+        Arch._all.add(self)  # a U A
 
-    # HINT Arch: corrigido representação da classe
     def __repr__(self):
         return f"{self.__class__.__name__}" \
                f"({self._endpoint_a!r}, {self._port_a!r}, {self._endpoint_b}, " \
@@ -1398,7 +1407,6 @@ class SkeletonTree(object):
 
     """
 
-    # HINT SkeletonTree: concluido inicializacao e estruturacao da classe
     def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
         """
         Inicializa a skeleton-tree
@@ -1430,16 +1438,15 @@ class SkeletonTree(object):
 
         vertex = Vertex(self.sorted_l.pop(0))
         for port in port_activeset(self.root, subnet):
-            self.frontier_set.add(Arch(vertex, port))
+            self.frontier_set.add(Arch(vertex, port, subnet=self.subnet))
 
         # main loop
-        # HINT SkeletonTree: Concluido loop principal
-        # HINT SkeletonTree: ajustado localização do arco
         # FIXME SkeletonTree: debug erro na criacao de vertex
         while self.sorted_l:
+            # breakpoint()
             node = self.sorted_l.pop(0)  # v'
             z_set = self.frontier_set.copy()  # Z com arcos fronteira
-            # FIXME SkeletonTree: criar funcao para achar arco
+            # HINT SkeletonTree: corrigida funcao para achar arco
             arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
             vertex = arch_a._endpoint_a  # y = start a in Y
             if vertex.value_n == node.value_nv:
@@ -1454,13 +1461,16 @@ class SkeletonTree(object):
                 port_leaves = ports - {get_port(node, self.root)}
                 for port in port_leaves:  # port_leaves = DNv' - {v(r)}
                     # breakpoint()
-                    self.frontier_set.add(Arch(next_vertex, port))  # a'
+                    self.frontier_set.add(Arch(next_vertex,
+                                               port,
+                                               subnet=self.subnet))  # a'
 
+                # breakpoint()
                 if arch_a._reachable_nodes_set == node.bv_set:  # Ba = Bv'
                     arch_a._endpoint_b = next_vertex  # y' connect to a
                 elif not vertex.nodes_set:  # Cy = 0
                     # breakpoint()
-                    new_arch = Arch(vertex)  # â
+                    new_arch = Arch(vertex, subnet=self.subnet)  # â
                     new_arch._reachable_nodes_set \
                         = arch_a._reachable_nodes_set - node.bv_set
                     self.frontier_set.add(new_arch)  # Z U â
@@ -1495,7 +1505,6 @@ class SkeletonTree(object):
         """
         return self.netnodes - {self.root}
 
-    # HINT SkeletonTree: método find_arch criado retorna arco para folhas Bv
     def find_arch(self, reachable_leaves):
         for arch in self.frontier_set:
             if arch._reachable_nodes_set >= reachable_leaves:
@@ -1572,7 +1581,7 @@ def main():
         # for inode in redes[0].internal_nodes:
         #     print(f'Porta {inode.name}(r) para root: {inode.get_port(get_root(rede))}')
         # print()
-    pprint(Node._all_nodes_set)
+    pprint(Node._all)
 
     print("\n\nTESTE DE FUNÇÕES")
     print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
@@ -1614,16 +1623,19 @@ def main():
 
     print()
     bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
+    breakpoint()
+    for hub in Hub._all_hubs:
+        print(hub.name)
     pprint(
         sorted([(node.value_nv, node) for node in bone1.nodes], reverse=True))
     pprint(f"sorted l: {bone1.sorted_l}")
     pprint(f"arcos frontera: {bone1.frontier_set}")
-    pprint(f"conjunto Y({len(Vertex._allvertex_set)}): {Vertex._allvertex_set}")
-    pprint(f"All Arch A: {len(Arch._allarch_set)}")
-    pprint(f"All Vertex Y: {len(Vertex._allvertex_set)}")
+    pprint(f"conjunto Y({len(Vertex._all)}): {Vertex._all}")
+    pprint(f"All Arch A: {len(Arch._all)}")
+    pprint(f"All Vertex Y: {len(Vertex._all)}")
     pprint(f"Vertex teste: {Vertex()!r}")
 
-# SubNet._allsubnets_set - (SubNet._allsubnets_set - {IPv4Network('10.0.10.0/24')})
+# SubNet._all - (SubNet._all - {IPv4Network('10.0.10.0/24')})
 
 # for inode in redes[0].internal_nodes:
 #     print(f'Node interno {inode} , rede "10.0.10.0/24":\n'
