@@ -291,7 +291,8 @@ class Hub(object):
         self._labeled = False
         if isinstance(self, Hub):
             Hub._all_hubs.add(self)
-        self.name = f"hub{len(Hub._all_hubs)}"
+        # HINT Hub: ajustado representação
+        self.name = f"hub_{len(Hub._all_hubs)}"
 
     def __repr__(self):
         return self.__class__.__name__ + '()'
@@ -486,7 +487,8 @@ class LeafNode(Node):
         self.is_root = is_root
         LeafNode._all_leaves.add(self)
         Node._all.add(self)
-        self.name = f"leaf{len(LeafNode._all_leaves)}"
+        # HINT LeafNode: ajustado representação
+        self.name = f"leaf_{len(LeafNode._all_leaves)}"
 
     @property
     def is_root(self):
@@ -1290,6 +1292,7 @@ class Vertex(object):
     """
     _all = set()  # set Y de H(Y, A)
     _verbose_name = False
+
     def __init__(self, *nodes):
         self._nodes_set = set()
         for node in nodes:
@@ -1300,18 +1303,28 @@ class Vertex(object):
                 self._value_ny = None
         Vertex._all.add(self)  # y U Y
 
-    # HINT Vertex: opção de representação simplificada da classe
+    # HINT Vertex: opção de representação simplificada da classe ajustada
     def __repr__(self):
-        if not self.nodes_set:
+        if not self._nodes_set:
             return f"{self.__class__.__name__}()"
         elif Vertex._verbose_name:
-            return f"{self.__class__.__name__}({self.nodes_set})"
-        nodes = {node.name for node in self.nodes_set}
+            return f"{self.__class__.__name__}({self._nodes_set})"
+        nodes = {node.name for node in self._nodes_set}
         return f"{self.__class__.__name__}({nodes})"
 
+    # HINT Vertex: corrigido nodes_set
     @property
     def nodes_set(self):
-        return self._nodes_set
+        """
+        Retorna conjunto de labeled nodes que compoem o vertice. Se for Hub
+        retorna set()
+
+        :return: Conjunto de nodes
+        """
+        for node in self._nodes_set:
+            if isinstance(node, (LeafNode, InternalNode)):
+                return self._nodes_set
+        return set()
 
     @nodes_set.setter
     def nodes_set(self, value):
@@ -1328,30 +1341,26 @@ class Vertex(object):
 
 # %% classe Arch
 class Arch(object):
-    _all = set()  # set A de H(Y, A)
+    _all = set()  # conjunto de dotos os arcos criados
 
     def __init__(self,
                  endpoint_a: Vertex,
                  port_a: Optional[str] = None,
                  endpoint_b: Optional[Vertex] = None,
                  port_b: Optional[str] = None,
-                 subnet = None) -> None:
+                 subnet=None) -> None:
         self._endpoint_a = endpoint_a
         self._endpoint_b = endpoint_b
         self._port_a = port_a
         self._port_b = port_b
         self.subnet = get_subnet(subnet)
         # Ba
-        node_a = list(endpoint_a.nodes_set)[0]
-        # FIXME Arch: _reachable_nodes_set
+        node_a = list(endpoint_a._nodes_set)[0]
+        # HINT Arch: corrigido _reachable_nodes_set (Ba)
         if node_a and isinstance(node_a, (LeafNode, InternalNode)):
             self._reachable_nodes_set = \
                 {get_node(mac)
                  for mac in node_a.aft_atports(port_a, self.subnet)}
-            # nodes_set = {get_node(mac)
-            #              for mac in node_a.aft_atports(port_a)
-            #              if get_node(mac) in get_node(mac).network}
-            # self._reachable_nodes_set = nodes_set - InternalNode._allinodes_set
         else:
             self._reachable_nodes_set = None
         Arch._all.add(self)  # a U A
@@ -1419,7 +1428,10 @@ class SkeletonTree(object):
         self.netnodes = set(subnet.leaf_nodes)  # N
         self.root = get_root(subnet)  # r
         self.root._value_nv = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
-        self.frontier_set = set()  # Z
+        self.frontier_set = set()  # Z para arcos fronteira
+        # HINT SkeletonTree: atribugos vertices e arches para Y e A de H(Y,A)
+        self.vertices = set()  # set Y de H(Y, A)
+        self.arches = set()  # set A de H(Y, A)
 
         # definindo |Bv| para cada node
         for node in self.nodes - {self.root}:
@@ -1437,54 +1449,57 @@ class SkeletonTree(object):
                          in sorted(node_values, reverse=True)]
 
         vertex = Vertex(self.sorted_l.pop(0))
+        self.vertices.add(vertex)
         for port in port_activeset(self.root, subnet):
-            self.frontier_set.add(Arch(vertex, port, subnet=self.subnet))
+            arch_out = Arch(vertex, port, subnet=self.subnet)
+            self.arches.add(arch_out)
+            self.frontier_set.add(arch_out)
 
         # main loop
-        # FIXME SkeletonTree: debug erro na criacao de vertex
+        # HINT SkeletonTree: debug erro na criacao de vertex com sucesso
         while self.sorted_l:
-            # breakpoint()
             node = self.sorted_l.pop(0)  # v'
-            z_set = self.frontier_set.copy()  # Z com arcos fronteira
+            # HINT SkeletonTree: removido z_set redundante
             # HINT SkeletonTree: corrigida funcao para achar arco
             arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
             vertex = arch_a._endpoint_a  # y = start a in Y
             if vertex.value_n == node.value_nv:
                 vertex._nodes_set.add(node)  # Cy U {v'}
             else:
-                # breakpoint()
                 self.frontier_set.remove(arch_a)  # Z - {a}
                 next_vertex = Vertex(node)  # new y'
-                pprint(f" v: {vertex}")
-                pprint(f" v': {next_vertex}")
+                self.vertices.add(next_vertex)
+                # pprint(f" v: {vertex}")
+                # pprint(f" v': {next_vertex}")
                 ports = port_activeset(node, subnet)
                 port_leaves = ports - {get_port(node, self.root)}
                 for port in port_leaves:  # port_leaves = DNv' - {v(r)}
-                    # breakpoint()
-                    self.frontier_set.add(Arch(next_vertex,
-                                               port,
-                                               subnet=self.subnet))  # a'
+                    arch_out = Arch(next_vertex, port, subnet=self.subnet)
+                    self.arches.add(arch_out)
+                    self.frontier_set.add(arch_out)  # a'
 
-                # breakpoint()
                 if arch_a._reachable_nodes_set == node.bv_set:  # Ba = Bv'
                     arch_a._endpoint_b = next_vertex  # y' connect to a
                 elif not vertex.nodes_set:  # Cy = 0
                     # breakpoint()
                     new_arch = Arch(vertex, subnet=self.subnet)  # â
+                    self.arches.add(new_arch)
                     new_arch._reachable_nodes_set \
                         = arch_a._reachable_nodes_set - node.bv_set
                     self.frontier_set.add(new_arch)  # Z U â
                     arch_a._endpoint_b = next_vertex  # y' connect to a
                     arch_a._reachable_nodes_set = node.bv_set
                 else:
-                    # breakpoint()
                     vertex_x = Vertex(Hub())  # create HUB x with Cx = 0
+                    self.vertices.add(vertex_x)
                     num_nodes = len(arch_a._reachable_nodes_set)  # |Ba|
                     vertex_x._value_ny = num_nodes - 0.5  # nx=|Ba|-1/2
                     arch_a1 = Arch(vertex_x)
+                    self.arches.add(arch_a1)
                     arch_a1._reachable_nodes_set \
                         = arch_a._reachable_nodes_set  # Ba1 = Bv'
                     arch_a2 = Arch(vertex_x)
+                    self.arches.add(arch_a2)
                     arch_a2._reachable_nodes_set \
                         = arch_a._reachable_nodes_set - node.bv_set  # Ba2
                     self.frontier_set.add(arch_a2)
@@ -1509,6 +1524,7 @@ class SkeletonTree(object):
         for arch in self.frontier_set:
             if arch._reachable_nodes_set >= reachable_leaves:
                 return arch
+
 
 # %% main
 def main():
@@ -1536,112 +1552,106 @@ def main():
         for rede in redes:
             rede.update_arp_table(auto_fill=False, post=True)
             ARP_TABLE_DATA[rede.compressed] = rede.arp_table
-            pprint(f'Rede {rede} ARP table {rede.arp_table}')
-    pprint(f'Tabela ARP dos elementos: {ARP_TABLE_DATA }')
-    print()
-    pprint(f'Dados SNMP dos elementos: {SNMP_DATA}')
-    print()
+    #         pprint(f'Rede {rede} ARP table {rede.arp_table}')
+    # pprint(f'Tabela ARP dos elementos: {ARP_TABLE_DATA }')
+    # print()
+    # pprint(f'Dados SNMP dos elementos: {SNMP_DATA}')
+    # print()
 
     for rede in redes:
         rede.set_all_nodes()
-        print(f'Nodes da rede {rede!r}:')
-        pprint(rede.nodes)
-        print()
+        # print(f'Nodes da rede {rede!r}:')
+        # pprint(rede.nodes)
+        # print()
     for inode in redes[0].internal_nodes:
         inode.set_associated_subnets()
-        print(f'Node switch {inode!r} de nome {inode.name}:')
-        print(f'Intrefaces para redes: {inode.ports_onsubnet}')
-        print(f'SubNet associadas: '
-              f'{inode.associated_subnets.difference({inode.network})}')
-        print(f'D{inode.name}:')
-        pprint(port_activeset(inode))
-        print(f'DN{inode.name} N=10.0.10.0:')
-        print(port_activeset(inode, '10.0.10.0/24'))
-
-        for port in inode.port_set:
-            pprint(f'F{inode.name},{port}:')
-            pprint(inode.aft_atports(port))
-            print(f'FN{inode.name},{port} N=10.0.10.0:')
-            pprint(inode.aft_atports(port, '10.0.10.0/24'))
-
-        print()
+        # print(f'Node switch {inode!r} de nome {inode.name}:')
+        # print(f'Intrefaces para redes: {inode.ports_onsubnet}')
+        # print(f'SubNet associadas: '
+        #       f'{inode.associated_subnets.difference({inode.network})}')
+        # print(f'D{inode.name}:')
+        # pprint(port_activeset(inode))
+        # print(f'DN{inode.name} N=10.0.10.0:')
+        # print(port_activeset(inode, '10.0.10.0/24'))
+        #
+        # for port in inode.port_set:
+        #     pprint(f'F{inode.name},{port}:')
+        #     pprint(inode.aft_atports(port))
+        #     print(f'FN{inode.name},{port} N=10.0.10.0:')
+        #     pprint(inode.aft_atports(port, '10.0.10.0/24'))
+        #
+        # print()
 
     # lista Vn de nodes associados com a subrede N
-    for rede in redes:
-        print(f'Nodes da rede {rede!r}:')
-        pprint(rede.nodes)
-        pprint(rede.nodes_set)
-        pprint(f'Root: {get_root(rede)}')
-        if not get_root(rede):
-            print()
-            continue
-        print('Vn - r: ')
-        pprint(rede.nodes_set - {get_root(rede)})
-        print()
-        # for inode in redes[0].internal_nodes:
-        #     print(f'Porta {inode.name}(r) para root: {inode.get_port(get_root(rede))}')
-        # print()
+    # for rede in redes:
+    #     print(f'Nodes da rede {rede!r}:')
+    #     pprint(rede.nodes)
+    #     pprint(rede.nodes_set)
+    #     pprint(f'Root: {get_root(rede)}')
+    #     if not get_root(rede):
+    #         print()
+    #         continue
+    #     print('Vn - r: ')
+    #     pprint(rede.nodes_set - {get_root(rede)})
+    #     print()
+
+    pprint('Nodes descobertos:')
     pprint(Node._all)
 
-    print("\n\nTESTE DE FUNÇÕES")
-    print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
-    inode_taken = get_node(b'\x00>\\\x02\x80\x01')
-    print(f'Inode taken {repr(inode_taken)}')
-    print(inode_taken.port_set)
-    print("get mac '0050.7966.6802' de str")
-    leafnode_taken = get_node('005079666802')
-    print(repr(leafnode_taken))
-    print(leafnode_taken.port_set)
-    print(f'v(u) get_port({leafnode_taken}, {inode_taken}):'
-          f' porta {get_port(leafnode_taken, inode_taken)!r}')
-    print(f'v(u) get_port({leafnode_taken}, {inode_taken}):'
-          f' porta {get_port("10.0.20.1/24", "10.0.0.2/24")!r}')
-    print(f'v(u) get_port({inode_taken}, {leafnode_taken}):'
-          f' porta {get_port(inode_taken, leafnode_taken)!r}')
-    for port in inode_taken.port_name.keys():
-        print(f'porta {port}: nome {inode_taken.port_name[port]}')
-
-    print()
-    print(inode_taken)
-    print(f"portas ativas {port_activeset(inode_taken)}")
-    print(f"port root: {inode_taken.port_root('10.0.20.0/24')!r}")
-    print(f"portas folhas {inode_taken.port_leaves('10.0.20.0/24')!r}")
-    print(f"folhas {inode_taken.leaves('10.0.20.0/24')!r}")
-    pprint(f"tamanho folhas {inode_taken.leaves_size('10.0.20.0/24')!r}")
-    print()
-    pprint(f"{leafnode_taken!r} Dv:{port_activeset(leafnode_taken)}")
-    pprint(f"{leafnode_taken!r} DNv '10.0.10.0/24':"
-           f"{port_activeset(leafnode_taken,'10.0.10.0/24')}")
-    pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':"
-           f"{port_activeset(leafnode_taken, '10.0.20.0/24')}")
-    print(
-        f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken)}")
-    print(
-        f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.20.0/24')}")
-    print(
-        f"Func {inode_taken!r} DNv '10.0.30.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
+    # print("\n\nTESTE DE FUNÇÕES")
+    # print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
+    # inode_taken = get_node(b'\x00>\\\x02\x80\x01')
+    # print(f'Inode taken {repr(inode_taken)}')
+    # print(inode_taken.port_set)
+    # print("get mac '0050.7966.6802' de str")
+    # leafnode_taken = get_node('005079666802')
+    # print(repr(leafnode_taken))
+    # print(leafnode_taken.port_set)
+    # print(f'v(u) get_port({leafnode_taken}, {inode_taken}):'
+    #       f' porta {get_port(leafnode_taken, inode_taken)!r}')
+    # print(f'v(u) get_port({leafnode_taken}, {inode_taken}):'
+    #       f' porta {get_port("10.0.20.1/24", "10.0.0.2/24")!r}')
+    # print(f'v(u) get_port({inode_taken}, {leafnode_taken}):'
+    #       f' porta {get_port(inode_taken, leafnode_taken)!r}')
+    # for port in inode_taken.port_name.keys():
+    #     print(f'porta {port}: nome {inode_taken.port_name[port]}')
+    #
+    # print()
+    # print(inode_taken)
+    # print(f"portas ativas {port_activeset(inode_taken)}")
+    # print(f"port root: {inode_taken.port_root('10.0.20.0/24')!r}")
+    # print(f"portas folhas {inode_taken.port_leaves('10.0.20.0/24')!r}")
+    # print(f"folhas {inode_taken.leaves('10.0.20.0/24')!r}")
+    # pprint(f"tamanho folhas {inode_taken.leaves_size('10.0.20.0/24')!r}")
+    # print()
+    # pprint(f"{leafnode_taken!r} Dv:{port_activeset(leafnode_taken)}")
+    # pprint(f"{leafnode_taken!r} DNv '10.0.10.0/24':"
+    #        f"{port_activeset(leafnode_taken,'10.0.10.0/24')}")
+    # pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':"
+    #        f"{port_activeset(leafnode_taken, '10.0.20.0/24')}")
+    # print(
+    #     f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken)}")
+    # print(
+    #     f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.20.0/24')}")
+    # print(
+    #     f"Func {inode_taken!r} DNv '10.0.30.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
 
     print()
     bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
-    breakpoint()
-    for hub in Hub._all_hubs:
-        print(hub.name)
+    print(f"Lista L para {bone1}")
     pprint(
         sorted([(node.value_nv, node) for node in bone1.nodes], reverse=True))
-    pprint(f"sorted l: {bone1.sorted_l}")
-    pprint(f"arcos frontera: {bone1.frontier_set}")
-    pprint(f"conjunto Y({len(Vertex._all)}): {Vertex._all}")
-    pprint(f"All Arch A: {len(Arch._all)}")
-    pprint(f"All Vertex Y: {len(Vertex._all)}")
-    pprint(f"Vertex teste: {Vertex()!r}")
-
-# SubNet._all - (SubNet._all - {IPv4Network('10.0.10.0/24')})
-
-# for inode in redes[0].internal_nodes:
-#     print(f'Node interno {inode} , rede "10.0.10.0/24":\n'
-#           f'redes associadas: {inode.associated_subnets}\n'
-#           f'root port {inode.port_root["10.0.10.0/24"]}\n'
-#           f'leaves port {inode.port_leaves["10.0.10.0/24"]}')
+    print(f"Vertices Y ({len(bone1.vertices)}) para {bone1}: ")
+    pprint(bone1.vertices)
+    print(f"Arcos A ({len(bone1.arches)}) para {bone1}:")
+    pprint(bone1.arches)
+    SkeletonTree(get_subnet('10.0.20.0/24'))
+    SkeletonTree(get_subnet('10.0.30.0/24'))
+    print('\n## Apos todas as redes rastreadas ##')
+    pprint(f"Vertices Y ({len(Vertex._all)}):")
+    pprint(Vertex._all)
+    pprint(f"Arcos A ({len(Arch._all)}):")
+    pprint(Arch._all)
 
 
 # %% executa main()
