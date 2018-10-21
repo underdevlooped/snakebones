@@ -1522,9 +1522,28 @@ class SkeletonTree(object):
         return self.netnodes - {self.root}
 
     def find_arch(self, reachable_leaves):
+        """
+        Retorna arco que acessa folhas dadas
+
+        :param reachable_leaves: conjunto de folhas destido do arco
+        :return: Arco localizado
+        :rtype: Arch
+        """
         for arch in self.frontier_set:
             if arch._reachable_nodes_set >= reachable_leaves:
                 return arch
+
+    # HINT SkeletonTree: metodo get_children para filhos de um vertex dado
+    def get_children(self, vertex: Vertex) -> List[Vertex]:
+        """
+        Retorna lista de vertex filhos tendo como referencia vertex dado
+
+        :param vertex: Vertex de referencia
+        :return: Vertex filhos
+        :rtype: list
+        """
+        ordered = sorted(self.vertices,key=lambda vertex:vertex._value_ny, reverse=True)
+        return ordered[ordered.index(vertex):]
 
     # HINT SkeletonTree: proriedade anchors para conjunto de ancoras
     @property
@@ -1536,6 +1555,11 @@ class SkeletonTree(object):
         """
         return {vertice for vertice in self.vertices
                 if len(vertice.nodes_set) == 1}
+
+
+# TODO Funcao ext_aft para AFT extendida
+def ext_aft(vertex, anchors, skeleton):
+    pass
 
 
 
@@ -1666,6 +1690,9 @@ def main():
     pprint(f"Arcos A ({len(Arch._all)}):")
     pprint(Arch._all)
     pprint(bone1.anchors)
+    print('\nVertices bone1')
+    filho = sorted(bone1.vertices,key=lambda vertex:vertex._value_ny, reverse=True)[5]
+    pprint(bone1.get_children(filho))
 
 
 # %% executa main()
