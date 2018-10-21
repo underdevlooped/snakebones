@@ -1419,6 +1419,7 @@ class SkeletonTree(object):
     def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
         """
         Inicializa a skeleton-tree
+        SKELETONTREE(N, VN , root, AFTs)
 
         :param subnet: subrede que induz a topologia
         """
@@ -1524,6 +1525,18 @@ class SkeletonTree(object):
         for arch in self.frontier_set:
             if arch._reachable_nodes_set >= reachable_leaves:
                 return arch
+
+    # HINT SkeletonTree: proriedade anchors para conjunto de ancoras
+    @property
+    def anchors(self) -> set:
+        """
+        Retorna conjunto de vertices que sao anchoras de uma skeleton-tree dada
+        :return: Conjunto de Ancoras
+        :rtype: set
+        """
+        return {vertice for vertice in self.vertices
+                if len(vertice.nodes_set) == 1}
+
 
 
 # %% main
@@ -1652,6 +1665,7 @@ def main():
     pprint(Vertex._all)
     pprint(f"Arcos A ({len(Arch._all)}):")
     pprint(Arch._all)
+    pprint(bone1.anchors)
 
 
 # %% executa main()
