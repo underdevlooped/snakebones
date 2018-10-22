@@ -283,7 +283,6 @@ class Hub(object):
         - port_list: postas de conexao com os elementos.
             - Apenas um item caso seja host.
     """
-    # HINT Hub: definido nome e total de hubs criados para diferenciação
     _all_hubs = set()
 
     def __init__(self):
@@ -291,7 +290,6 @@ class Hub(object):
         self._labeled = False
         if isinstance(self, Hub):
             Hub._all_hubs.add(self)
-        # HINT Hub: ajustado representação
         self.name = f"hub_{len(Hub._all_hubs)}"
 
     def __repr__(self):
@@ -481,13 +479,11 @@ class LeafNode(Node):
     """
     _all_leaves = set()
 
-    # HINT LeafNode: ajustado representação
     def __init__(self, ip_address, mac_address, is_root=NO):
         super().__init__(ip_address, mac_address)
         self.is_root = is_root
         LeafNode._all_leaves.add(self)
         Node._all.add(self)
-        # HINT LeafNode: ajustado representação
         self.name = f"leaf_{len(LeafNode._all_leaves)}"
 
     @property
@@ -797,6 +793,35 @@ class InternalNode(Node):
             subnet = get_subnet(subnet)
             return {mac for mac in subnet.mac_set
                     if mac in self.aft_atports(porta)}
+
+    # HINT InternalNode: método set_aft atualiza aft_atports Fv,k com macs exclusivos na porta
+    def set_aft(self, porta: str, *macs):
+        """Acrescenta macs a tabela AFT de emcaminhamento para determinada porta
+
+        Atualiza Fv,k
+
+        :param porta:
+        :param macs:
+        """
+        ports = self._snmp_data['dot1d_tp_fdb_port']
+        mac_data = self._snmp_data['dot1d_tp_fdb_address']
+        indexes = list()
+        # breakpoint()
+        while ports.count(porta):
+            # indexes.append(ports.index(porta))
+            mac_data.pop(ports.index(porta))
+            ports.remove(porta)
+        # if indexes:
+        #     for index in indexes.reverse():
+        #         ports.pop(index)
+        #         mac_data.pop(index)
+
+        for mac in macs:
+            if mac in mac_data:
+                ports.pop(mac_data.index(mac))
+                mac_data.remove(mac)
+            mac_data.append(mac)
+            ports.append(porta)
 
     def set_associated_subnets(self):
         """
@@ -1303,7 +1328,6 @@ class Vertex(object):
                 self._value_ny = None
         Vertex._all.add(self)  # y U Y
 
-    # HINT Vertex: opção de representação simplificada da classe ajustada
     def __repr__(self):
         if not self._nodes_set:
             return f"{self.__class__.__name__}()"
@@ -1312,7 +1336,6 @@ class Vertex(object):
         nodes = {node.name for node in self._nodes_set}
         return f"{self.__class__.__name__}({nodes})"
 
-    # HINT Vertex: corrigido nodes_set
     @property
     def nodes_set(self):
         """
@@ -1356,7 +1379,6 @@ class Arch(object):
         self.subnet = get_subnet(subnet)
         # Ba
         node_a = list(endpoint_a._nodes_set)[0]
-        # HINT Arch: corrigido _reachable_nodes_set (Ba)
         if node_a and isinstance(node_a, (LeafNode, InternalNode)):
             self._reachable_nodes_set = \
                 {get_node(mac)
@@ -1430,7 +1452,6 @@ class SkeletonTree(object):
         self.root = get_root(subnet)  # r
         self.root._value_nv = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
         self.frontier_set = set()  # Z para arcos fronteira
-        # HINT SkeletonTree: atribugos vertices e arches para Y e A de H(Y,A)
         self.vertices = set()  # set Y de H(Y, A)
         self.arches = set()  # set A de H(Y, A)
 
@@ -1457,11 +1478,8 @@ class SkeletonTree(object):
             self.frontier_set.add(arch_out)
 
         # main loop
-        # HINT SkeletonTree: debug erro na criacao de vertex com sucesso
         while self.sorted_l:
             node = self.sorted_l.pop(0)  # v'
-            # HINT SkeletonTree: removido z_set redundante
-            # HINT SkeletonTree: corrigida funcao para achar arco
             arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
             vertex = arch_a._endpoint_a  # y = start a in Y
             if vertex.value_n == node.value_nv:
@@ -1533,7 +1551,6 @@ class SkeletonTree(object):
             if arch._reachable_nodes_set >= reachable_leaves:
                 return arch
 
-    # HINT SkeletonTree: metodo get_children para filhos de um vertex dado
     def get_children(self, vertex: Vertex) -> List[Vertex]:
         """
         Retorna lista de vertex filhos tendo como referencia vertex dado
@@ -1546,8 +1563,6 @@ class SkeletonTree(object):
                          reverse=True)
         return ordered[ordered.index(vertex):]
 
-    # HINT SkeletonTree: proriedade anchors para conjunto de ancoras
-    # HINT SkeletonTree: ajustado anchors para retornar nodes em vez de vertex
     @property
     def anchors(self) -> set:
         """
@@ -1566,7 +1581,7 @@ class SkeletonTree(object):
         #         if len(vertice.nodes_set) == 1}
 
 
-# HINT Funcao ext_aft para AFT extendida (a concluir)
+# %% Funcao ext_aft para aft estendida
 def ext_aft(y_vertex, x_anchors, skeleton):
     children = skeleton.get_children(y_vertex)
     x_child = set()
@@ -1714,6 +1729,21 @@ def main():
     filho = \
     sorted(bone1.vertices, key=lambda vertex: vertex._value_ny, reverse=True)[0]
     pprint(bone1.get_children(filho))
+
+    print("\n\nTESTE DE FUNÇÕES")
+    print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
+    inode_taken = get_node(b'\x00>\\\x02\x80\x01')
+    print(f'Inode taken {repr(inode_taken)}')
+    pprint(inode_taken.port_set)
+    print(inode_taken.aft_atports('5'))
+    print(inode_taken.aft_atports('2'))
+
+    inode_taken.set_aft('5', b'\x00Pyfh\x02')
+    pprint(inode_taken.port_set)
+    print(inode_taken.aft_atports('5'))
+    print(inode_taken.aft_atports('2'))
+
+
 
 
 # %% executa main()
