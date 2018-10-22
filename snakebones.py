@@ -1542,10 +1542,12 @@ class SkeletonTree(object):
         :return: Vertex filhos
         :rtype: list
         """
-        ordered = sorted(self.vertices,key=lambda vertex:vertex._value_ny, reverse=True)
+        ordered = sorted(self.vertices, key=lambda vertex: vertex._value_ny,
+                         reverse=True)
         return ordered[ordered.index(vertex):]
 
     # HINT SkeletonTree: proriedade anchors para conjunto de ancoras
+    # HINT SkeletonTree: ajustado anchors para retornar nodes em vez de vertex
     @property
     def anchors(self) -> set:
         """
@@ -1553,14 +1555,32 @@ class SkeletonTree(object):
         :return: Conjunto de Ancoras
         :rtype: set
         """
-        return {vertice for vertice in self.vertices
-                if len(vertice.nodes_set) == 1}
+        anchors = set()
+        for vertice in self.vertices:
+            if len(vertice.nodes_set) == 1:
+                for node in vertice.nodes_set:
+                    # breakpoint()
+                    anchors.add(node)
+        return anchors
+        # return {vertice._nodes_set for vertice in self.vertices
+        #         if len(vertice.nodes_set) == 1}
 
 
-# TODO Funcao ext_aft para AFT extendida
-def ext_aft(vertex, anchors, skeleton):
-    pass
-
+# HINT Funcao ext_aft para AFT extendida (a concluir)
+def ext_aft(y_vertex, x_anchors, skeleton):
+    children = skeleton.get_children(y_vertex)
+    x_child = set()
+    for child in children:
+        if isinstance(child, (LeafNode, Hub)):
+            return None
+        else:
+            x_child.add(ext_aft(child,x_anchors, skeleton))
+    xy = x_child | (x_anchors & y_vertex.nodes_set)
+    for node in y_vertex.nodes_set:
+        port_root = get_port(node, skeleton.root)  # v(r)
+        # FIXME ext_aft: atualizar aft
+        node.aft_atports(port_root)
+        pass
 
 
 # %% main
@@ -1691,7 +1711,8 @@ def main():
     pprint(Arch._all)
     pprint(bone1.anchors)
     print('\nVertices bone1')
-    filho = sorted(bone1.vertices,key=lambda vertex:vertex._value_ny, reverse=True)[5]
+    filho = \
+    sorted(bone1.vertices, key=lambda vertex: vertex._value_ny, reverse=True)[0]
     pprint(bone1.get_children(filho))
 
 
