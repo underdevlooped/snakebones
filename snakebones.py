@@ -53,7 +53,8 @@ mymac = None
 
 
 # %% definicao de dados
-def config(internal_nodes: List[Union[str, None]] = None) -> None:
+def config(internal_nodes: List[Union[str, None]] = None,
+           complete_aft=True) -> None:
     """
     Configura atribuicao de dados SNMP e tabela ARP
     :rtype: None
@@ -62,7 +63,7 @@ def config(internal_nodes: List[Union[str, None]] = None) -> None:
     """
     global SNMP_DATA, ARP_TABLE_DATA
     if AUTOFILL_MODE:
-        SNMP_DATA = auto_snmp_data()
+        SNMP_DATA = auto_snmp_data(complete_aft)
         ARP_TABLE_DATA = auto_arp_table_data()
     else:
         nms_config(True)
@@ -1581,21 +1582,41 @@ class SkeletonTree(object):
         #         if len(vertice.nodes_set) == 1}
 
 
+# HINT função ext_aft: espande e atualiza aft
 # %% Funcao ext_aft para aft estendida
 def ext_aft(y_vertex, x_anchors, skeleton):
     children = skeleton.get_children(y_vertex)
-    x_child = set()
-    for child in children:
+    x_child = dict()  # Xyi
+    for child in children:  # for child yj
         if isinstance(child, (LeafNode, Hub)):
-            return None
+            return {child}
         else:
-            x_child.add(ext_aft(child,x_anchors, skeleton))
-    xy = x_child | (x_anchors & y_vertex.nodes_set)
-    for node in y_vertex.nodes_set:
-        port_root = get_port(node, skeleton.root)  # v(r)
-        # FIXME ext_aft: atualizar aft
-        node.aft_atports(port_root)
-        pass
+            index = get_port(y_vertex, child)
+            # Xyj = ExtendedAFTs(yj,X H(Y,A))
+            x_child[index] = ext_aft(child, x_anchors, skeleton)
+
+    x_child_union = set()
+    for value in x_child.values():
+        x_child_union.union(value)  # (U Xyj)
+
+    # Xy = (U Xyj) U (X Inter Cy)
+    xy = x_child_union | (x_anchors & y_vertex.nodes_set)
+    for node in y_vertex.nodes_set:  # node v E Cy
+        if isinstance(node, InternalNode):
+            port_root = get_port(node, skeleton.root)  # v(r)
+
+            aft = set(node.aft_atports(port_root))  # Fv,v(r)
+            aft.union(x_anchors - xy)  # Fv,v(r) U (X - Xy)
+            node.set_aft(port_root, aft)  # Fv,v(r) = Fv,v(r) U (X - Xy)
+
+            for port in x_child.keys():  # v,kj
+                aft_child = set(node.aft_atports(port))  # Fv,kj
+                aft_child.union(x_child[port])
+                node.set_aft(port, aft_child)
+        else:
+            continue
+
+    return xy
 
 
 # %% main
@@ -1612,7 +1633,7 @@ def main():
             '10.0.0.3',
             '10.0.0.4',
             '10.0.0.5',
-            '10.0.0.6'])
+            '10.0.0.6'], complete_aft=True)
     redes = (SubNet('10.0.0.0/24', auto_fill=AUTOFILL_MODE, has_switches=True),
              SubNet('10.0.10.0/24', auto_fill=AUTOFILL_MODE),
              SubNet('10.0.20.0/24', auto_fill=AUTOFILL_MODE),
@@ -1624,89 +1645,14 @@ def main():
         for rede in redes:
             rede.update_arp_table(auto_fill=False, post=True)
             ARP_TABLE_DATA[rede.compressed] = rede.arp_table
-    #         pprint(f'Rede {rede} ARP table {rede.arp_table}')
-    # pprint(f'Tabela ARP dos elementos: {ARP_TABLE_DATA }')
-    # print()
-    # pprint(f'Dados SNMP dos elementos: {SNMP_DATA}')
-    # print()
 
     for rede in redes:
         rede.set_all_nodes()
-        # print(f'Nodes da rede {rede!r}:')
-        # pprint(rede.nodes)
-        # print()
     for inode in redes[0].internal_nodes:
         inode.set_associated_subnets()
-        # print(f'Node switch {inode!r} de nome {inode.name}:')
-        # print(f'Intrefaces para redes: {inode.ports_onsubnet}')
-        # print(f'SubNet associadas: '
-        #       f'{inode.associated_subnets.difference({inode.network})}')
-        # print(f'D{inode.name}:')
-        # pprint(port_activeset(inode))
-        # print(f'DN{inode.name} N=10.0.10.0:')
-        # print(port_activeset(inode, '10.0.10.0/24'))
-        #
-        # for port in inode.port_set:
-        #     pprint(f'F{inode.name},{port}:')
-        #     pprint(inode.aft_atports(port))
-        #     print(f'FN{inode.name},{port} N=10.0.10.0:')
-        #     pprint(inode.aft_atports(port, '10.0.10.0/24'))
-        #
-        # print()
-
-    # lista Vn de nodes associados com a subrede N
-    # for rede in redes:
-    #     print(f'Nodes da rede {rede!r}:')
-    #     pprint(rede.nodes)
-    #     pprint(rede.nodes_set)
-    #     pprint(f'Root: {get_root(rede)}')
-    #     if not get_root(rede):
-    #         print()
-    #         continue
-    #     print('Vn - r: ')
-    #     pprint(rede.nodes_set - {get_root(rede)})
-    #     print()
 
     pprint('Nodes descobertos:')
     pprint(Node._all)
-
-    # print("\n\nTESTE DE FUNÇÕES")
-    # print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
-    # inode_taken = get_node(b'\x00>\\\x02\x80\x01')
-    # print(f'Inode taken {repr(inode_taken)}')
-    # print(inode_taken.port_set)
-    # print("get mac '0050.7966.6802' de str")
-    # leafnode_taken = get_node('005079666802')
-    # print(repr(leafnode_taken))
-    # print(leafnode_taken.port_set)
-    # print(f'v(u) get_port({leafnode_taken}, {inode_taken}):'
-    #       f' porta {get_port(leafnode_taken, inode_taken)!r}')
-    # print(f'v(u) get_port({leafnode_taken}, {inode_taken}):'
-    #       f' porta {get_port("10.0.20.1/24", "10.0.0.2/24")!r}')
-    # print(f'v(u) get_port({inode_taken}, {leafnode_taken}):'
-    #       f' porta {get_port(inode_taken, leafnode_taken)!r}')
-    # for port in inode_taken.port_name.keys():
-    #     print(f'porta {port}: nome {inode_taken.port_name[port]}')
-    #
-    # print()
-    # print(inode_taken)
-    # print(f"portas ativas {port_activeset(inode_taken)}")
-    # print(f"port root: {inode_taken.port_root('10.0.20.0/24')!r}")
-    # print(f"portas folhas {inode_taken.port_leaves('10.0.20.0/24')!r}")
-    # print(f"folhas {inode_taken.leaves('10.0.20.0/24')!r}")
-    # pprint(f"tamanho folhas {inode_taken.leaves_size('10.0.20.0/24')!r}")
-    # print()
-    # pprint(f"{leafnode_taken!r} Dv:{port_activeset(leafnode_taken)}")
-    # pprint(f"{leafnode_taken!r} DNv '10.0.10.0/24':"
-    #        f"{port_activeset(leafnode_taken,'10.0.10.0/24')}")
-    # pprint(f"{leafnode_taken!r} DNv '10.0.20.0/24':"
-    #        f"{port_activeset(leafnode_taken, '10.0.20.0/24')}")
-    # print(
-    #     f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken)}")
-    # print(
-    #     f"Func {inode_taken!r} DNv '10.0.20.0/24':{port_activeset(inode_taken,'10.0.20.0/24')}")
-    # print(
-    #     f"Func {inode_taken!r} DNv '10.0.30.0/24':{port_activeset(inode_taken,'10.0.30.0/24')}")
 
     print()
     bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
@@ -1724,10 +1670,12 @@ def main():
     pprint(Vertex._all)
     pprint(f"Arcos A ({len(Arch._all)}):")
     pprint(Arch._all)
+    print('\nAnchoras')
     pprint(bone1.anchors)
     print('\nVertices bone1')
     filho = \
-    sorted(bone1.vertices, key=lambda vertex: vertex._value_ny, reverse=True)[0]
+        sorted(bone1.vertices, key=lambda vertex: vertex._value_ny,
+               reverse=True)[0]
     pprint(bone1.get_children(filho))
 
     print("\n\nTESTE DE FUNÇÕES")
@@ -1742,8 +1690,6 @@ def main():
     pprint(inode_taken.port_set)
     print(inode_taken.aft_atports('5'))
     print(inode_taken.aft_atports('2'))
-
-
 
 
 # %% executa main()
