@@ -1628,6 +1628,7 @@ def main():
     global mymac, SNMP_DATA, ARP_TABLE_DATA, AUTOFILL_MODE
     AUTOFILL_MODE = True
 
+    # 1) OBTENDO DADOS
     config(['10.0.0.1',
             '10.0.0.2',
             '10.0.0.3',
@@ -1651,45 +1652,57 @@ def main():
     for inode in redes[0].internal_nodes:
         inode.set_associated_subnets()
 
-    pprint('Nodes descobertos:')
+    print('\nNodes descobertos:')
     pprint(Node._all)
 
-    print()
-    bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
-    print(f"Lista L para {bone1}")
-    pprint(
-        sorted([(node.value_nv, node) for node in bone1.nodes], reverse=True))
-    print(f"Vertices Y ({len(bone1.vertices)}) para {bone1}: ")
-    pprint(bone1.vertices)
-    print(f"Arcos A ({len(bone1.arches)}) para {bone1}:")
-    pprint(bone1.arches)
-    SkeletonTree(get_subnet('10.0.20.0/24'))
-    SkeletonTree(get_subnet('10.0.30.0/24'))
-    print('\n## Apos todas as redes rastreadas ##')
-    pprint(f"Vertices Y ({len(Vertex._all)}):")
-    pprint(Vertex._all)
-    pprint(f"Arcos A ({len(Arch._all)}):")
-    pprint(Arch._all)
-    print('\nAnchoras')
-    pprint(bone1.anchors)
-    print('\nVertices bone1')
-    filho = \
-        sorted(bone1.vertices, key=lambda vertex: vertex._value_ny,
-               reverse=True)[0]
-    pprint(bone1.get_children(filho))
+    # HINT main: iniciado descoberta de topologia
+    # 2) INFERINDO TOPOLOGIA
+    skeletons = list()
+    for subnet in SubNet._all:  # subnet Ni E N
+        if subnet._has_switches:
+            continue
+        skeletons.append(SkeletonTree(subnet))
+        bone: SkeletonTree = skeletons[-1]
+        # FIXME main: debug ext_aft para skeleton de entrada
+        # ext_aft(bone.root, bone.anchors, bone)
+    pprint(skeletons)
 
-    print("\n\nTESTE DE FUNÇÕES")
-    print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
-    inode_taken = get_node(b'\x00>\\\x02\x80\x01')
-    print(f'Inode taken {repr(inode_taken)}')
-    pprint(inode_taken.port_set)
-    print(inode_taken.aft_atports('5'))
-    print(inode_taken.aft_atports('2'))
-
-    inode_taken.set_aft('5', b'\x00Pyfh\x02')
-    pprint(inode_taken.port_set)
-    print(inode_taken.aft_atports('5'))
-    print(inode_taken.aft_atports('2'))
+    # print()
+    # bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
+    # print(f"Lista L para {bone1}")
+    # pprint(
+    #     sorted([(node.value_nv, node) for node in bone1.nodes], reverse=True))
+    # print(f"Vertices Y ({len(bone1.vertices)}) para {bone1}: ")
+    # pprint(bone1.vertices)
+    # print(f"Arcos A ({len(bone1.arches)}) para {bone1}:")
+    # pprint(bone1.arches)
+    # SkeletonTree(get_subnet('10.0.20.0/24'))
+    # SkeletonTree(get_subnet('10.0.30.0/24'))
+    # print('\n## Apos todas as redes rastreadas ##')
+    # pprint(f"Vertices Y ({len(Vertex._all)}):")
+    # pprint(Vertex._all)
+    # pprint(f"Arcos A ({len(Arch._all)}):")
+    # pprint(Arch._all)
+    # print('\nAnchoras')
+    # pprint(bone1.anchors)
+    # print('\nVertices bone1')
+    # filho = \
+    #     sorted(bone1.vertices, key=lambda vertex: vertex._value_ny,
+    #            reverse=True)[0]
+    # pprint(bone1.get_children(filho))
+    #
+    # print("\n\nTESTE DE FUNÇÕES")
+    # print("get node b\'\\x00>\\\\\\x02\\x80\\x01',")
+    # inode_taken = get_node(b'\x00>\\\x02\x80\x01')
+    # print(f'Inode taken {repr(inode_taken)}')
+    # pprint(inode_taken.port_set)
+    # print(inode_taken.aft_atports('5'))
+    # print(inode_taken.aft_atports('2'))
+    #
+    # inode_taken.set_aft('5', b'\x00Pyfh\x02')
+    # pprint(inode_taken.port_set)
+    # print(inode_taken.aft_atports('5'))
+    # print(inode_taken.aft_atports('2'))
 
 
 # %% executa main()
