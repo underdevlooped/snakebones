@@ -32,7 +32,8 @@ from collections import Counter, defaultdict
 from netaddr import EUI
 from netaddr.strategy.eui48 import mac_cisco
 from pprint import pprint
-from typing import List, Union, Dict, Optional  # Tuple, Callable, Any, Union
+from typing import List, Union, Dict, Optional, \
+    Set  # Tuple, Callable, Any, Union
 from easysnmp import Session
 
 # from easysnmp.exceptions import EasySNMPTimeoutError, EasySNMPConnectionError
@@ -807,7 +808,6 @@ class InternalNode(Node):
         ports = self._snmp_data['dot1d_tp_fdb_port']
         mac_data = self._snmp_data['dot1d_tp_fdb_address']
         indexes = list()
-        # breakpoint()
         while ports.count(porta):
             # indexes.append(ports.index(porta))
             mac_data.pop(ports.index(porta))
@@ -1473,6 +1473,8 @@ class SkeletonTree(object):
 
         vertex = Vertex(self.sorted_l.pop(0))
         self.vertices.add(vertex)
+        # HINT SkeletonTree: criado atributo root_vertex com node root
+        self.root_vertex = vertex
         for port in port_activeset(self.root, subnet):
             arch_out = Arch(vertex, port, subnet=self.subnet)
             self.arches.add(arch_out)
@@ -1501,7 +1503,6 @@ class SkeletonTree(object):
                 if arch_a._reachable_nodes_set == node.bv_set:  # Ba = Bv'
                     arch_a._endpoint_b = next_vertex  # y' connect to a
                 elif not vertex.nodes_set:  # Cy = 0
-                    # breakpoint()
                     new_arch = Arch(vertex, subnet=self.subnet)  # â
                     self.arches.add(new_arch)
                     new_arch._reachable_nodes_set \
@@ -1552,6 +1553,7 @@ class SkeletonTree(object):
             if arch._reachable_nodes_set >= reachable_leaves:
                 return arch
 
+    # HINT SkeletonTree: corrigido bug em get_children
     def get_children(self, vertex: Vertex) -> List[Vertex]:
         """
         Retorna lista de vertex filhos tendo como referencia vertex dado
@@ -1562,10 +1564,11 @@ class SkeletonTree(object):
         """
         ordered = sorted(self.vertices, key=lambda vertex: vertex._value_ny,
                          reverse=True)
-        return ordered[ordered.index(vertex):]
+        return ordered[ordered.index(vertex)+1:]
 
+    # HINT SkeletonTree: ajustado retorno de self.anchors
     @property
-    def anchors(self) -> set:
+    def anchors(self) -> Set[Union[Node, InternalNode]]:
         """
         Retorna conjunto de vertices que sao anchoras de uma skeleton-tree dada
         :return: Conjunto de Ancoras
@@ -1575,7 +1578,6 @@ class SkeletonTree(object):
         for vertice in self.vertices:
             if len(vertice.nodes_set) == 1:
                 for node in vertice.nodes_set:
-                    # breakpoint()
                     anchors.add(node)
         return anchors
         # return {vertice._nodes_set for vertice in self.vertices
@@ -1583,15 +1585,22 @@ class SkeletonTree(object):
 
 
 # HINT função ext_aft: espande e atualiza aft
+# HINT função ext_aft: corrigido vertex de entrada e localização de filhos
 # %% Funcao ext_aft para aft estendida
-def ext_aft(y_vertex, x_anchors, skeleton):
-    children = skeleton.get_children(y_vertex)
+def ext_aft(y_vertex: Vertex,
+            x_anchors: Set[Union[Node, InternalNode]],
+            skeleton: SkeletonTree) -> None:
     x_child = dict()  # Xyi
+    children = skeleton.get_children(y_vertex)
+    from_node = list(y_vertex._nodes_set)[0]
     for child in children:  # for child yj
-        if isinstance(child, (LeafNode, Hub)):
-            return {child}
+        to_node = list(child._nodes_set)[0]
+        if isinstance(to_node, (LeafNode, Hub)):
+            continue
+            # return {child}
         else:
-            index = get_port(y_vertex, child)
+            # if isinstance(from_node, Hub) or isinstance(to_node, Hub)
+            index = get_port(from_node, to_node)
             # Xyj = ExtendedAFTs(yj,X H(Y,A))
             x_child[index] = ext_aft(child, x_anchors, skeleton)
 
@@ -1661,10 +1670,13 @@ def main():
     for subnet in SubNet._all:  # subnet Ni E N
         if subnet._has_switches:
             continue
-        skeletons.append(SkeletonTree(subnet))
-        bone: SkeletonTree = skeletons[-1]
-        # FIXME main: debug ext_aft para skeleton de entrada
-        # ext_aft(bone.root, bone.anchors, bone)
+        breakpoint()
+        # FIXME main: debug criacao SkeletonTree para complete_aft=False
+        skeletons.append(SkeletonTree(subnet))  # SkeletonTree(Ni,Vni,ri,AFTs)
+        bone: SkeletonTree = skeletons[-1]  # Hi(Yi,Ai)
+        # HINT main: debug ext_aft para skeleton de entrada
+        ext_aft(bone.root_vertex, bone.anchors, bone)  # ExtendedAFTs(yj,X H(Y,A))
+    print('\nSkeletons-trees:')
     pprint(skeletons)
 
     # print()
