@@ -25,7 +25,8 @@ sys.path.append(
 from pdb import set_trace as breakpoint
 from esqueleto import (to_bytes, ip_mac_to_arp_table, nms_config, ping_ip,
                        auto_arp_table_data, auto_snmp_data, is_internal_node,
-                       is_leaf_node, set_arp_table, get_mymac, get_myip, )
+                       is_leaf_node, set_arp_table, get_mymac, get_myip,
+                       aft_fdb)
 from ipaddress import IPv4Interface, IPv4Network  # ,IPv4Address
 from itertools import permutations
 from collections import Counter, defaultdict
@@ -797,13 +798,13 @@ class InternalNode(Node):
                     if mac in self.aft_atports(porta)}
 
     # HINT InternalNode: método set_aft atualiza aft_atports Fv,k com macs exclusivos na porta
-    def set_aft(self, porta: str, *macs):
-        """Acrescenta macs a tabela AFT de emcaminhamento para determinada porta
+    def set_aft(self, porta: str, *new_macs):
+        """Acrescenta new_macs a tabela AFT de emcaminhamento para determinada porta
 
         Atualiza Fv,k
 
         :param porta:
-        :param macs:
+        :param new_macs:
         """
         ports = self._snmp_data['dot1d_tp_fdb_port']
         mac_data = self._snmp_data['dot1d_tp_fdb_address']
@@ -817,7 +818,7 @@ class InternalNode(Node):
         #         ports.pop(index)
         #         mac_data.pop(index)
 
-        for mac in macs:
+        for mac in new_macs:
             if mac in mac_data:
                 ports.pop(mac_data.index(mac))
                 mac_data.remove(mac)
@@ -1467,12 +1468,11 @@ class SkeletonTree(object):
             else:
                 node._value_nv = len(node.bv_set)
 
+        # HINT SkeletonTree: bug em sorted_l -> value_nv corrigidos
         node_values = [(node.value_nv, node) for node in self.nodes]
-        # FIXME SkeletonTree: bug em sorted_l
         self.sorted_l = [node for (value, node)
                          in sorted(node_values, reverse=True)]
 
-        # breakpoint()
         vertex = Vertex(self.sorted_l.pop(0))
         self.vertices.add(vertex)
         # HINT SkeletonTree: criado atributo root_vertex com node root
@@ -1545,7 +1545,7 @@ class SkeletonTree(object):
         """
         return self.netnodes - {self.root}
 
-    # FIXME SkeletonTree: corrigir find_arch
+    # HINT SkeletonTree: corrigido find_arch
     def find_arch(self, reachable_leaves):
         """
         Retorna arco que acessa folhas dadas
@@ -1554,7 +1554,6 @@ class SkeletonTree(object):
         :return: Arco localizado
         :rtype: Arch
         """
-        # breakpoint()
         for arch in self.frontier_set:
             if arch._reachable_nodes_set >= reachable_leaves:
                 return arch
@@ -1670,19 +1669,38 @@ def main():
     print('\nNodes descobertos:')
     pprint(Node._all)
 
+    print('\nInodes:')
+    pprint(InternalNode._allinodes_set)
+
+    # procedimento atualiza aft parcial conforme topologia de referencia
+    # for inode in InternalNode._allinodes_set:
+    #     inode: InternalNode
+    #     print(f"{inode} antes: ")
+    #     pprint(inode.aft)
+    #     for port, mac in aft_fdb[inode.compressed].items():
+    #         inode.set_aft(port, *mac)
+    #     inode.set_associated_subnets
+    #     print('depois:')
+    #     pprint(inode.aft)
+    #     print()
+
     # HINT main: iniciado descoberta de topologia
     # 2) INFERINDO TOPOLOGIA
     skeletons = list()
     for subnet in SubNet._all:  # subnet Ni E N
         if subnet._has_switches:
             continue
-        # FIXME main: debug criacao SkeletonTree para complete_aft=False
+    # HINT main: debug criacao SkeletonTree para complete_aft=False (incompleta)
         skeletons.append(SkeletonTree(subnet))  # SkeletonTree(Ni,Vni,ri,AFTs)
         bone: SkeletonTree = skeletons[-1]  # Hi(Yi,Ai)
         # HINT main: debug ext_aft para skeleton de entrada
         ext_aft(bone.root_vertex, bone.anchors, bone)  # ExtendedAFTs(yj,X H(Y,A))
     print('\nSkeletons-trees:')
-    pprint(skeletons)
+    for skeleton in skeletons:
+        print(skeleton)
+        pprint(sorted([(node.value_nv, node)
+                       for node in skeleton.nodes], reverse=True))
+
 
     # print()
     # bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
