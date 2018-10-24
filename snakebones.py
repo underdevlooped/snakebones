@@ -1468,9 +1468,11 @@ class SkeletonTree(object):
                 node._value_nv = len(node.bv_set)
 
         node_values = [(node.value_nv, node) for node in self.nodes]
+        # FIXME SkeletonTree: bug em sorted_l
         self.sorted_l = [node for (value, node)
                          in sorted(node_values, reverse=True)]
 
+        # breakpoint()
         vertex = Vertex(self.sorted_l.pop(0))
         self.vertices.add(vertex)
         # HINT SkeletonTree: criado atributo root_vertex com node root
@@ -1526,6 +1528,8 @@ class SkeletonTree(object):
                     self.frontier_set.add(arch_a2)
                     arch_a._endpoint_b = vertex_x  # x connect to a
                     arch_a1._endpoint_b = next_vertex  # y' to a1
+        # pprint(
+        #     sorted([(node.value_nv, node) for node in self.nodes], reverse=True))
 
     def __repr__(self):
         return self.__class__.__name__ + f"({self.subnet.compressed!r})"
@@ -1541,6 +1545,7 @@ class SkeletonTree(object):
         """
         return self.netnodes - {self.root}
 
+    # FIXME SkeletonTree: corrigir find_arch
     def find_arch(self, reachable_leaves):
         """
         Retorna arco que acessa folhas dadas
@@ -1549,6 +1554,7 @@ class SkeletonTree(object):
         :return: Arco localizado
         :rtype: Arch
         """
+        # breakpoint()
         for arch in self.frontier_set:
             if arch._reachable_nodes_set >= reachable_leaves:
                 return arch
@@ -1670,7 +1676,6 @@ def main():
     for subnet in SubNet._all:  # subnet Ni E N
         if subnet._has_switches:
             continue
-        breakpoint()
         # FIXME main: debug criacao SkeletonTree para complete_aft=False
         skeletons.append(SkeletonTree(subnet))  # SkeletonTree(Ni,Vni,ri,AFTs)
         bone: SkeletonTree = skeletons[-1]  # Hi(Yi,Ai)

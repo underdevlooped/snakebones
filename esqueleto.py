@@ -52,6 +52,7 @@ YES = ON = START = True
 NO = OFF = STOP = False
 
 
+# HINT NMS incluido no snmp e arp
 # %% SNMP_DATA
 def auto_snmp_data(complete_aft=True) -> dict:
     """Retorna dicionario com os dados snmp (sem probe) dos internal nodes
@@ -245,7 +246,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                          'dot1d_base_num_ports': '16',
                          'dot1_base_type': '2',
                          'dot1d_tp_fdb_address': [
-                             # b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
+                             b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
                              b'\x00>\\\x02\x80\x01',  # 10.0.0.2/24 003e.5c02.8001
                              b'\x00>\\\x03\x80\x01',  # 10.0.0.3/24 003e.5c03.8001
                              b'\x00>\\\x04\x80\x01',  # 10.0.0.4/24 003e.5c04.8001
@@ -270,7 +271,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                              b'\xc4\x01\x08\x83\x000'
                          ],
                          'dot1d_tp_fdb_port': [
-                             # '1',  # NMS
+                             '1',  # NMS
                              '3',
                              '3',
                              '3',
@@ -305,7 +306,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                          'dot1d_base_num_ports': '16',
                          'dot1_base_type': '2',
                          'dot1d_tp_fdb_address': [
-                             # b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
+                             b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
                              b'\x00>\\\x01\x80\x01',  # 10.0.0.1/24 003e.5c01.8001
                              b'\x00>\\\x03\x80\x01',  # 10.0.0.3/24 003e.5c03.8001
                              b'\x00>\\\x04\x80\x01',  # 10.0.0.4/24 003e.5c04.8001
@@ -326,7 +327,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                              b'\x00Pyfh\x0c'  # 10.0.10.1/24 0050.7966.680c
                          ],
                          'dot1d_tp_fdb_port': [
-                             # '1',  # NMS
+                             '1',  # NMS
                              '1',
                              '3',
                              '2',
@@ -356,7 +357,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                          'dot1d_base_num_ports': '16',
                          'dot1_base_type': '2',
                          'dot1d_tp_fdb_address': [
-                             # b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
+                             b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
                              b'\x00>\\\x01\x80\x01',  # 10.0.0.1/24 003e.5c01.8001
                              b'\x00>\\\x02\x80\x01',  # 10.0.0.2/24 003e.5c02.8001
                              b'\x00>\\\x04\x80\x01',  # 10.0.0.4/24 003e.5c04.8001
@@ -377,7 +378,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                              b'\x00Pyfh\x0c'  # 10.0.10.1/24 0050.7966.680c
                          ],
                          'dot1d_tp_fdb_port': [
-                             # '1',  # NMS
+                             '1',  # NMS
                              '1',
                              '1',
                              '1',
@@ -406,7 +407,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                          'dot1d_base_num_ports': '16',
                          'dot1_base_type': '2',
                          'dot1d_tp_fdb_address': [
-                             # b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
+                             b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
                              b'\x00>\\\x01\x80\x01',  # 10.0.0.1/24 003e.5c01.8001
                              b'\x00>\\\x02\x80\x01',  # 10.0.0.2/24 003e.5c02.8001
                              b'\x00>\\\x03\x80\x01',  # 10.0.0.3/24 003e.5c03.8001
@@ -427,7 +428,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                              b'\x00Pyfh\x0c'  # 10.0.10.1/24 0050.7966.680c
                          ],
                          'dot1d_tp_fdb_port': [
-                             # '1',  # NMS
+                             '1',  # NMS
                              '1',
                              '1',
                              '1',
@@ -456,7 +457,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                          'dot1d_base_num_ports': '16',
                          'dot1_base_type': '2',
                          'dot1d_tp_fdb_address': [
-                             # b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
+                             b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
                              b'\x00>\\\x01\x80\x01',  # 10.0.0.1/24 003e.5c01.8001
                              b'\x00>\\\x02\x80\x01',  # 10.0.0.2/24 003e.5c02.8001
                              b'\x00>\\\x03\x80\x01',  # 10.0.0.3/24 003e.5c03.8001
@@ -477,7 +478,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                              b'\x00Pyfh\x0c'  # 10.0.10.1/24 0050.7966.680c
                          ],
                          'dot1d_tp_fdb_port': [
-                             # '1',  # NMS
+                             '1',  # NMS
                              '1',
                              '1',
                              '1',
@@ -505,7 +506,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                          'dot1d_base_num_ports': '16',
                          'dot1_base_type': '2',
                          'dot1d_tp_fdb_address': [
-                             # b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
+                             b'\x00\x0c)\\Bq',  # NMS 10.0.*.111/24 000c.295c.4271
                              b'\x00>\\\x01\x80\x01',  # 10.0.0.1/24 003e.5c01.8001
                              b'\x00>\\\x02\x80\x01',  # 10.0.0.2/24 003e.5c02.8001
                              b'\x00>\\\x03\x80\x01',  # 10.0.0.3/24 003e.5c03.8001
@@ -526,7 +527,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                              b'\x00Pyfh\x0c'  # 10.0.10.1/24 0050.7966.680c
                          ],
                          'dot1d_tp_fdb_port': [
-                             # '1',  # NMS
+                             '1',  # NMS
                              '1',
                              '1',
                              '1',
@@ -574,7 +575,7 @@ def auto_arp_table_data() -> dict:
             ],
          '10.0.10.0/24':
              [
-              # (IPv4Interface('10.0.10.111/24'), EUI('000c.295c.4271')),
+              (IPv4Interface('10.0.10.111/24'), EUI('000c.295c.4271')),
               (IPv4Interface('10.0.10.1/24'), EUI('0050.7966.680c')),
               (IPv4Interface('10.0.10.2/24'), EUI('0050.7966.6805')),
               (IPv4Interface('10.0.10.3/24'), EUI('0050.7966.6809')),
@@ -583,14 +584,14 @@ def auto_arp_table_data() -> dict:
               (IPv4Interface('10.0.10.6/24'), EUI('0050.7966.6807'))],
          '10.0.20.0/24':
              [
-              # (IPv4Interface('10.0.20.111/24'), EUI('000c.295c.4271')),
+              (IPv4Interface('10.0.20.111/24'), EUI('000c.295c.4271')),
               (IPv4Interface('10.0.20.1/24'), EUI('0050.7966.6802')),
               (IPv4Interface('10.0.20.2/24'), EUI('0050.7966.6803')),
               (IPv4Interface('10.0.20.3/24'), EUI('0050.7966.6804')),
               (IPv4Interface('10.0.20.4/24'), EUI('0050.7966.6806'))],
          '10.0.30.0/24':
              [
-              # (IPv4Interface('10.0.30.111/24'), EUI('000c.295c.4271')),
+              (IPv4Interface('10.0.30.111/24'), EUI('000c.295c.4271')),
               (IPv4Interface('10.0.30.1/24'), EUI('0050.7966.6800')),
               (IPv4Interface('10.0.30.2/24'), EUI('0050.7966.680b')),
               (IPv4Interface('10.0.30.3/24'), EUI('0050.7966.6801'))]}
