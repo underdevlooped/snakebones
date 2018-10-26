@@ -482,12 +482,23 @@ class LeafNode(Node):
     """
     _all_leaves = set()
 
-    def __init__(self, ip_address, mac_address, is_root=NO):
+    def __init__(self, ip_address, mac_address, is_root=False):
         super().__init__(ip_address, mac_address)
         self.is_root = is_root
         LeafNode._all_leaves.add(self)
         Node._all.add(self)
-        self.name = f"leaf_{len(LeafNode._all_leaves)}"
+        self._name = f"leaf_{len(LeafNode._all_leaves)}"
+
+    # HINT LeafNode: indicação automática no nome do root node
+    @property
+    def name(self):
+        if self.is_root:
+            return self._name + "*root*"
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
 
     @property
     def is_root(self):
@@ -1022,6 +1033,35 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
                 return net_node
 
 
+# HINT Função set_root: define ou altera root node da rede
+# %% Funcao set_root(node)
+def set_root(node: Union[bytes, str, LeafNode, InternalNode]) \
+        -> None:
+    """
+    Define LeafNode fornecido como root de uma SubNet
+    atributo is_root do LeafNode: LeafNode.is_root = True
+
+    :param node:
+        node a ser pesquisado definido como root node
+    :return:
+        None
+    """
+    root_node = get_node(node)
+    if not root_node:
+        print(f"Node não definido para {node}")
+        return  None
+    subnet = get_subnet(root_node.network.compressed)
+    if not subnet:
+        print(f"Rede nao definida para {root_node}")
+        return None
+    if subnet.leaf_nodes:
+        for node in subnet.leaf_nodes:
+            if node == root_node:
+                root_node.is_root = True
+            else:
+                node.is_root = False
+
+
 # %% Funcao get_root(subnet: SubNet) -> bool
 def get_root(subnet: Union[str, IPv4Network, SubNet]) -> Optional[LeafNode]:
     """
@@ -1097,7 +1137,8 @@ def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Optional[SubNet]:
     ... SubNet('10.0.10.0/24')
 
     :param subnet: Rede a ser localizada
-    :return: Objeto SubNet
+    :return: Objeto SubNet, se foi localizado
+    :rtype: SubNet
     """
     if isinstance(subnet, str):
         try:
@@ -1366,7 +1407,7 @@ class Vertex(object):
 
 # %% classe Arch
 class Arch(object):
-    _all = set()  # conjunto de dotos os arcos criados
+    _all = set()  # conjunto de todos os arcos criados
 
     def __init__(self,
                  endpoint_a: Vertex,
@@ -1439,6 +1480,8 @@ class SkeletonTree(object):
         - identifica arco frontier_arcs que sera conectado ao no extraido
 
     """
+    # HINT SkeletonTree: atributo _all para conjunto de todas as skeletons
+    _all = set()  # conjunto de totos skeletons criadas
 
     def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
         """
@@ -1528,8 +1571,7 @@ class SkeletonTree(object):
                     self.frontier_set.add(arch_a2)
                     arch_a._endpoint_b = vertex_x  # x connect to a
                     arch_a1._endpoint_b = next_vertex  # y' to a1
-        # pprint(
-        #     sorted([(node.value_nv, node) for node in self.nodes], reverse=True))
+        SkeletonTree._all.add(self)
 
     def __repr__(self):
         return self.__class__.__name__ + f"({self.subnet.compressed!r})"
@@ -1687,7 +1729,7 @@ def main():
     # HINT main: iniciado descoberta de topologia
     # 2) INFERINDO TOPOLOGIA
     skeletons = list()
-    for subnet in SubNet._all:  # subnet Ni E N
+    for subnet in SubNet._all:  # subnet Ni E 'N'
         if subnet._has_switches:
             continue
     # HINT main: debug criacao SkeletonTree para complete_aft=False (incompleta)
@@ -1695,9 +1737,16 @@ def main():
         bone: SkeletonTree = skeletons[-1]  # Hi(Yi,Ai)
         # HINT main: debug ext_aft para skeleton de entrada
         ext_aft(bone.root_vertex, bone.anchors, bone)  # ExtendedAFTs(yj,X H(Y,A))
+
+    # breakpoint()
+    # FIXME main: uniao das skeleton trees
+    # while len(skeletons) >= 2:  # there are 2 skeleton
+    #     pass
+
     print('\nSkeletons-trees:')
     for skeleton in skeletons:
         print(skeleton)
+        pprint(skeleton.vertices)
         pprint(sorted([(node.value_nv, node)
                        for node in skeleton.nodes], reverse=True))
 
