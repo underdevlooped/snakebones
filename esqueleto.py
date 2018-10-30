@@ -51,7 +51,6 @@ ArpTable = List[Tuple[IPv4Interface, EUI]]
 YES = ON = START = True
 NO = OFF = STOP = False
 
-# HINT manual_aft: função para facilitar manipular base de dados snmp
 def manual_aft():
 
     nms = b'\x00\x0c)\\Bq'  # NMS 10.0.*.111/24 000c.295c.4271
@@ -192,8 +191,6 @@ aft_fdb = manual_aft()
 #                  '16': {b'\x00Pyfh\x0b'}}}
 
 
-# HINT NMS incluido no snmp e arp
-# HINT auto_snmp_data: base recriada para depurar bug
 # %% SNMP_DATA
 def auto_snmp_data(complete_aft=True) -> dict:
     """Retorna dicionario com os dados snmp (sem probe) dos internal nodes

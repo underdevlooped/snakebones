@@ -1209,6 +1209,64 @@ def port_activeset(node: Union[LeafNode, InternalNode],
             return subnet_ports
 
 
+# HINT get_active_ports: retorna portas ativas para grupo de nodes (opcional)
+# %% Funcao get_active_ports
+def get_active_ports(node: Union[bytes, str, LeafNode, InternalNode],
+                     *netnodes) -> set:
+    """
+    Retorna conjunto de portas ativas do node. Para objetos LeafNode retorna
+    sempre {'1'}
+
+    # Dv = potas ativas do node
+    # DNv = potas ativas do node na subrede N (parametro subnet)
+
+    Exemplo:
+    ----
+    >>> # para nodes '10.0.10.X/24'
+    >>> port_activeset(LeafNode)# Dv
+    ... {'1'}
+    >>> port_activeset(InternalNode)  # Dv
+    ... {'3', '16', '1', '2'}
+
+    >>> port_activeset(LeafNode, '10.0.10.0/24')  # DNv
+    ... {'1'}
+    >>> port_activeset(LeafNode, '10.0.20.0/24')  # DNv
+    ... set()
+
+    >>> port_activeset(InternalNode, '10.0.20.0/24')  # DNv existente
+    ... {'3', '16', '2'}
+    >>> port_activeset(InternalNode, '10.0.30.0/24')  # DNv inexistene
+    ... set()
+    :return:
+    :param node: LeafNode ou InternalNode
+    :param subnet: subrede no formato 'ip/mascara'
+    :return: Conjunto de portas ativas
+    :rtype: set
+
+    """
+    node = get_node(node)
+
+    if isinstance(node, LeafNode):
+        if not netnodes:  # Dv
+            return {'1'}
+        else:  # DNv
+            for netnode in netnodes:
+                if node in netnode.network:
+                    return {'1'}
+            return set()
+
+    elif isinstance(node, InternalNode):
+        if not netnodes:
+            return node.port_set
+        else:
+            netnodes_ports = set()
+            for netnode in netnodes:
+                for port in node.port_set:
+                    if netnode.mac.packed in node.aft_atports(port):
+                        netnodes_ports.add(port)
+            return netnodes_ports
+
+
 # %% Funcao get_snmp_data
 def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
     """
@@ -1504,6 +1562,7 @@ class SkeletonTree(object):
         self.vertices = set()  # set Y de H(Y, A)
         self.arches = set()  # set A de H(Y, A)
 
+    #
     # def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
     #     """
     #     Inicializa a skeleton-tree
@@ -1522,13 +1581,22 @@ class SkeletonTree(object):
     #     self.arches = set()  # set A de H(Y, A)
 
         # definindo |Bv| para cada node
+# HINT SkeletonTree: restruturado formação do conjunto de folhas Bv para fase de união
         for node in self.nodes - {self.root}:
             if isinstance(node, InternalNode):
-                node.bv_set = node.leaves(self.subnet)
+                # node.bv_set = node.leaves(self.subnet)
+                node.bv_set = set()
+                leaves_ports = port_activeset(node) - {get_port(node, self.root)}
+                for port in leaves_ports:
+                    node.bv_set |= get_aft(node, port, *self.netnodes)
+
+                # node.bv_set = node.leaves(self.subnet)
             else:
                 node.bv_set = {node}
-            #v ∈ N or |Dnv| != 2
-            if node in self.netnodes or len(port_activeset(node, subnet)) != 2:
+            #v ∈ N or |DNv| != 2
+            # FIXME SkeletonTree: ajustar conjunto de portas ativas DNv
+            if node in self.netnodes \
+                    or len(get_active_ports(node, *self.netnodes)) != 2:
                 node._value_nv = len(node.bv_set) - 0.5  # nv = |Bv| - 1/2
             else:
                 node._value_nv = len(node.bv_set)  # nv = |Bv|
@@ -1541,7 +1609,7 @@ class SkeletonTree(object):
         vertex = Vertex(self.sorted_l.pop(0))  # new vertex y with Cy = {r}
         self.vertices.add(vertex)
         self.root_vertex = vertex
-        for port in port_activeset(self.root, subnet):
+        for port in port_activeset(self.root, subnet):  # k ∈ DNr
             arch_out = Arch(vertex, port, subnet=self.subnet)
             self.arches.add(arch_out)
             self.frontier_set.add(arch_out)
@@ -1691,6 +1759,21 @@ def ext_aft(y_vertex: Vertex,
     return xy
 
 
+# HINT get_aft: retorna aft em porta especifica do node
+# %% Funcao get_aft retorna aft em porta especifica do node
+def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
+            port: str,
+            *netnodes) -> Set[Union[LeafNode, InternalNode]]:
+    source_node = get_node(node)
+    aft = source_node.aft_atports(port)
+    if netnodes:
+        return {get_node(address) for address in aft
+                for node in netnodes
+                if address == node.mac.packed}
+    else:
+        return {get_node(address) for address in aft}
+
+
 # %% main
 def main():
     """
@@ -1758,7 +1841,6 @@ def main():
                 bone.anchors,  # X
                 bone)  # H(Y,A)
 
-    # breakpoint()
     # FIXME main: uniao das skeleton trees
     # while len(skeletons) >= 2:  # there are 2 skeleton
     #     pass
@@ -1780,6 +1862,7 @@ def main():
             new_root = anchors_inter.pop()  #rk = any node in Xi ∩ Xj
             new_nodes = first.nodes | second.nodes
             # FIXME main: criação da nova skeleton com união de atributos
+            # breakpoint()
             # new_skeleton = SkeletonTree(new_netnodes, new_nodes, new_root)
             # breakpoint()
             # SkeletonTree._all - set(skeleton_pair)
@@ -1923,3 +2006,5 @@ if __name__ == '__main__':
 
 # '\u2208'
 # Out[2]: '∈'
+# '\u2229'
+# Out[24]: '∩'
