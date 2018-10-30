@@ -28,7 +28,7 @@ from esqueleto import (to_bytes, ip_mac_to_arp_table, nms_config, ping_ip,
                        is_leaf_node, set_arp_table, get_mymac, get_myip,
                        aft_fdb)
 from ipaddress import IPv4Interface, IPv4Network  # ,IPv4Address
-from itertools import permutations
+from itertools import combinations
 from collections import Counter, defaultdict
 from netaddr import EUI
 from netaddr.strategy.eui48 import mac_cisco
@@ -489,7 +489,6 @@ class LeafNode(Node):
         Node._all.add(self)
         self._name = f"leaf_{len(LeafNode._all_leaves)}"
 
-    # HINT LeafNode: indicação automática no nome do root node
     @property
     def name(self):
         if self.is_root:
@@ -808,7 +807,6 @@ class InternalNode(Node):
             return {mac for mac in subnet.mac_set
                     if mac in self.aft_atports(porta)}
 
-    # HINT InternalNode: método set_aft atualiza aft_atports Fv,k com macs exclusivos na porta
     def set_aft(self, porta: str, *new_macs):
         """Acrescenta new_macs a tabela AFT de emcaminhamento para determinada porta
 
@@ -1033,7 +1031,6 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
                 return net_node
 
 
-# HINT Função set_root: define ou altera root node da rede
 # %% Funcao set_root(node)
 def set_root(node: Union[bytes, str, LeafNode, InternalNode]) \
         -> None:
@@ -1480,45 +1477,69 @@ class SkeletonTree(object):
         - identifica arco frontier_arcs que sera conectado ao no extraido
 
     """
-    # HINT SkeletonTree: atributo _all para conjunto de todas as skeletons
     _all = set()  # conjunto de totos skeletons criadas
 
-    def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
+    # FIXME SkeletonTree: restruturarção para fase de união (remover subnets)
+    # SKELETONTREE(N, VN , root, AFTs)
+    def __init__(self,
+                 leaf_nodes: List[LeafNode],  # N
+                 nodes: Set[Union[LeafNode, InternalNode]],  #Vn
+                 root: LeafNode,  # root
+                 subnet: Optional[Union[str, IPv4Network, SubNet]] = None)\
+            -> None:
         """
         Inicializa a skeleton-tree
         SKELETONTREE(N, VN , root, AFTs)
 
         :param subnet: subrede que induz a topologia
         """
-        subnet = get_subnet(subnet)
-        self.subnet = subnet
-        self.nodes = set(subnet.nodes)  # Vn
-        self.netnodes = set(subnet.leaf_nodes)  # N
-        self.root = get_root(subnet)  # r
-        self.root._value_nv = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
+        if subnet:
+            subnet = get_subnet(subnet)
+            self.subnet = subnet
+        self.nodes = set(nodes)  # Vn
+        self.netnodes = set(leaf_nodes)  # N
+        self.root = root  # r
+        self.root._value_nv = len(leaf_nodes) + 0.5  # |N| + 1/2
         self.frontier_set = set()  # Z para arcos fronteira
         self.vertices = set()  # set Y de H(Y, A)
         self.arches = set()  # set A de H(Y, A)
 
+    # def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
+    #     """
+    #     Inicializa a skeleton-tree
+    #     SKELETONTREE(N, VN , root, AFTs)
+    #
+    #     :param subnet: subrede que induz a topologia
+    #     """
+    #     subnet = get_subnet(subnet)
+    #     self.subnet = subnet
+    #     self.nodes = set(subnet.nodes)  # Vn
+    #     self.netnodes = set(subnet.leaf_nodes)  # N
+    #     self.root = get_root(subnet)  # r
+    #     self.root._value_nv = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
+    #     self.frontier_set = set()  # Z para arcos fronteira
+    #     self.vertices = set()  # set Y de H(Y, A)
+    #     self.arches = set()  # set A de H(Y, A)
+
         # definindo |Bv| para cada node
         for node in self.nodes - {self.root}:
             if isinstance(node, InternalNode):
-                node.bv_set = node.leaves(subnet)
+                node.bv_set = node.leaves(self.subnet)
             else:
                 node.bv_set = {node}
+            #v ∈ N or |Dnv| != 2
             if node in self.netnodes or len(port_activeset(node, subnet)) != 2:
-                node._value_nv = len(node.bv_set) - 0.5
+                node._value_nv = len(node.bv_set) - 0.5  # nv = |Bv| - 1/2
             else:
-                node._value_nv = len(node.bv_set)
+                node._value_nv = len(node.bv_set)  # nv = |Bv|
 
-        # HINT SkeletonTree: bug em sorted_l -> value_nv corrigidos
         node_values = [(node.value_nv, node) for node in self.nodes]
+        # L =  sorted Vn - {r}
         self.sorted_l = [node for (value, node)
                          in sorted(node_values, reverse=True)]
 
-        vertex = Vertex(self.sorted_l.pop(0))
+        vertex = Vertex(self.sorted_l.pop(0))  # new vertex y with Cy = {r}
         self.vertices.add(vertex)
-        # HINT SkeletonTree: criado atributo root_vertex com node root
         self.root_vertex = vertex
         for port in port_activeset(self.root, subnet):
             arch_out = Arch(vertex, port, subnet=self.subnet)
@@ -1587,7 +1608,6 @@ class SkeletonTree(object):
         """
         return self.netnodes - {self.root}
 
-    # HINT SkeletonTree: corrigido find_arch
     def find_arch(self, reachable_leaves):
         """
         Retorna arco que acessa folhas dadas
@@ -1600,7 +1620,6 @@ class SkeletonTree(object):
             if arch._reachable_nodes_set >= reachable_leaves:
                 return arch
 
-    # HINT SkeletonTree: corrigido bug em get_children
     def get_children(self, vertex: Vertex) -> List[Vertex]:
         """
         Retorna lista de vertex filhos tendo como referencia vertex dado
@@ -1613,7 +1632,6 @@ class SkeletonTree(object):
                          reverse=True)
         return ordered[ordered.index(vertex)+1:]
 
-    # HINT SkeletonTree: ajustado retorno de self.anchors
     @property
     def anchors(self) -> Set[Union[Node, InternalNode]]:
         """
@@ -1631,12 +1649,10 @@ class SkeletonTree(object):
         #         if len(vertice.nodes_set) == 1}
 
 
-# HINT função ext_aft: espande e atualiza aft
-# HINT função ext_aft: corrigido vertex de entrada e localização de filhos
 # %% Funcao ext_aft para aft estendida
 def ext_aft(y_vertex: Vertex,
-            x_anchors: Set[Union[Node, InternalNode]],
-            skeleton: SkeletonTree) -> None:
+            x_anchors: Set[Union[Node, LeafNode, InternalNode]],
+            skeleton: SkeletonTree) -> Set[Union[Node, LeafNode, InternalNode]]:
     x_child = dict()  # Xyi
     children = skeleton.get_children(y_vertex)
     from_node = list(y_vertex._nodes_set)[0]
@@ -1655,9 +1671,9 @@ def ext_aft(y_vertex: Vertex,
     for value in x_child.values():
         x_child_union.union(value)  # (U Xyj)
 
-    # Xy = (U Xyj) U (X Inter Cy)
+    # Xy = (U Xyj) U (X ∩ Cy)
     xy = x_child_union | (x_anchors & y_vertex.nodes_set)
-    for node in y_vertex.nodes_set:  # node v E Cy
+    for node in y_vertex.nodes_set:  # node v ∈ Cy
         if isinstance(node, InternalNode):
             port_root = get_port(node, skeleton.root)  # v(r)
 
@@ -1726,17 +1742,21 @@ def main():
     #     pprint(inode.aft)
     #     print()
 
-    # HINT main: iniciado descoberta de topologia
     # 2) INFERINDO TOPOLOGIA
     skeletons = list()
-    for subnet in SubNet._all:  # subnet Ni E 'N'
+    for subnet in SubNet._all:  # subnet Ni ∈ 'N'
         if subnet._has_switches:
             continue
-    # HINT main: debug criacao SkeletonTree para complete_aft=False (incompleta)
-        skeletons.append(SkeletonTree(subnet))  # SkeletonTree(Ni,Vni,ri,AFTs)
+        # SkeletonTree(Ni,Vni,ri,AFTs)
+        skeletons.append(SkeletonTree(subnet.leaf_nodes,  # Ni
+                                      subnet.nodes_set,  # Vni
+                                      get_root(subnet),  # ri
+                                      subnet=subnet))
         bone: SkeletonTree = skeletons[-1]  # Hi(Yi,Ai)
-        # HINT main: debug ext_aft para skeleton de entrada
-        ext_aft(bone.root_vertex, bone.anchors, bone)  # ExtendedAFTs(yj,X H(Y,A))
+        # ExtendedAFTs(yj,X H(Y,A))
+        ext_aft(bone.root_vertex,  # yj
+                bone.anchors,  # X
+                bone)  # H(Y,A)
 
     # breakpoint()
     # FIXME main: uniao das skeleton trees
@@ -1749,6 +1769,21 @@ def main():
         pprint(skeleton.vertices)
         pprint(sorted([(node.value_nv, node)
                        for node in skeleton.nodes], reverse=True))
+    for skeleton_pair in combinations(SkeletonTree._all, 2):
+        first, second = skeleton_pair[0], skeleton_pair[1]  # Hi and Hj
+        if first.anchors & second.anchors:  # Xi ∩ Xj
+            print(first)
+            print(second)
+            # HINT main: união dos atributos das SkeletonTree
+            new_netnodes = first.netnodes | second.netnodes  # Nk = Ni U Nj
+            anchors_inter = first.anchors & second.anchors
+            new_root = anchors_inter.pop()  #rk = any node in Xi ∩ Xj
+            new_nodes = first.nodes | second.nodes
+            # FIXME main: criação da nova skeleton com união de atributos
+            # new_skeleton = SkeletonTree(new_netnodes, new_nodes, new_root)
+            # breakpoint()
+            # SkeletonTree._all - set(skeleton_pair)
+
 
 
     # print()
@@ -1792,3 +1827,99 @@ def main():
 # %% executa main()
 if __name__ == '__main__':
     main()
+
+
+# 2018-10-29 autofill off
+#
+# Nodes descobertos:
+# {InternalNode('10.0.0.1/24', '003e.5c01.8001'),
+#  InternalNode('10.0.0.2/24', '003e.5c02.8001'),
+#  InternalNode('10.0.0.3/24', '003e.5c03.8001'),
+#  InternalNode('10.0.0.4/24', '003e.5c04.8001'),
+#  InternalNode('10.0.0.5/24', '003e.5c05.8001'),
+#  InternalNode('10.0.0.6/24', '003e.5c06.8001'),
+#  LeafNode('10.0.10.1/24', '0050.7966.680c'),
+#  LeafNode('10.0.10.2/24', '0050.7966.6805'),
+#  LeafNode('10.0.10.3/24', '0050.7966.6809'),
+#  LeafNode('10.0.10.4/24', '0050.7966.680a'),
+#  LeafNode('10.0.10.5/24', '0050.7966.6808'),
+#  LeafNode('10.0.10.6/24', '0050.7966.6807'),
+#  LeafNode('10.0.10.111/24', '000c.295c.4271'),
+#  LeafNode('10.0.20.1/24', '0050.7966.6802'),
+#  LeafNode('10.0.20.2/24', '0050.7966.6803'),
+#  LeafNode('10.0.20.3/24', '0050.7966.6804'),
+#  LeafNode('10.0.20.4/24', '0050.7966.6806'),
+#  LeafNode('10.0.20.111/24', '000c.295c.4271'),
+#  LeafNode('10.0.30.1/24', '0050.7966.6800'),
+#  LeafNode('10.0.30.2/24', '0050.7966.680b'),
+#  LeafNode('10.0.30.3/24', '0050.7966.6801'),
+#  LeafNode('10.0.30.111/24', '000c.295c.4271')}
+#
+# Inodes:
+# {InternalNode('10.0.0.1/24', '003e.5c01.8001'),
+#  InternalNode('10.0.0.2/24', '003e.5c02.8001'),
+#  InternalNode('10.0.0.3/24', '003e.5c03.8001'),
+#  InternalNode('10.0.0.4/24', '003e.5c04.8001'),
+#  InternalNode('10.0.0.5/24', '003e.5c05.8001'),
+#  InternalNode('10.0.0.6/24', '003e.5c06.8001')}
+#
+# Skeletons-trees:
+# SkeletonTree('10.0.10.0/24')
+# {Vertex({'v1'}),
+#  Vertex({'v3'}),
+#  Vertex({'v2'}),
+#  Vertex({'v5'}),
+#  Vertex({'hub_1'}),
+#  Vertex({'leaf_7'}),
+#  Vertex({'leaf_4'}),
+#  Vertex({'leaf_3'}),
+#  Vertex({'leaf_6'}),
+#  Vertex({'leaf_5'}),
+#  Vertex({'leaf_2'}),
+#  Vertex({'leaf_1*root*'})}
+# [(7.5, LeafNode('10.0.10.111/24', '000c.295c.4271')),
+#  (3.5, InternalNode('10.0.0.2/24', '003e.5c02.8001')),
+#  (2.5, InternalNode('10.0.0.1/24', '003e.5c01.8001')),
+#  (1.5, InternalNode('10.0.0.5/24', '003e.5c05.8001')),
+#  (1, InternalNode('10.0.0.3/24', '003e.5c03.8001')),
+#  (0.5, LeafNode('10.0.10.6/24', '0050.7966.6807')),
+#  (0.5, LeafNode('10.0.10.5/24', '0050.7966.6808')),
+#  (0.5, LeafNode('10.0.10.4/24', '0050.7966.680a')),
+#  (0.5, LeafNode('10.0.10.3/24', '0050.7966.6809')),
+#  (0.5, LeafNode('10.0.10.2/24', '0050.7966.6805')),
+#  (0.5, LeafNode('10.0.10.1/24', '0050.7966.680c'))]
+# SkeletonTree('10.0.20.0/24')
+# {Vertex({'v4'}),
+#  Vertex({'v2'}),
+#  Vertex({'leaf_8*root*'}),
+#  Vertex({'v1'}),
+#  Vertex({'leaf_11'}),
+#  Vertex({'v3'}),
+#  Vertex({'leaf_12'}),
+#  Vertex({'leaf_10'}),
+#  Vertex({'leaf_9'})}
+# [(5.5, LeafNode('10.0.20.111/24', '000c.295c.4271')),
+#  (3.5, InternalNode('10.0.0.2/24', '003e.5c02.8001')),
+#  (2.5, InternalNode('10.0.0.1/24', '003e.5c01.8001')),
+#  (1.5, InternalNode('10.0.0.4/24', '003e.5c04.8001')),
+#  (1, InternalNode('10.0.0.3/24', '003e.5c03.8001')),
+#  (0.5, LeafNode('10.0.20.4/24', '0050.7966.6806')),
+#  (0.5, LeafNode('10.0.20.3/24', '0050.7966.6804')),
+#  (0.5, LeafNode('10.0.20.2/24', '0050.7966.6803')),
+#  (0.5, LeafNode('10.0.20.1/24', '0050.7966.6802'))]
+# SkeletonTree('10.0.30.0/24')
+# {Vertex({'leaf_13*root*'}),
+#  Vertex({'v1'}),
+#  Vertex({'leaf_16'}),
+#  Vertex({'v6'}),
+#  Vertex({'leaf_15'}),
+#  Vertex({'leaf_14'})}
+# [(4.5, LeafNode('10.0.30.111/24', '000c.295c.4271')),
+#  (2.5, InternalNode('10.0.0.1/24', '003e.5c01.8001')),
+#  (1.5, InternalNode('10.0.0.6/24', '003e.5c06.8001')),
+#  (0.5, LeafNode('10.0.30.3/24', '0050.7966.6801')),
+#  (0.5, LeafNode('10.0.30.2/24', '0050.7966.680b')),
+#  (0.5, LeafNode('10.0.30.1/24', '0050.7966.6800'))]
+
+# '\u2208'
+# Out[2]: '∈'
