@@ -1258,10 +1258,6 @@ def get_active_ports(node: Union[bytes, str, LeafNode, InternalNode],
     :rtype: set
 
     """
-    get_active_ports(LeafNode('10.0.10.5/24', '0050.7966.6808'),
-                        (LeafNode('10.0.20.4/24', '0050.7966.6806'),
-                         LeafNode('10.0.20.3/24', '0050.7966.6804')
-                         ))  # DNv inexistene
     node = get_node(node)
 
     if isinstance(node, LeafNode):
