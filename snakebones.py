@@ -34,7 +34,7 @@ from netaddr import EUI
 from netaddr.strategy.eui48 import mac_cisco
 from pprint import pprint
 from typing import List, Union, Dict, Optional, \
-    Set  # Tuple, Callable, Any, Union
+    Set , Iterable # Tuple, Callable, Any, Union
 from easysnmp import Session
 
 # from easysnmp.exceptions import EasySNMPTimeoutError, EasySNMPConnectionError
@@ -59,9 +59,12 @@ def config(internal_nodes: List[Union[str, None]] = None,
            complete_aft=True) -> None:
     """
     Configura atribuicao de dados SNMP e tabela ARP
-    :rtype: None
+    :param complete_aft:
+        True -> ARP completa para todos os nodes
+        False -> ARP incompleta equivalente a formada a partir no NMS
+    :type complete_aft: bool
     :type internal_nodes: Lista com string de IPs dos nodes internos (switch)
-    :type autofill: bool
+    :rtype: None
     """
     global SNMP_DATA, ARP_TABLE_DATA
     if AUTOFILL_MODE:
@@ -522,7 +525,7 @@ class LeafNode(Node):
     def aft_atports(self,
                     porta: str,
                     subnet: Union[str, IPv4Network, SubNet, None] = None) \
-            -> set:
+            -> Optional[Set]:
         """Retorna tabela AFT de emcaminhamento para porta. LeafNode difinido
         com apenas porta '1', retornando None se solicitado porta diferente ou
         outra subnet diferente da sua. Mac do LeafNode (self) nao incluido no
@@ -896,6 +899,7 @@ class Tree(object):
     def __init__(self, subnet: SubNet):
         self.subnet = subnet
         self.nodes = subnet.nodes
+        self._root = None
 
     def __del__(self):
         Tree._num_of_trees -= 1
@@ -1166,21 +1170,26 @@ def port_activeset(node: Union[LeafNode, InternalNode],
     Exemplo:
     ----
     >>> # para nodes '10.0.10.X/24'
-    >>> port_activeset(LeafNode)# Dv
+    >>> port_activeset(LeafNode('10.0.10.1/24', '0050.7966.680c'))# Dv
     ... {'1'}
-    >>> port_activeset(InternalNode)  # Dv
+    >>> port_activeset(InternalNode('10.0.0.1/24', '003e.5c01.8001'))  # Dv
     ... {'3', '16', '1', '2'}
 
-    >>> port_activeset(LeafNode, '10.0.10.0/24')  # DNv
+    >>> port_activeset(LeafNode('10.0.10.1/24', '0050.7966.680c'),
+    ...                '10.0.10.0/24')  # DNv existente
     ... {'1'}
-    >>> port_activeset(LeafNode, '10.0.20.0/24')  # DNv
+    >>> port_activeset(LeafNode('10.0.10.1/24', '0050.7966.680c'),
+    ...                '10.0.20.0/24')  # DNv inexistene
     ... set()
 
-    >>> port_activeset(InternalNode, '10.0.20.0/24')  # DNv existente
+    >>> port_activeset(InternalNode('10.0.0.1/24', '003e.5c01.8001'),
+    ...                '10.0.20.0/24')  # DNv existente
     ... {'3', '16', '2'}
-    >>> port_activeset(InternalNode, '10.0.30.0/24')  # DNv inexistene
+    >>> port_activeset(InternalNode('10.0.0.1/24', '003e.5c01.8001'),
+    ...                '10.0.30.0/24')  # DNv inexistene
     ... set()
-    :return:
+
+    :return: Conjunto de portas ativas
     :param node: LeafNode ou InternalNode
     :param subnet: subrede no formato 'ip/mascara'
     :return: Conjunto de portas ativas
@@ -1213,38 +1222,46 @@ def port_activeset(node: Union[LeafNode, InternalNode],
 # HINT get_active_ports: retorna portas ativas para grupo de nodes (opcional)
 # %% Funcao get_active_ports
 def get_active_ports(node: Union[bytes, str, LeafNode, InternalNode],
-                     *netnodes) -> set:
+                     *netnodes: Optional[Union[LeafNode, InternalNode]])\
+        -> set:
     """
     Retorna conjunto de portas ativas do node. Para objetos LeafNode retorna
     sempre {'1'}
 
     # Dv = potas ativas do node
-    # DNv = potas ativas do node na subrede N (parametro subnet)
+    # DNv = potas ativas do node para conjunto  de nodes N (parametro netnodes)
 
     Exemplo:
     ----
     >>> # para nodes '10.0.10.X/24'
-    >>> port_activeset(LeafNode)# Dv
+    >>> get_active_ports(LeafNode('10.0.10.111/24', '000c.295c.4271'))# Dv
     ... {'1'}
-    >>> port_activeset(InternalNode)  # Dv
+    >>> get_active_ports(InternalNode('10.0.0.2/24', '003e.5c02.8001'))  # Dv
     ... {'3', '16', '1', '2'}
 
-    >>> port_activeset(LeafNode, '10.0.10.0/24')  # DNv
+    >>> get_active_ports(LeafNode('10.0.10.111/24', '000c.295c.4271'),
+    ...                     (LeafNode('10.0.10.6/24', '0050.7966.6807'),
+    ...                      LeafNode('10.0.10.5/24', '0050.7966.6808')
+    ...                     ))  # DNv existente
     ... {'1'}
-    >>> port_activeset(LeafNode, '10.0.20.0/24')  # DNv
+
+    >>> get_active_ports(LeafNode('10.0.10.5/24', '0050.7966.6808'),
+    ...                     (LeafNode('10.0.20.4/24', '0050.7966.6806'),
+    ...                      LeafNode('10.0.20.3/24', '0050.7966.6804')
+    ...                      ))  # DNv inexistene
     ... set()
 
-    >>> port_activeset(InternalNode, '10.0.20.0/24')  # DNv existente
-    ... {'3', '16', '2'}
-    >>> port_activeset(InternalNode, '10.0.30.0/24')  # DNv inexistene
-    ... set()
-    :return:
     :param node: LeafNode ou InternalNode
-    :param subnet: subrede no formato 'ip/mascara'
+    :param netnodes: subrede no formato 'ip/mascara'
+    :type netnodes: Iterable
     :return: Conjunto de portas ativas
     :rtype: set
 
     """
+    get_active_ports(LeafNode('10.0.10.5/24', '0050.7966.6808'),
+                        (LeafNode('10.0.20.4/24', '0050.7966.6806'),
+                         LeafNode('10.0.20.3/24', '0050.7966.6804')
+                         ))  # DNv inexistene
     node = get_node(node)
 
     if isinstance(node, LeafNode):
@@ -1611,7 +1628,8 @@ class SkeletonTree(object):
         vertex = Vertex(self.sorted_l.pop(0))  # new vertex y with Cy = {r}
         self.vertices.add(vertex)
         self.root_vertex = vertex
-        for port in get_active_ports(node, *self.netnodes):  # k ∈ DNr
+        self.root_vertex = vertex
+        for port in get_active_ports(self.root, *self.netnodes):  # k ∈ DNr
             arch_out = Arch(vertex, port, netnodes=self.netnodes)
             self.arches.add(arch_out)
             self.frontier_set.add(arch_out)

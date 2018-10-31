@@ -19,7 +19,7 @@ from netaddr.strategy.eui48 import mac_cisco, mac_unix_expanded
 # from scapy.sendrecv import srp
 # from scapy.layers.l2 import Ether, ARP
 # from scapy.config import conf
-from typing import Union, Tuple, List, Dict, Optional
+from typing import Union, Tuple, List, Dict, Optional, TypeVar
 
 # Tuple, List, Callable, Any
 # from snakebones import InternalNode, Node, LeafNode
@@ -50,6 +50,7 @@ ArpTable = List[Tuple[IPv4Interface, EUI]]
 # %% Constantes
 YES = ON = START = True
 NO = OFF = STOP = False
+SubNet = TypeVar('SubNet')
 
 def manual_aft():
 
@@ -880,7 +881,7 @@ ARP_TABLE_DATA = auto_arp_table_data()
 
 
 # %% funcao update_arp_table
-def set_arp_table(subnet: str,
+def set_arp_table(subnet: SubNet,
                   probes: int = 1,
                   auto_fill: Optional[bool] = None,
                   manual_fill: Optional[List[Tuple[str,str]]] = None,
