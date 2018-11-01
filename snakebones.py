@@ -1570,12 +1570,11 @@ class SkeletonTree(object):
         :param subnet: subrede que induz a topologia
         :rtype: None
         """
-        self.subnet = get_subnet(subnet)
-        if self.subnet:
+        if subnet:
+            self.subnet = get_subnet(subnet)
             self.name = f"({self.subnet.compressed!r})"
         else:
-            self.name = \
-                self.__class__.__name__ + f"(Sktree{len(SkeletonTree._all)})"
+            self.name = f"('bone_{len(SkeletonTree._all)+1}')"
         self.nodes = set(nodes)  # Vn
         self.netnodes = set(netnodes)  # N
         self.root = root  # r
@@ -1588,14 +1587,12 @@ class SkeletonTree(object):
         # HINT SkeletonTree: restruturado formação do conjunto de folhas Bv para fase de união
         for node in self.nodes - {self.root}:
             if isinstance(node, InternalNode):
-                # node.bv_set = node.leaves(self.subnet)
                 node.bv_set = set()
                 leaves_ports = \
                     port_activeset(node) - {get_port(node, self.root)}
                 for port in leaves_ports:
                     node.bv_set |= get_aft(node, port, *self.netnodes)
 
-                # node.bv_set = node.leaves(self.subnet)
             else:
                 node.bv_set = {node}
             # v ∈ N or |DNv| != 2
@@ -1610,7 +1607,6 @@ class SkeletonTree(object):
         # L =  sorted Vn - {r}
         self.sorted_l = [node for (value, node)
                          in sorted(node_values, reverse=True)]
-
         vertex = Vertex(self.sorted_l.pop(0))  # new vertex y with Cy = {r}
         self.vertices.add(vertex)
         self.root_vertex = vertex
@@ -1621,6 +1617,7 @@ class SkeletonTree(object):
 
         # main loop
         # HINT SkeletonTree: ajustado criação de arcos em concordância com etapa de união
+        # breakpoint()  # ok ate aqui 10+30
         while self.sorted_l:
             node = self.sorted_l.pop(0)  # v'
             arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
