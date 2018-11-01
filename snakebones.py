@@ -34,7 +34,7 @@ from netaddr import EUI
 from netaddr.strategy.eui48 import mac_cisco
 from pprint import pprint
 from typing import List, Union, Dict, Optional, \
-    Set , Iterable # Tuple, Callable, Any, Union
+    Set, Iterable  # Tuple, Callable, Any, Union
 from easysnmp import Session
 
 # from easysnmp.exceptions import EasySNMPTimeoutError, EasySNMPConnectionError
@@ -1030,7 +1030,7 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
             if net_node.mac.packed == node.packed:
                 return net_node
     else:
-# HINT get_node: corrigido bug
+        # HINT get_node: corrigido bug
         for net_node in Node._all:
             if net_node == node:
                 return net_node
@@ -1051,7 +1051,7 @@ def set_root(node: Union[bytes, str, LeafNode, InternalNode]) \
     root_node = get_node(node)
     if not root_node:
         print(f"Node não definido para {node}")
-        return  None
+        return None
     subnet = get_subnet(root_node.network.compressed)
     if not subnet:
         print(f"Rede nao definida para {root_node}")
@@ -1222,7 +1222,7 @@ def port_activeset(node: Union[LeafNode, InternalNode],
 # HINT get_active_ports: retorna portas ativas para grupo de nodes (opcional)
 # %% Funcao get_active_ports
 def get_active_ports(node: Union[bytes, str, LeafNode, InternalNode],
-                     *netnodes: Optional[Union[LeafNode, InternalNode]])\
+                     *netnodes: Optional[Union[LeafNode, InternalNode]]) \
         -> set:
     """
     Retorna conjunto de portas ativas do node. Para objetos LeafNode retorna
@@ -1478,7 +1478,7 @@ class Vertex(object):
 class Arch(object):
     _all = set()  # conjunto de todos os arcos criados
 
-# HINT Arch: criado atribuno netnodes para conjunto de nodes da SkeletonTree
+    # HINT Arch: criado atribuno netnodes para conjunto de nodes da SkeletonTree
     def __init__(self,
                  endpoint_a: Vertex,
                  port_a: Optional[str] = None,
@@ -1556,9 +1556,9 @@ class SkeletonTree(object):
     # SKELETONTREE(N, VN , root, AFTs)
     def __init__(self,
                  leaf_nodes: List[LeafNode],  # N
-                 nodes: Set[Union[LeafNode, InternalNode]],  #Vn
+                 nodes: Set[Union[LeafNode, InternalNode]],  # Vn
                  root: LeafNode,  # root
-                 subnet: Optional[Union[str, IPv4Network, SubNet]] = None)\
+                 subnet: Optional[Union[str, IPv4Network, SubNet]] = None) \
             -> None:
         """
         Inicializa a skeleton-tree
@@ -1569,6 +1569,12 @@ class SkeletonTree(object):
         if subnet:
             subnet = get_subnet(subnet)
             self.subnet = subnet
+            self.name = \
+                self.__class__.__name__ + f"({self.subnet.compressed!r})"
+        else:
+            self.subnet = None
+            self.name = \
+                self.__class__.__name__ + f"(Sktree{len(SkeletonTree._all)})"
         self.nodes = set(nodes)  # Vn
         self.netnodes = set(leaf_nodes)  # N
         self.root = root  # r
@@ -1577,38 +1583,39 @@ class SkeletonTree(object):
         self.vertices = set()  # set Y de H(Y, A)
         self.arches = set()  # set A de H(Y, A)
 
-    #
-    # def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
-    #     """
-    #     Inicializa a skeleton-tree
-    #     SKELETONTREE(N, VN , root, AFTs)
-    #
-    #     :param subnet: subrede que induz a topologia
-    #     """
-    #     subnet = get_subnet(subnet)
-    #     self.subnet = subnet
-    #     self.nodes = set(subnet.nodes)  # Vn
-    #     self.netnodes = set(subnet.leaf_nodes)  # N
-    #     self.root = get_root(subnet)  # r
-    #     self.root._value_nv = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
-    #     self.frontier_set = set()  # Z para arcos fronteira
-    #     self.vertices = set()  # set Y de H(Y, A)
-    #     self.arches = set()  # set A de H(Y, A)
+        #
+        # def __init__(self, subnet: Union[str, IPv4Network, SubNet]):
+        #     """
+        #     Inicializa a skeleton-tree
+        #     SKELETONTREE(N, VN , root, AFTs)
+        #
+        #     :param subnet: subrede que induz a topologia
+        #     """
+        #     subnet = get_subnet(subnet)
+        #     self.subnet = subnet
+        #     self.nodes = set(subnet.nodes)  # Vn
+        #     self.netnodes = set(subnet.leaf_nodes)  # N
+        #     self.root = get_root(subnet)  # r
+        #     self.root._value_nv = len(subnet.leaf_nodes) + 0.5  # |N| + 1/2
+        #     self.frontier_set = set()  # Z para arcos fronteira
+        #     self.vertices = set()  # set Y de H(Y, A)
+        #     self.arches = set()  # set A de H(Y, A)
 
         # definindo |Bv| para cada node
-# HINT SkeletonTree: restruturado formação do conjunto de folhas Bv para fase de união
+        # HINT SkeletonTree: restruturado formação do conjunto de folhas Bv para fase de união
         for node in self.nodes - {self.root}:
             if isinstance(node, InternalNode):
                 # node.bv_set = node.leaves(self.subnet)
                 node.bv_set = set()
-                leaves_ports = port_activeset(node) - {get_port(node, self.root)}
+                leaves_ports = \
+                    port_activeset(node) - {get_port(node, self.root)}
                 for port in leaves_ports:
                     node.bv_set |= get_aft(node, port, *self.netnodes)
 
                 # node.bv_set = node.leaves(self.subnet)
             else:
                 node.bv_set = {node}
-            #v ∈ N or |DNv| != 2
+            # v ∈ N or |DNv| != 2
             # HINT SkeletonTree: corrigido geração do conjunto de portas ativas DNv
             if node in self.netnodes \
                     or len(get_active_ports(node, *self.netnodes)) != 2:
@@ -1624,17 +1631,17 @@ class SkeletonTree(object):
         vertex = Vertex(self.sorted_l.pop(0))  # new vertex y with Cy = {r}
         self.vertices.add(vertex)
         self.root_vertex = vertex
-        self.root_vertex = vertex
         for port in get_active_ports(self.root, *self.netnodes):  # k ∈ DNr
             arch_out = Arch(vertex, port, netnodes=self.netnodes)
             self.arches.add(arch_out)
             self.frontier_set.add(arch_out)
 
         # main loop
-# HINT SkeletonTree: ajustado criação de arcos em concordância com etapa de união
+        # HINT SkeletonTree: ajustado criação de arcos em concordância com etapa de união
         while self.sorted_l:
             node = self.sorted_l.pop(0)  # v'
             arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
+            # FIXME SkeletonTree: bug no metodo self.find_arch
             vertex = arch_a._endpoint_a  # y = start a in Y
             if vertex.value_n == node.value_nv:
                 vertex._nodes_set.add(node)  # Cy U {v'}
@@ -1687,8 +1694,9 @@ class SkeletonTree(object):
                     arch_a1._endpoint_b = next_vertex  # y' to a1
         SkeletonTree._all.add(self)
 
+    # HINT SkeletonTree: bug representação
     def __repr__(self):
-        return self.__class__.__name__ + f"({self.subnet.compressed!r})"
+        return self.name
 
     @property
     def leaves(self) -> set:
@@ -1723,7 +1731,7 @@ class SkeletonTree(object):
         """
         ordered = sorted(self.vertices, key=lambda vertex: vertex._value_ny,
                          reverse=True)
-        return ordered[ordered.index(vertex)+1:]
+        return ordered[ordered.index(vertex) + 1:]
 
     @property
     def anchors(self) -> Set[Union[Node, InternalNode]]:
@@ -1790,7 +1798,7 @@ def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
             port: str,
             *netnodes) -> Set[Union[LeafNode, InternalNode]]:
     source_node = get_node(node)
-# HINT get_aft: corrigido bug na comparação de endereços
+    # HINT get_aft: corrigido bug na comparação de endereços
     aft_atport = source_node.aft_atports(port)
     if not aft_atport:
         return {source_node}
@@ -1890,16 +1898,14 @@ def main():
             # HINT main: união dos atributos das SkeletonTree
             new_netnodes = first.netnodes | second.netnodes  # Nk = Ni U Nj
             anchors_inter = first.anchors & second.anchors
-            new_root = anchors_inter.pop()  #rk = any node in Xi ∩ Xj
-            new_nodes = first.nodes | second.nodes
-            # FIXME main: criação da nova skeleton com união de atributos
-            # new_skeleton = SkeletonTree(new_netnodes, new_nodes, new_root)
+            new_root = anchors_inter.pop()  # rk = any node in Xi ∩ Xj
+            new_nodes = first.nodes | second.nodes  # VNk = VNi U VNj
+            # FIXME main: criação da nova skeleton com atributos unificados
             # breakpoint()
+            # new_skeleton = SkeletonTree(new_netnodes, new_nodes, new_root)
             # SkeletonTree._all - set(skeleton_pair)
 
     breakpoint()
-
-
 
     # print()
     # bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
@@ -1942,7 +1948,6 @@ def main():
 # %% executa main()
 if __name__ == '__main__':
     main()
-
 
 # 2018-10-29 autofill off
 #
