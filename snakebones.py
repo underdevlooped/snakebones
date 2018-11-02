@@ -1478,7 +1478,7 @@ class Vertex(object):
 class Arch(object):
     _all = set()  # conjunto de todos os arcos criados
 
-    # HINT Arch: criado atribuno netnodes para conjunto de nodes da SkeletonTree
+    # HINT Arch: criado atributo netnodes para conjunto de nodes da SkeletonTree
     def __init__(self,
                  endpoint_a: Vertex,
                  port_a: Optional[str] = None,
@@ -1504,6 +1504,15 @@ class Arch(object):
         return f"{self.__class__.__name__}" \
                f"({self._endpoint_a!r}, {self._port_a!r}, {self._endpoint_b}, " \
                f"{self._port_b!r})"
+
+    # HINT Arch: reachable_mac para conjunto de macs do arco
+    @property
+    def reachable_mac(self):
+        return {node.mac for node in self._reachable_nodes_set}
+
+    @reachable_mac.setter
+    def reachable_mac(self, value):
+        self._reachable_nodes_set = {get_node(node) for node in value}
 
 
 # %% classe SkeletonTree
@@ -1552,13 +1561,14 @@ class SkeletonTree(object):
     """
     _all = set()  # conjunto de totos skeletons criadas
 
-    # FIXME SkeletonTree: restruturarção para fase de união (remover subnets)
+    # HINT SkeletonTree: restruturação para fase de união (removendo subnets)
     # SKELETONTREE(N, VN , root, AFTs)
     def __init__(self,
                  netnodes: List[LeafNode],  # N
                  nodes: Set[Union[LeafNode, InternalNode]],  # Vn
                  root: LeafNode,  # root
-                 subnet: Optional[Union[str, IPv4Network, SubNet]] = None) \
+                 subnet: Optional[Union[str, IPv4Network, SubNet]] = None,
+                 remove = None) \
             -> None:
         """
         Inicializa a skeleton-tree
@@ -1575,8 +1585,15 @@ class SkeletonTree(object):
             self.name = f"({self.subnet.compressed!r})"
         else:
             self.name = f"('bone_{len(SkeletonTree._all)+1}')"
-        self.nodes = set(nodes)  # Vn
-        self.netnodes = set(netnodes)  # N
+
+# HINT SkeletonTree: atributo 'remove' opcional para excluir nodes do cálculo
+        if remove:
+            remove_set = {get_node(node) for node in remove}
+            self.nodes = set(nodes) - remove_set  # Vn
+            self.netnodes = set(netnodes) - remove_set # N
+        else:
+            self.nodes = set(nodes)  # Vn
+            self.netnodes = set(netnodes)  # N
         self.root = root  # r
         self.root._value_nv = len(netnodes) + 0.5  # |N| + 1/2
         self.frontier_set = set()  # Z para arcos fronteira
@@ -1586,15 +1603,18 @@ class SkeletonTree(object):
         # definindo |Bv| de N para cada node com root em v
         # HINT SkeletonTree: restruturado formação do conjunto de folhas Bv para fase de união
         for node in self.nodes - {self.root}:
+            # HINT SkeletonTree: bug bv_set para NMS
             if isinstance(node, InternalNode):
-                node.bv_set = set()
+                node.bv_set = set()  # Bv
+                # Dv - {v(r)}
                 leaves_ports = \
                     port_activeset(node) - {get_port(node, self.root)}
                 for port in leaves_ports:
-                    node.bv_set |= get_aft(node, port, *self.netnodes)
+                    node.bv_set |= {aftnode.mac for aftnode in
+                                    get_aft(node, port, *self.netnodes)}
 
             else:
-                node.bv_set = {node}
+                node.bv_set = {node.mac}
             # v ∈ N or |DNv| != 2
             # HINT SkeletonTree: corrigido geração do conjunto de portas ativas DNv
             if node in self.netnodes \
@@ -1617,11 +1637,10 @@ class SkeletonTree(object):
 
         # main loop
         # HINT SkeletonTree: ajustado criação de arcos em concordância com etapa de união
-        # breakpoint()  # ok ate aqui 10+30
         while self.sorted_l:
             node = self.sorted_l.pop(0)  # v'
             arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
-            # FIXME SkeletonTree: bug no metodo self.find_arch
+            # HINT SkeletonTree: bug no metodo self.find_arch
             vertex = arch_a._endpoint_a  # y = start a in Y
             if vertex.value_n == node.value_nv:
                 vertex._nodes_set.add(node)  # Cy U {v'}
@@ -1642,7 +1661,8 @@ class SkeletonTree(object):
                     self.arches.add(arch_out)
                     self.frontier_set.add(arch_out)  # a'
 
-                if arch_a._reachable_nodes_set == node.bv_set:  # Ba = Bv'
+                # breakpoint()  # ok ate aqui 10+30 10+20
+                if arch_a.reachable_mac == node.bv_set:  # Ba = Bv'
                     arch_a._endpoint_b = next_vertex  # y' connect to a
                 elif not vertex.nodes_set:  # Cy = 0
                     new_arch = Arch(vertex,
@@ -1651,24 +1671,24 @@ class SkeletonTree(object):
                                     port_b=None,
                                     netnodes=self.netnodes)  # â
                     self.arches.add(new_arch)
-                    new_arch._reachable_nodes_set \
-                        = arch_a._reachable_nodes_set - node.bv_set
+                    new_arch.reachable_mac \
+                        = arch_a.reachable_mac - node.bv_set
                     self.frontier_set.add(new_arch)  # Z U â
                     arch_a._endpoint_b = next_vertex  # y' connect to a
-                    arch_a._reachable_nodes_set = node.bv_set
+                    arch_a.reachable_mac = node.bv_set
                 else:
                     vertex_x = Vertex(Hub())  # create HUB x with Cx = 0
                     self.vertices.add(vertex_x)
-                    num_nodes = len(arch_a._reachable_nodes_set)  # |Ba|
+                    num_nodes = len(arch_a.reachable_mac)  # |Ba|
                     vertex_x._value_ny = num_nodes - 0.5  # nx=|Ba|-1/2
                     arch_a1 = Arch(vertex_x)
                     self.arches.add(arch_a1)
-                    arch_a1._reachable_nodes_set \
-                        = arch_a._reachable_nodes_set  # Ba1 = Bv'
+                    arch_a1.reachable_mac \
+                        = arch_a.reachable_mac  # Ba1 = Bv'
                     arch_a2 = Arch(vertex_x)
                     self.arches.add(arch_a2)
-                    arch_a2._reachable_nodes_set \
-                        = arch_a._reachable_nodes_set - node.bv_set  # Ba2
+                    arch_a2.reachable_mac \
+                        = arch_a.reachable_mac - node.bv_set  # Ba2
                     self.frontier_set.add(arch_a2)
                     arch_a._endpoint_b = vertex_x  # x connect to a
                     arch_a1._endpoint_b = next_vertex  # y' to a1
@@ -1681,6 +1701,15 @@ class SkeletonTree(object):
         elif hasattr(self, 'name'):
             return self.__class__.__name__ + self.name
         return self.__class__.__name__ + f"('__init__')"
+
+    # HINT SkeletonTree: propriedades macs e netmacs para conjunto de mac N e VN
+    @property
+    def macs(self):
+        return {node.mac for node in self.nodes}
+
+    @property
+    def netmacs(self):
+        return {node.mac for node in self.netnodes}
 
     @property
     def leaves(self) -> set:
@@ -1702,7 +1731,8 @@ class SkeletonTree(object):
         :rtype: Arch
         """
         for arch in self.frontier_set:
-            if arch._reachable_nodes_set >= reachable_leaves:
+            if arch._reachable_nodes_set >= reachable_leaves \
+                    or arch.reachable_mac >= reachable_leaves:
                 return arch
 
     def get_children(self, vertex: Vertex) -> List[Vertex]:
@@ -1864,7 +1894,7 @@ def main():
                 bone.anchors,  # X
                 bone)  # H(Y,A)
 
-    # FIXME main: uniao das skeleton trees
+    # HINT main: união de 2 skeleton trees como base para unir todas
     # while len(skeletons) >= 2:  # there are 2 skeleton
     #     pass
 
@@ -1874,21 +1904,22 @@ def main():
         pprint(skeleton.vertices)
         pprint(sorted([(node.value_nv, node)
                        for node in skeleton.nodes], reverse=True))
-    for skeleton_pair in combinations(SkeletonTree._all, 2):
-        first, second = skeleton_pair[0], skeleton_pair[1]  # Hi and Hj
-        if first.anchors & second.anchors:  # Xi ∩ Xj
-            print(first)
-            print(second)
-            # HINT main: união dos atributos das SkeletonTree
-            new_netnodes = first.netnodes | second.netnodes  # Nk = Ni U Nj
-            anchors_inter = first.anchors & second.anchors
-            new_root = anchors_inter.pop()  # rk = any node in Xi ∩ Xj
-            new_nodes = first.nodes | second.nodes  # VNk = VNi U VNj
-            # FIXME main: criação da nova skeleton com atributos unificados
-            breakpoint()
-            new_skeleton = SkeletonTree(new_netnodes, new_nodes, new_root)
-            # SkeletonTree._all - set(skeleton_pair)
 
+    first, second = skeletons[0], skeletons[1]  # Hi and Hj
+    if first.anchors & second.anchors:  # Xi ∩ Xj
+        print(first)
+        print(second)
+        # HINT main: união dos atributos das SkeletonTree
+        new_netnodes = first.netnodes | second.netnodes  # Nk = Ni U Nj
+        anchors_inter = first.anchors & second.anchors
+        new_root = anchors_inter.pop()  # rk = any node in Xi ∩ Xj
+        new_nodes = first.nodes | second.nodes  # VNk = VNi U VNj
+        # HINT main: criação da nova skeleton com atributos unificados
+        new_skeleton = SkeletonTree(new_netnodes,
+                                    new_nodes,
+                                    new_root,
+                                    remove=['10.0.10.111', '10.0.20.111'])
+        breakpoint()
     breakpoint()
 
     # print()
