@@ -1919,6 +1919,10 @@ def main():
                                     new_nodes,
                                     new_root,
                                     remove=['10.0.10.111', '10.0.20.111'])
+    # HINT main: extensão da tabela AFT para skeleton unida
+        ext_aft(new_skeleton.root_vertex,
+                new_skeleton.anchors,
+                new_skeleton)
         breakpoint()
     breakpoint()
 
