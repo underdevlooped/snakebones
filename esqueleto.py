@@ -16,34 +16,16 @@ from easysnmp.exceptions import (
 from ipaddress import IPv4Interface  # , IPv4Network
 from netaddr import EUI
 from netaddr.strategy.eui48 import mac_cisco, mac_unix_expanded
-# from scapy.sendrecv import srp
-# from scapy.layers.l2 import Ether, ARP
-# from scapy.config import conf
-from typing import Union, Tuple, List, Dict, Optional, TypeVar
+from typing import Union, Tuple, List, Dict, Optional, TypeVar, Set
 
-# Tuple, List, Callable, Any
-# from snakebones import InternalNode, Node, LeafNode
+# Callable, Any
 
 ArpTable = List[Tuple[IPv4Interface, EUI]]
 
 # =============================================================================
-# from netaddr.strategy.eui48 import (mac_eui48, mac_unix, mac_unix_expanded,
-#        mac_cisco, mac_bare, mac_pgsql, valid_str as valid_mac)
-#
-# from typing import Dict, Tuple, List
-#
 # ConnectionOptions = Dict[str, str]
 # Address = Tuple[str, int]
 # Server = Tuple[Address, ConnectionOptions]
-# =============================================================================
-
-
-# =============================================================================
-# from netaddr import *
-# from scapy.sendrecv import send,srp,sr1,sr
-# from scapy.layers.inet import IP,ICMP
-# from scapy.layers.l2 import Ether,ARP
-# from scapy.config import conf
 # =============================================================================
 
 
@@ -52,8 +34,14 @@ YES = ON = START = True
 NO = OFF = STOP = False
 SubNet = TypeVar('SubNet')
 
-def manual_aft():
 
+def manual_aft():
+    """
+    Criado manualmente. AFT resultantes de probes originados do NMS para
+    topologia de referencia
+
+    :return:
+    """
     nms = b'\x00\x0c)\\Bq'  # NMS 10.0.*.111/24 000c.295c.4271
     v1 = b'\x00>\\\x01\x80\x01'  # 10.0.0.1/24 003e.5c01.8001
     v2 = b'\x00>\\\x02\x80\x01'  # 10.0.0.2/24 003e.5c02.8001
@@ -623,7 +611,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                              '1',
                              '1'
                          ]
-                        },
+                         },
          '10.0.0.3/24': {'sys_name': 'v3',
                          'port_activelist': [
                              ('1', 'Gi0/0'),
@@ -724,7 +712,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                              '1',
                              '1'
                          ]
-                        },
+                         },
          '10.0.0.5/24': {'sys_name': 'v5',
                          'port_activelist': [
                              ('1', 'Gi0/0'),
@@ -823,7 +811,7 @@ def auto_snmp_data(complete_aft=True) -> dict:
                              '16',
                              '1'
                          ]
-                        }
+                         }
          }
 
     if complete_aft:
@@ -840,7 +828,7 @@ def auto_arp_table_data() -> dict:
     :rtype: dict
     """
     arp_table_data = \
-        {'10.0.0.0/24':[
+        {'10.0.0.0/24': [
             # (IPv4Interface('10.0.0.111/24'), EUI('000c.295c.4271')),
             (IPv4Interface('10.0.0.1/24'), EUI('003e.5c01.8001')),
             (IPv4Interface('10.0.0.2/24'), EUI('003e.5c02.8001')),
@@ -848,29 +836,29 @@ def auto_arp_table_data() -> dict:
             (IPv4Interface('10.0.0.4/24'), EUI('003e.5c04.8001')),
             (IPv4Interface('10.0.0.5/24'), EUI('003e.5c05.8001')),
             (IPv4Interface('10.0.0.6/24'), EUI('003e.5c06.8001'))
-            ],
-         '10.0.10.0/24':
-             [
-              (IPv4Interface('10.0.10.111/24'), EUI('000c.295c.4271')),
-              (IPv4Interface('10.0.10.1/24'), EUI('0050.7966.680c')),
-              (IPv4Interface('10.0.10.2/24'), EUI('0050.7966.6805')),
-              (IPv4Interface('10.0.10.3/24'), EUI('0050.7966.6809')),
-              (IPv4Interface('10.0.10.4/24'), EUI('0050.7966.680a')),
-              (IPv4Interface('10.0.10.5/24'), EUI('0050.7966.6808')),
-              (IPv4Interface('10.0.10.6/24'), EUI('0050.7966.6807'))],
-         '10.0.20.0/24':
-             [
-              (IPv4Interface('10.0.20.111/24'), EUI('000c.295c.4271')),
-              (IPv4Interface('10.0.20.1/24'), EUI('0050.7966.6802')),
-              (IPv4Interface('10.0.20.2/24'), EUI('0050.7966.6803')),
-              (IPv4Interface('10.0.20.3/24'), EUI('0050.7966.6804')),
-              (IPv4Interface('10.0.20.4/24'), EUI('0050.7966.6806'))],
-         '10.0.30.0/24':
-             [
-              (IPv4Interface('10.0.30.111/24'), EUI('000c.295c.4271')),
-              (IPv4Interface('10.0.30.1/24'), EUI('0050.7966.6800')),
-              (IPv4Interface('10.0.30.2/24'), EUI('0050.7966.680b')),
-              (IPv4Interface('10.0.30.3/24'), EUI('0050.7966.6801'))]}
+        ],
+            '10.0.10.0/24':
+                [
+                    (IPv4Interface('10.0.10.111/24'), EUI('000c.295c.4271')),
+                    (IPv4Interface('10.0.10.1/24'), EUI('0050.7966.680c')),
+                    (IPv4Interface('10.0.10.2/24'), EUI('0050.7966.6805')),
+                    (IPv4Interface('10.0.10.3/24'), EUI('0050.7966.6809')),
+                    (IPv4Interface('10.0.10.4/24'), EUI('0050.7966.680a')),
+                    (IPv4Interface('10.0.10.5/24'), EUI('0050.7966.6808')),
+                    (IPv4Interface('10.0.10.6/24'), EUI('0050.7966.6807'))],
+            '10.0.20.0/24':
+                [
+                    (IPv4Interface('10.0.20.111/24'), EUI('000c.295c.4271')),
+                    (IPv4Interface('10.0.20.1/24'), EUI('0050.7966.6802')),
+                    (IPv4Interface('10.0.20.2/24'), EUI('0050.7966.6803')),
+                    (IPv4Interface('10.0.20.3/24'), EUI('0050.7966.6804')),
+                    (IPv4Interface('10.0.20.4/24'), EUI('0050.7966.6806'))],
+            '10.0.30.0/24':
+                [
+                    (IPv4Interface('10.0.30.111/24'), EUI('000c.295c.4271')),
+                    (IPv4Interface('10.0.30.1/24'), EUI('0050.7966.6800')),
+                    (IPv4Interface('10.0.30.2/24'), EUI('0050.7966.680b')),
+                    (IPv4Interface('10.0.30.3/24'), EUI('0050.7966.6801'))]}
     for key, value in arp_table_data.items():
         for ip_addres, mac_address in value:
             mac_address.dialect = mac_cisco
@@ -884,9 +872,9 @@ ARP_TABLE_DATA = auto_arp_table_data()
 def set_arp_table(subnet: SubNet,
                   probes: int = 1,
                   auto_fill: Optional[bool] = None,
-                  manual_fill: Optional[List[Tuple[str,str]]] = None,
+                  manual_fill: Optional[List[Tuple[str, str]]] = None,
                   post: Optional[bool] = None,
-                  include_me: Optional[bool] = None)\
+                  include_me: Optional[bool] = None) \
         -> List[Tuple[IPv4Interface, EUI]]:
     """
     Envia pacotes ARP em broadcast p/ atualizar a tabela MAC dos elementos
@@ -949,14 +937,14 @@ def set_arp_table(subnet: SubNet,
 
         for _, recebe in ans:
             ip_list.append(
-                    IPv4Interface(recebe[0][1].summary().split()[5]
-                                  + '/'
-                                  + str(subnet.prefixlen))
+                IPv4Interface(recebe[0][1].summary().split()[5]
+                              + '/'
+                              + str(subnet.prefixlen))
             )
             mac_list.append(
-                    EUI(
-                            recebe[0][1].summary().split()[3].replace(':', '')
-                    )
+                EUI(
+                    recebe[0][1].summary().split()[3].replace(':', '')
+                )
             )
             mac_list[-1].dialect = mac_cisco
         if post:
@@ -996,9 +984,9 @@ def get_mymac(interface: str = 'ens33', vendor: str = 'unix') -> EUI:
                 break
 
     mymac = subprocess.run(
-            ('cat /sys/class/net/' + interface + '/address').split(),
-            stdout=subprocess.PIPE,
-            universal_newlines=True)
+        ('cat /sys/class/net/' + interface + '/address').split(),
+        stdout=subprocess.PIPE,
+        universal_newlines=True)
     mymac = EUI(mymac.stdout.strip('\n'))
     mymac.dialect = vendor_list.get(str.lower(vendor))
     return mymac
@@ -1013,9 +1001,9 @@ def get_myip() -> List[IPv4Interface]:
     :return: List[IPv4Interface]
     """
     output = subprocess.run(
-            "ifconfig".split(),
-            stdout=subprocess.PIPE,
-            universal_newlines=True)
+        "ifconfig".split(),
+        stdout=subprocess.PIPE,
+        universal_newlines=True)
     output = output.stdout.split('\n')
     my_ips = []
     for line in output:
@@ -1320,7 +1308,6 @@ def is_leaf_node(node: str) -> bool:
     """
     return not is_internal_node(node)
 
-
 # %% scapy functions
 #    executar como super-user (sudo) para gerar pacotes
 # https://phaethon.github.io/scapy/api/usage.html
@@ -1412,5 +1399,3 @@ def is_leaf_node(node: str) -> bool:
 # send(icmp_net)
 # send(icmp_host)
 # scapy.layers.l2.Ether
-
-
