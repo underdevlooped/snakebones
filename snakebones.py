@@ -1872,7 +1872,7 @@ def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
 
 
 # HINT boneprint: função imprime dados da SkeletonTree
-# FIXME boneprint: imprime tambem arcos da SkeletonTree
+# HINT boneprint: imprime tambem arcos da SkeletonTree
 def boneprint(skeleton: SkeletonTree) -> None:
     """
     Imprime dados da SkeletonTree informada.
@@ -1880,10 +1880,12 @@ def boneprint(skeleton: SkeletonTree) -> None:
 
     :param skeleton: SkeletonTree para imprimir
     """
-    print("\n" + f"Skeleton Tree: {skeleton}")
-    print('conjunto de Vertices:')
+    print("\n" + f"Skeleton Tree H(Y, A): {skeleton}")
+    print(">>> Conjunto 'Y' de Vertices:")
     pprint(skeleton.vertices)
-    print('Lista de Nodes ordenada por value_n:')
+    print(">>> Conjunto 'A' de Arcos:")
+    pprint(skeleton.arches)
+    print(">>> Lista 'L' de Nodes ordenados por value_n:")
     pprint(sorted([(node.value_nv, node)
                    for node in skeleton.nodes], reverse=True))
 
