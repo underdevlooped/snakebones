@@ -21,6 +21,13 @@ from typing import Union, Tuple, List, Dict, Optional, TypeVar, Set
 # Callable, Any
 
 ArpTable = List[Tuple[IPv4Interface, EUI]]
+Mac = bytes
+Ip = str
+Macs = Set[MAC]
+Port = str
+PortAFT = Dict[Port, Macs]
+Aft = Dict[Ip, PortAFT]
+ArpTableData = Dict[Ip, ArpTable]
 
 # =============================================================================
 # ConnectionOptions = Dict[str, str]
@@ -35,12 +42,13 @@ NO = OFF = STOP = False
 SubNet = TypeVar('SubNet')
 
 
-def manual_aft():
+def manual_aft() -> Aft:
     """
     Criado manualmente. AFT resultantes de probes originados do NMS para
     topologia de referencia
 
-    :return:
+    :return: Estrutura com dados da AFT
+    :rtype: dict
     """
     nms = b'\x00\x0c)\\Bq'  # NMS 10.0.*.111/24 000c.295c.4271
     v1 = b'\x00>\\\x01\x80\x01'  # 10.0.0.1/24 003e.5c01.8001
@@ -181,11 +189,12 @@ aft_fdb = manual_aft()
 
 
 # %% SNMP_DATA
-def auto_snmp_data(complete_aft=True) -> dict:
+def auto_snmp_data(complete_aft: bool = True) -> dict:
     """Retorna dicionario com os dados snmp (sem probe) dos internal nodes
     no formato {'ip/masc':{'atributo1': 'valor1', 'atributo2': 'valor2', ...}
 
-    :return: dict
+    :return: Dicionario com dados snmp coletados
+    :rtype: dict
     """
 
     # snmp_data = \
@@ -821,10 +830,12 @@ def auto_snmp_data(complete_aft=True) -> dict:
 
 
 # %% ARP_TABLE_DATA
-def auto_arp_table_data() -> dict:
+def auto_arp_table_data() -> ArpTableData:
     """
     Retorna dicionario com interface IP do elemento e sua tabela arp
     lista de objetos (IPv4Inteface, EUI)
+
+    :return: dados de interface IP e EUI
     :rtype: dict
     """
     arp_table_data = \
@@ -875,7 +886,7 @@ def set_arp_table(subnet: SubNet,
                   manual_fill: Optional[List[Tuple[str, str]]] = None,
                   post: Optional[bool] = None,
                   include_me: Optional[bool] = None) \
-        -> List[Tuple[IPv4Interface, EUI]]:
+        -> ArpTable:
     """
     Envia pacotes ARP em broadcast p/ atualizar a tabela MAC dos elementos
     Retorna tupla para cada rede fornecida contendo lista de IPs, de MACs e
@@ -969,7 +980,8 @@ def get_mymac(interface: str = 'ens33', vendor: str = 'unix') -> EUI:
 
     :param interface: string com o nome da interface do computador NMS
     :param vendor:  cisco ou unix
-    :return: EUI
+    :return: EUI com MAC do host
+    :rtype: EUI
     """
     vendor_list = {'cisco': mac_cisco, 'unix': mac_unix_expanded}
     ls_net = subprocess.run('ls -l /sys/class/net/'.split(),
@@ -998,7 +1010,8 @@ def get_myip() -> List[IPv4Interface]:
     Retorna lista com objetos IPv4Interface dos enderecos IPs da estacao onde
     a funcao e chamada
 
-    :return: List[IPv4Interface]
+    :return: Lista de interfaces IPs do host
+    :rtype: List[IPv4Interface]
     """
     output = subprocess.run(
         "ifconfig".split(),
@@ -1032,6 +1045,12 @@ def ping_ip(ip_address: str,
     >>> ping_ip('10.0.0.1')
 
     >>> ping_ip('10.0.0.1', repete=2, espera=2, tamanho=2)
+    :param ip_address: string do endereço ip de destino
+    :param repete: quantidade de pacotes para enviar
+    :param espera: tempo em segundos para timeout
+    :param tamanho: quantidade de bytes a enviar por probe
+    :return: Resposta do ping
+    :rtype: str
     """
     print(f'===> Iniciando ping ICMP para IP {ip_address}')
     comando = ['ping', '-s', str(tamanho),
@@ -1061,6 +1080,7 @@ def ip_mac_to_arp_table(ip_mac_list: List[Tuple[str, str]],
         lista
     :return:
         lista com objetos IPv4Interface, EUI
+    :rtype: list
     Exemplo
     ----
     >>> ip_mac_to_arp_table([
@@ -1133,9 +1153,9 @@ def macstr_tobytes(mac: Union[bytes, str]) -> bytes:
     :param mac:
     :return:
     """
-    if type(mac) is bytes:
+    if isinstance(mac, bytes):
         return mac
-    if type(mac) is str:
+    if isinstance(mac, str)str:
         return int(mac, 16).to_bytes(6, 'big')
     return macstr_tobytes(str(mac))
 
@@ -1287,6 +1307,10 @@ def is_internal_node(node: str) -> bool:
     """
     Enviando as solicitacoes apropriadas para node verificando se eh
     switch ou bridge (internal node) com gerenciamento SNMP
+
+    :param node: string do IP para testar
+    :return: True se suporta snmp (internal). False caso contrario (leaf)
+    :rtype: bool
     """
     snmp = Session(hostname=node,
                    version=2,
@@ -1305,6 +1329,10 @@ def is_leaf_node(node: str) -> bool:
     """
     Enviando as solicitacoes apropriadas para node verificando se NAO eh
     switch ou bridge (leaf node) sem gerenciamento SNMP
+
+    :param node: string do IP para testar
+    :return: True se não suporta snmp (leaf). False caso contrario (internal)
+    :rtype: bool
     """
     return not is_internal_node(node)
 
