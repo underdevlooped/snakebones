@@ -1827,6 +1827,7 @@ def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
 
 
 # HINT boneprint: função imprime dados da SkeletonTree
+# FIXME boneprint: imprime tambem arcos da SkeletonTree
 def boneprint(skeleton: SkeletonTree) -> None:
     print("\n" + f"Skeleton Tree: {skeleton}")
     print('conjunto de Vertices:')
@@ -1912,7 +1913,7 @@ def main():
     for skeleton in skeletons:
         boneprint(skeleton)
 
-    # FIXME main: união entre SkeletonTree restantes
+    # HINT main: união entre SkeletonTree restantes gerando 'united_skeleton' com arvore unificada
     while len(skeletons) >= 2 and skeletons[0].anchors & skeletons[1].anchors:
         first, second = skeletons[0], skeletons[1]  # Hi and Hj
         if first.anchors & second.anchors:  # Xi ∩ Xj
@@ -1938,7 +1939,9 @@ def main():
         skeletons.remove(first)
         skeletons.remove(second)
         skeletons.append(new_skeleton)
-        breakpoint()
+    united_skeleton = skeletons.pop()
+    boneprint(united_skeleton)
+    breakpoint()
 
     # print()
     # bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
