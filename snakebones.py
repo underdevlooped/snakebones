@@ -1826,6 +1826,16 @@ def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
         return {get_node(aft_node) for aft_node in aft}
 
 
+# HINT boneprint: função imprime dados da SkeletonTree
+def boneprint(skeleton: SkeletonTree) -> None:
+    print("\n" + f"Skeleton Tree: {skeleton}")
+    print('conjunto de Vertices:')
+    pprint(skeleton.vertices)
+    print('Lista de Nodes ordenada por value_n:')
+    pprint(sorted([(node.value_nv, node)
+                   for node in skeleton.nodes], reverse=True))
+
+
 # %% main
 def main():
     """
@@ -1899,13 +1909,8 @@ def main():
     # while len(skeletons) >= 2:  # there are 2 skeleton
     #     pass
 
-    print('\nSkeletons-trees:')
     for skeleton in skeletons:
-        print(skeleton)
-        pprint(skeleton.vertices)
-        pprint(sorted([(node.value_nv, node)
-                       for node in skeleton.nodes], reverse=True))
-
+        boneprint(skeleton)
     first, second = skeletons[0], skeletons[1]  # Hi and Hj
     if first.anchors & second.anchors:  # Xi ∩ Xj
         print(first)
