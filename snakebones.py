@@ -1662,7 +1662,6 @@ class SkeletonTree(object):
                     self.arches.add(arch_out)
                     self.frontier_set.add(arch_out)  # a'
 
-                # breakpoint()  # ok ate aqui 10+30 10+20
                 if arch_a.reachable_mac == node.bv_set:  # Ba = Bv'
                     arch_a._endpoint_b = next_vertex  # y' connect to a
                 elif not vertex.nodes_set:  # Cy = 0
@@ -1790,7 +1789,8 @@ def ext_aft(y_vertex: Vertex,
     # Xy = (U Xyj) U (X ∩ Cy)
     xy = x_child_union | (x_anchors & y_vertex.nodes_set)
     for node in y_vertex.nodes_set:  # node v ∈ Cy
-        if isinstance(node, InternalNode):
+    # HINT ext_aft: bug na identificação do root
+        if isinstance(node, InternalNode) and node != skeleton.root:
             port_root = get_port(node, skeleton.root)  # v(r)
 
             aft = set(node.aft_atports(port_root))  # Fv,v(r)
@@ -1888,7 +1888,7 @@ def main():
     #     print()
 
     # 2) INFERINDO TOPOLOGIA
-    skeletons = list()
+    skeletons: List[SkeletonTree] = list()
     for subnet in SubNet._all:  # subnet Ni ∈ 'N'
         if subnet._has_switches:
             continue
@@ -1911,26 +1911,34 @@ def main():
 
     for skeleton in skeletons:
         boneprint(skeleton)
-    first, second = skeletons[0], skeletons[1]  # Hi and Hj
-    if first.anchors & second.anchors:  # Xi ∩ Xj
-        print(first)
-        print(second)
-        # HINT main: união dos atributos das SkeletonTree
-        new_netnodes = first.netnodes | second.netnodes  # Nk = Ni U Nj
-        anchors_inter = first.anchors & second.anchors
-        new_root = anchors_inter.pop()  # rk = any node in Xi ∩ Xj
-        new_nodes = first.nodes | second.nodes  # VNk = VNi U VNj
-        # HINT main: criação da nova skeleton com atributos unificados
-        new_skeleton = SkeletonTree(new_netnodes,
-                                    new_nodes,
-                                    new_root,
-                                    remove=['10.0.10.111', '10.0.20.111'])
-    # HINT main: extensão da tabela AFT para skeleton unida
-        ext_aft(new_skeleton.root_vertex,
-                new_skeleton.anchors,
-                new_skeleton)
+
+    # FIXME main: união entre SkeletonTree restantes
+    while len(skeletons) >= 2 and skeletons[0].anchors & skeletons[1].anchors:
+        first, second = skeletons[0], skeletons[1]  # Hi and Hj
+        if first.anchors & second.anchors:  # Xi ∩ Xj
+            print(first)
+            print(second)
+            # HINT main: união dos atributos das SkeletonTree
+            new_netnodes = first.netnodes | second.netnodes  # Nk = Ni U Nj
+            anchors_inter = first.anchors & second.anchors
+            new_root = anchors_inter.pop()  # rk = any node in Xi ∩ Xj
+            new_nodes = first.nodes | second.nodes  # VNk = VNi U VNj
+            # HINT main: criação da nova skeleton com atributos unificados
+            new_skeleton = SkeletonTree(new_netnodes,
+                                        new_nodes,
+                                        new_root,
+                                        remove=['10.0.10.111',
+                                                '10.0.20.111',
+                                                '10.0.30.111'])
+            # HINT main: extensão da tabela AFT para skeleton unida
+            # HINT main: bug porta indefinida AFT extendida
+            ext_aft(new_skeleton.root_vertex,
+                    new_skeleton.anchors,
+                    new_skeleton)
+        skeletons.remove(first)
+        skeletons.remove(second)
+        skeletons.append(new_skeleton)
         breakpoint()
-    breakpoint()
 
     # print()
     # bone1 = SkeletonTree(get_subnet('10.0.10.0/24'))
