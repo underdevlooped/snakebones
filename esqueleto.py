@@ -23,7 +23,7 @@ from typing import Union, Tuple, List, Dict, Optional, TypeVar, Set
 ArpTable = List[Tuple[IPv4Interface, EUI]]
 Mac = bytes
 Ip = str
-Macs = Set[MAC]
+Macs = Set[Mac]
 Port = str
 PortAFT = Dict[Port, Macs]
 Aft = Dict[Ip, PortAFT]
@@ -1155,7 +1155,7 @@ def macstr_tobytes(mac: Union[bytes, str]) -> bytes:
     """
     if isinstance(mac, bytes):
         return mac
-    if isinstance(mac, str)str:
+    if isinstance(mac, str):
         return int(mac, 16).to_bytes(6, 'big')
     return macstr_tobytes(str(mac))
 
