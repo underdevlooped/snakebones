@@ -1873,6 +1873,7 @@ def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
 
 # HINT boneprint: função imprime dados da SkeletonTree
 # HINT boneprint: imprime tambem arcos da SkeletonTree
+# HINT boneprint: opção de imprimir simplificado
 def boneprint(skeleton: SkeletonTree, verbose: bool = True) -> None:
     """
     Imprime dados da SkeletonTree informada.
@@ -1886,26 +1887,38 @@ def boneprint(skeleton: SkeletonTree, verbose: bool = True) -> None:
     """
     if verbose:
         print("\n" + f"Skeleton Tree H(Y, A): {skeleton}")
-        print(f">>> Vertices 'Y': ({len(skeleton.vertices)})")
-        pprint(skeleton.vertices)
-        print(f">>> Arcos 'A': ({len(skeleton.arches)})")
-        pprint(skeleton.arches)
+
         print(">>> Lista 'L' de Nodes ordenados por value_n:")
         pprint(sorted([(node.value_nv, node)
                        for node in skeleton.nodes], reverse=True))
+
+        print(f">>> Vertices 'Y': ({len(skeleton.vertices)})")
+        pprint(skeleton.vertices)
+
+        print(f">>> Arcos 'A': ({len(skeleton.arches)})")
+        pprint(skeleton.arches)
     else:
         print("\n" + f"Skeleton Tree H(Y, A): {skeleton}")
+
+        print(f">>> Lista 'L' de Nodes descobertos ordenados: "
+              f"({len(skeleton.nodes)})")
+        lista_l = sorted([(node.value_nv, node)
+                          for node in skeleton.nodes], reverse=True)
+        for value, node in lista_l:
+            print(f"({value}, {node.name})")
+
         node_list = []
         for vertice in skeleton.vertices:
             for node in vertice._nodes_set:
                 if isinstance(node, (LeafNode, InternalNode)):
-                    node_list.append(node.ip.compressed)
+                    node_list.append([node.name, node.ip.compressed])
                 else:
-                    node_list.append(node.name)
+                    node_list.append([node.name, None])
+
         print(f">>> Vertices 'Y': ({len(node_list)})")
-        # for node in sorted(node_list):
-        #     print(f"{node.name}, {node.ip.compressed")
-        pprint(f"{sorted(node_list)}")
+        for node_name, node_ip in sorted(node_list):
+            print(f"{node_name}, {node_ip}")
+
         print(f">>> Arcos 'A': ({len(skeleton.arches)})")
         arco_simples = []
         for arco in skeleton.arches:
@@ -1916,12 +1929,6 @@ def boneprint(skeleton: SkeletonTree, verbose: bool = True) -> None:
             arco_simples.append(sorted([endpoint_a, endpoint_b]))
         for node_a, node_b  in sorted(arco_simples):
             print(f"{{{node_a}, {node_b}}}")
-        print(f">>> Lista 'L' de Nodes descobertos ordenados: "
-              f"({len(skeleton.nodes)})")
-        lista_l = sorted([(node.value_nv, node)
-                          for node in skeleton.nodes], reverse=True)
-        for value, node in lista_l:
-            print(f"({value}, {node.name})")
 
 
 # HINT correções de typing, docstring e inpection em geral
@@ -2028,7 +2035,6 @@ def main():
     united_skeleton = skeletons.pop()
     boneprint(united_skeleton)
     boneprint(united_skeleton, verbose=False)
-    breakpoint()
 
 
 
