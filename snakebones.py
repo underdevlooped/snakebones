@@ -1629,6 +1629,9 @@ class SkeletonTree(object):
                 for port in leaves_ports:
                     node.bv_set |= {aftnode.mac for aftnode in
                                     get_aft(node, port, *self.netnodes)}
+                # HINT SkeletonTree: bug bv_set vazio para AFT incompleta
+                if not node.bv_set:
+                    self.nodes.remove(node)
 
             else:
                 node.bv_set = {node.mac}
@@ -1947,7 +1950,7 @@ def main():
             '10.0.0.3',
             '10.0.0.4',
             '10.0.0.5',
-            '10.0.0.6'], complete_aft=True)
+            '10.0.0.6'], complete_aft=False)
     redes = (SubNet('10.0.0.0/24', auto_fill=AUTOFILL_MODE, has_switches=True),
              SubNet('10.0.10.0/24', auto_fill=AUTOFILL_MODE),
              SubNet('10.0.20.0/24', auto_fill=AUTOFILL_MODE),
@@ -2000,13 +2003,12 @@ def main():
         ext_aft(bone.root_vertex,  # yj
                 bone.anchors,  # X
                 bone)  # H(Y,A)
+        boneprint(bone)
 
     # HINT main: união de 2 skeleton trees como base para unir todas
-    # while len(skeletons) >= 2:  # there are 2 skeleton
-    #     pass
 
-    for skeleton in skeletons:
-        boneprint(skeleton)
+    # for skeleton in skeletons:
+    #     boneprint(skeleton)
 
     # HINT main: união entre SkeletonTree restantes gerando 'united_skeleton' com arvore unificada
     while len(skeletons) >= 2 and skeletons[0].anchors & skeletons[1].anchors:
@@ -2042,7 +2044,7 @@ def main():
 if __name__ == '__main__':
     main()
 
-# 2018-11-03 autofill off
+# 2018-11-03 autofill on
 #
 # Nodes descobertos:
 # {InternalNode('10.0.0.1/24', '003e.5c01.8001'),
@@ -2077,31 +2079,6 @@ if __name__ == '__main__':
 #  InternalNode('10.0.0.6/24', '003e.5c06.8001')}
 #
 # Skeleton Tree H(Y, A): SkeletonTree('10.0.10.0/24')
-# >>> Conjunto 'Y' de Vertices:
-# {Vertex({'leaf_1*root*'}),
-#  Vertex({'v3'}),
-#  Vertex({'v1'}),
-#  Vertex({'v2'}),
-#  Vertex({'v5'}),
-#  Vertex({'hub_1'}),
-#  Vertex({'leaf_7'}),
-#  Vertex({'leaf_4'}),
-#  Vertex({'leaf_6'}),
-#  Vertex({'leaf_5'}),
-#  Vertex({'leaf_3'}),
-#  Vertex({'leaf_2'})}
-# >>> Conjunto 'A' de Arcos:
-# {Arch(Vertex({'v1'}), '15', Vertex({'leaf_2'}), None),
-#  Arch(Vertex({'v3'}), '2', Vertex({'hub_1'}), None),
-#  Arch(Vertex({'v1'}), '3', Vertex({'v2'}), None),
-#  Arch(Vertex({'leaf_1*root*'}), '1', Vertex({'v1'}), None),
-#  Arch(Vertex({'v2'}), '3', Vertex({'v3'}), None),
-#  Arch(Vertex({'v3'}), '16', Vertex({'leaf_3'}), None),
-#  Arch(Vertex({'v5'}), '15', Vertex({'leaf_4'}), None),
-#  Arch(Vertex({'v5'}), '16', Vertex({'leaf_5'}), None),
-#  Arch(Vertex({'hub_1'}), None, Vertex({'v5'}), None),
-#  Arch(Vertex({'hub_1'}), None, Vertex({'leaf_7'}), None),
-#  Arch(Vertex({'hub_1'}), None, Vertex({'leaf_6'}), None)}
 # >>> Lista 'L' de Nodes ordenados por value_n:
 # [(7.5, LeafNode('10.0.10.111/24', '000c.295c.4271')),
 #  (3.5, InternalNode('10.0.0.2/24', '003e.5c02.8001')),
@@ -2114,27 +2091,33 @@ if __name__ == '__main__':
 #  (0.5, LeafNode('10.0.10.3/24', '0050.7966.6809')),
 #  (0.5, LeafNode('10.0.10.2/24', '0050.7966.6805')),
 #  (0.5, LeafNode('10.0.10.1/24', '0050.7966.680c'))]
+# >>> Vertices 'Y': (12)
+# {Vertex({'leaf_1*root*'}),
+#  Vertex({'v3'}),
+#  Vertex({'v1'}),
+#  Vertex({'v2'}),
+#  Vertex({'v5'}),
+#  Vertex({'hub_1'}),
+#  Vertex({'leaf_7'}),
+#  Vertex({'leaf_4'}),
+#  Vertex({'leaf_6'}),
+#  Vertex({'leaf_5'}),
+#  Vertex({'leaf_3'}),
+#  Vertex({'leaf_2'})}
+# >>> Arcos 'A': (11)
+# {Arch(Vertex({'v1'}), '15', Vertex({'leaf_2'}), None),
+#  Arch(Vertex({'v3'}), '16', Vertex({'leaf_3'}), None),
+#  Arch(Vertex({'v1'}), '3', Vertex({'v2'}), None),
+#  Arch(Vertex({'leaf_1*root*'}), '1', Vertex({'v1'}), None),
+#  Arch(Vertex({'v2'}), '3', Vertex({'v3'}), None),
+#  Arch(Vertex({'v3'}), '2', Vertex({'hub_1'}), None),
+#  Arch(Vertex({'v5'}), '16', Vertex({'leaf_5'}), None),
+#  Arch(Vertex({'v5'}), '15', Vertex({'leaf_4'}), None),
+#  Arch(Vertex({'hub_1'}), None, Vertex({'v5'}), None),
+#  Arch(Vertex({'hub_1'}), None, Vertex({'leaf_7'}), None),
+#  Arch(Vertex({'hub_1'}), None, Vertex({'leaf_6'}), None)}
 #
 # Skeleton Tree H(Y, A): SkeletonTree('10.0.20.0/24')
-# >>> Conjunto 'Y' de Vertices:
-# {Vertex({'leaf_8*root*'}),
-#  Vertex({'v2'}),
-#  Vertex({'v1'}),
-#  Vertex({'v4'}),
-#  Vertex({'leaf_11'}),
-#  Vertex({'v3'}),
-#  Vertex({'leaf_12'}),
-#  Vertex({'leaf_10'}),
-#  Vertex({'leaf_9'})}
-# >>> Conjunto 'A' de Arcos:
-# {Arch(Vertex({'leaf_8*root*'}), '1', Vertex({'v1'}), None),
-#  Arch(Vertex({'v1'}), '3', Vertex({'v2'}), None),
-#  Arch(Vertex({'v2'}), '16', Vertex({'leaf_11'}), None),
-#  Arch(Vertex({'v2'}), '3', Vertex({'v3'}), None),
-#  Arch(Vertex({'v2'}), '2', Vertex({'v4'}), None),
-#  Arch(Vertex({'v4'}), '15', Vertex({'leaf_9'}), None),
-#  Arch(Vertex({'v4'}), '16', Vertex({'leaf_10'}), None),
-#  Arch(Vertex({'v3'}), '2', Vertex({'leaf_12'}), None)}
 # >>> Lista 'L' de Nodes ordenados por value_n:
 # [(5.5, LeafNode('10.0.20.111/24', '000c.295c.4271')),
 #  (3.5, InternalNode('10.0.0.2/24', '003e.5c02.8001')),
@@ -2145,21 +2128,27 @@ if __name__ == '__main__':
 #  (0.5, LeafNode('10.0.20.3/24', '0050.7966.6804')),
 #  (0.5, LeafNode('10.0.20.2/24', '0050.7966.6803')),
 #  (0.5, LeafNode('10.0.20.1/24', '0050.7966.6802'))]
+# >>> Vertices 'Y': (9)
+# {Vertex({'leaf_8*root*'}),
+#  Vertex({'v2'}),
+#  Vertex({'v1'}),
+#  Vertex({'v4'}),
+#  Vertex({'leaf_11'}),
+#  Vertex({'v3'}),
+#  Vertex({'leaf_12'}),
+#  Vertex({'leaf_10'}),
+#  Vertex({'leaf_9'})}
+# >>> Arcos 'A': (8)
+# {Arch(Vertex({'leaf_8*root*'}), '1', Vertex({'v1'}), None),
+#  Arch(Vertex({'v1'}), '3', Vertex({'v2'}), None),
+#  Arch(Vertex({'v2'}), '2', Vertex({'v4'}), None),
+#  Arch(Vertex({'v2'}), '3', Vertex({'v3'}), None),
+#  Arch(Vertex({'v2'}), '16', Vertex({'leaf_11'}), None),
+#  Arch(Vertex({'v4'}), '16', Vertex({'leaf_10'}), None),
+#  Arch(Vertex({'v4'}), '15', Vertex({'leaf_9'}), None),
+#  Arch(Vertex({'v3'}), '2', Vertex({'leaf_12'}), None)}
 #
 # Skeleton Tree H(Y, A): SkeletonTree('10.0.30.0/24')
-# >>> Conjunto 'Y' de Vertices:
-# {Vertex({'leaf_13*root*'}),
-#  Vertex({'v1'}),
-#  Vertex({'leaf_16'}),
-#  Vertex({'v6'}),
-#  Vertex({'leaf_15'}),
-#  Vertex({'leaf_14'})}
-# >>> Conjunto 'A' de Arcos:
-# {Arch(Vertex({'leaf_13*root*'}), '1', Vertex({'v1'}), None),
-#  Arch(Vertex({'v1'}), '16', Vertex({'leaf_16'}), None),
-#  Arch(Vertex({'v1'}), '2', Vertex({'v6'}), None),
-#  Arch(Vertex({'v6'}), '16', Vertex({'leaf_15'}), None),
-#  Arch(Vertex({'v6'}), '15', Vertex({'leaf_14'}), None)}
 # >>> Lista 'L' de Nodes ordenados por value_n:
 # [(4.5, LeafNode('10.0.30.111/24', '000c.295c.4271')),
 #  (2.5, InternalNode('10.0.0.1/24', '003e.5c01.8001')),
@@ -2167,49 +2156,21 @@ if __name__ == '__main__':
 #  (0.5, LeafNode('10.0.30.3/24', '0050.7966.6801')),
 #  (0.5, LeafNode('10.0.30.2/24', '0050.7966.680b')),
 #  (0.5, LeafNode('10.0.30.1/24', '0050.7966.6800'))]
+# >>> Vertices 'Y': (6)
+# {Vertex({'leaf_13*root*'}),
+#  Vertex({'v1'}),
+#  Vertex({'leaf_16'}),
+#  Vertex({'v6'}),
+#  Vertex({'leaf_15'}),
+#  Vertex({'leaf_14'})}
+# >>> Arcos 'A': (5)
+# {Arch(Vertex({'leaf_13*root*'}), '1', Vertex({'v1'}), None),
+#  Arch(Vertex({'v1'}), '2', Vertex({'v6'}), None),
+#  Arch(Vertex({'v1'}), '16', Vertex({'leaf_16'}), None),
+#  Arch(Vertex({'v6'}), '15', Vertex({'leaf_14'}), None),
+#  Arch(Vertex({'v6'}), '16', Vertex({'leaf_15'}), None)}
 #
 # Skeleton Tree H(Y, A): SkeletonTree('bone_5')
-# >>> Conjunto 'Y' de Vertices:
-# {Vertex({'v1'}),
-#  Vertex({'v2'}),
-#  Vertex({'v3'}),
-#  Vertex({'v6'}),
-#  Vertex({'v5'}),
-#  Vertex({'hub_3'}),
-#  Vertex({'v4'}),
-#  Vertex({'leaf_16'}),
-#  Vertex({'leaf_15'}),
-#  Vertex({'leaf_14'}),
-#  Vertex({'leaf_12'}),
-#  Vertex({'leaf_11'}),
-#  Vertex({'leaf_10'}),
-#  Vertex({'leaf_9'}),
-#  Vertex({'leaf_7'}),
-#  Vertex({'leaf_6'}),
-#  Vertex({'leaf_5'}),
-#  Vertex({'leaf_4'}),
-#  Vertex({'leaf_3'}),
-#  Vertex({'leaf_2'})}
-# >>> Conjunto 'A' de Arcos:
-# {Arch(Vertex({'v1'}), '2', Vertex({'v6'}), None),
-#  Arch(Vertex({'v1'}), '3', Vertex({'v2'}), None),
-#  Arch(Vertex({'v1'}), '15', Vertex({'leaf_2'}), None),
-#  Arch(Vertex({'v2'}), '2', Vertex({'v4'}), None),
-#  Arch(Vertex({'v1'}), '16', Vertex({'leaf_16'}), None),
-#  Arch(Vertex({'v2'}), '3', Vertex({'v3'}), None),
-#  Arch(Vertex({'v2'}), '16', Vertex({'leaf_11'}), None),
-#  Arch(Vertex({'v3'}), '2', Vertex({'hub_3'}), None),
-#  Arch(Vertex({'v3'}), '16', Vertex({'leaf_3'}), None),
-#  Arch(Vertex({'v6'}), '15', Vertex({'leaf_14'}), None),
-#  Arch(Vertex({'v6'}), '16', Vertex({'leaf_15'}), None),
-#  Arch(Vertex({'v5'}), '15', Vertex({'leaf_4'}), None),
-#  Arch(Vertex({'v5'}), '16', Vertex({'leaf_5'}), None),
-#  Arch(Vertex({'hub_3'}), None, Vertex({'v5'}), None),
-#  Arch(Vertex({'hub_3'}), None, Vertex({'leaf_12'}), None),
-#  Arch(Vertex({'v4'}), '15', Vertex({'leaf_9'}), None),
-#  Arch(Vertex({'v4'}), '16', Vertex({'leaf_10'}), None),
-#  Arch(Vertex({'hub_3'}), None, Vertex({'leaf_7'}), None),
-#  Arch(Vertex({'hub_3'}), None, Vertex({'leaf_6'}), None)}
 # >>> Lista 'L' de Nodes ordenados por value_n:
 # [(14.5, InternalNode('10.0.0.1/24', '003e.5c01.8001')),
 #  (8.5, InternalNode('10.0.0.2/24', '003e.5c02.8001')),
@@ -2230,6 +2191,362 @@ if __name__ == '__main__':
 #  (0.5, LeafNode('10.0.10.3/24', '0050.7966.6809')),
 #  (0.5, LeafNode('10.0.10.2/24', '0050.7966.6805')),
 #  (0.5, LeafNode('10.0.10.1/24', '0050.7966.680c'))]
+# >>> Vertices 'Y': (20)
+# {Vertex({'v1'}),
+#  Vertex({'v2'}),
+#  Vertex({'v3'}),
+#  Vertex({'v6'}),
+#  Vertex({'v5'}),
+#  Vertex({'hub_3'}),
+#  Vertex({'v4'}),
+#  Vertex({'leaf_16'}),
+#  Vertex({'leaf_15'}),
+#  Vertex({'leaf_14'}),
+#  Vertex({'leaf_12'}),
+#  Vertex({'leaf_11'}),
+#  Vertex({'leaf_10'}),
+#  Vertex({'leaf_9'}),
+#  Vertex({'leaf_7'}),
+#  Vertex({'leaf_6'}),
+#  Vertex({'leaf_5'}),
+#  Vertex({'leaf_4'}),
+#  Vertex({'leaf_3'}),
+#  Vertex({'leaf_2'})}
+# >>> Arcos 'A': (19)
+# {Arch(Vertex({'v1'}), '16', Vertex({'leaf_16'}), None),
+#  Arch(Vertex({'v1'}), '15', Vertex({'leaf_2'}), None),
+#  Arch(Vertex({'v1'}), '3', Vertex({'v2'}), None),
+#  Arch(Vertex({'v1'}), '2', Vertex({'v6'}), None),
+#  Arch(Vertex({'v2'}), '16', Vertex({'leaf_11'}), None),
+#  Arch(Vertex({'v2'}), '3', Vertex({'v3'}), None),
+#  Arch(Vertex({'v2'}), '2', Vertex({'v4'}), None),
+#  Arch(Vertex({'v3'}), '16', Vertex({'leaf_3'}), None),
+#  Arch(Vertex({'v3'}), '2', Vertex({'hub_3'}), None),
+#  Arch(Vertex({'v6'}), '16', Vertex({'leaf_15'}), None),
+#  Arch(Vertex({'v6'}), '15', Vertex({'leaf_14'}), None),
+#  Arch(Vertex({'v5'}), '16', Vertex({'leaf_5'}), None),
+#  Arch(Vertex({'v5'}), '15', Vertex({'leaf_4'}), None),
+#  Arch(Vertex({'hub_3'}), None, Vertex({'v5'}), None),
+#  Arch(Vertex({'hub_3'}), None, Vertex({'leaf_12'}), None),
+#  Arch(Vertex({'v4'}), '16', Vertex({'leaf_10'}), None),
+#  Arch(Vertex({'v4'}), '15', Vertex({'leaf_9'}), None),
+#  Arch(Vertex({'hub_3'}), None, Vertex({'leaf_7'}), None),
+#  Arch(Vertex({'hub_3'}), None, Vertex({'leaf_6'}), None)}
+#
+# Skeleton Tree H(Y, A): SkeletonTree('bone_5')
+# >>> Lista 'L' de Nodes descobertos ordenados: (19)
+# (14.5, v1)
+# (8.5, v2)
+# (5.5, v3)
+# (1.5, v6)
+# (1.5, v5)
+# (1.5, v4)
+# (0.5, leaf_16)
+# (0.5, leaf_15)
+# (0.5, leaf_14)
+# (0.5, leaf_12)
+# (0.5, leaf_11)
+# (0.5, leaf_10)
+# (0.5, leaf_9)
+# (0.5, leaf_7)
+# (0.5, leaf_6)
+# (0.5, leaf_5)
+# (0.5, leaf_4)
+# (0.5, leaf_3)
+# (0.5, leaf_2)
+# >>> Vertices 'Y': (20)
+# hub_3, None
+# leaf_10, 10.0.20.2
+# leaf_11, 10.0.20.3
+# leaf_12, 10.0.20.4
+# leaf_14, 10.0.30.1
+# leaf_15, 10.0.30.2
+# leaf_16, 10.0.30.3
+# leaf_2, 10.0.10.1
+# leaf_3, 10.0.10.2
+# leaf_4, 10.0.10.3
+# leaf_5, 10.0.10.4
+# leaf_6, 10.0.10.5
+# leaf_7, 10.0.10.6
+# leaf_9, 10.0.20.1
+# v1, 10.0.0.1
+# v2, 10.0.0.2
+# v3, 10.0.0.3
+# v4, 10.0.0.4
+# v5, 10.0.0.5
+# v6, 10.0.0.6
+# >>> Arcos 'A': (19)
+# {hub_3, leaf_12}
+# {hub_3, leaf_6}
+# {hub_3, leaf_7}
+# {hub_3, v3}
+# {hub_3, v5}
+# {leaf_10, v4}
+# {leaf_11, v2}
+# {leaf_14, v6}
+# {leaf_15, v6}
+# {leaf_16, v1}
+# {leaf_2, v1}
+# {leaf_3, v3}
+# {leaf_4, v5}
+# {leaf_5, v5}
+# {leaf_9, v4}
+# {v1, v2}
+# {v1, v6}
+# {v2, v3}
+# {v2, v4}
+
+# autofil on, incomplete AFT
+#
+# Nodes descobertos:
+# {InternalNode('10.0.0.1/24', '003e.5c01.8001'),
+#  InternalNode('10.0.0.2/24', '003e.5c02.8001'),
+#  InternalNode('10.0.0.3/24', '003e.5c03.8001'),
+#  InternalNode('10.0.0.4/24', '003e.5c04.8001'),
+#  InternalNode('10.0.0.5/24', '003e.5c05.8001'),
+#  InternalNode('10.0.0.6/24', '003e.5c06.8001'),
+#  LeafNode('10.0.10.1/24', '0050.7966.680c'),
+#  LeafNode('10.0.10.2/24', '0050.7966.6805'),
+#  LeafNode('10.0.10.3/24', '0050.7966.6809'),
+#  LeafNode('10.0.10.4/24', '0050.7966.680a'),
+#  LeafNode('10.0.10.5/24', '0050.7966.6808'),
+#  LeafNode('10.0.10.6/24', '0050.7966.6807'),
+#  LeafNode('10.0.10.111/24', '000c.295c.4271'),
+#  LeafNode('10.0.20.1/24', '0050.7966.6802'),
+#  LeafNode('10.0.20.2/24', '0050.7966.6803'),
+#  LeafNode('10.0.20.3/24', '0050.7966.6804'),
+#  LeafNode('10.0.20.4/24', '0050.7966.6806'),
+#  LeafNode('10.0.20.111/24', '000c.295c.4271'),
+#  LeafNode('10.0.30.1/24', '0050.7966.6800'),
+#  LeafNode('10.0.30.2/24', '0050.7966.680b'),
+#  LeafNode('10.0.30.3/24', '0050.7966.6801'),
+#  LeafNode('10.0.30.111/24', '000c.295c.4271')}
+#
+# Inodes:
+# {InternalNode('10.0.0.1/24', '003e.5c01.8001'),
+#  InternalNode('10.0.0.2/24', '003e.5c02.8001'),
+#  InternalNode('10.0.0.3/24', '003e.5c03.8001'),
+#  InternalNode('10.0.0.4/24', '003e.5c04.8001'),
+#  InternalNode('10.0.0.5/24', '003e.5c05.8001'),
+#  InternalNode('10.0.0.6/24', '003e.5c06.8001')}
+#
+# Skeleton Tree H(Y, A): SkeletonTree('10.0.10.0/24')
+# >>> Lista 'L' de Nodes ordenados por value_n:
+# [(7.5, LeafNode('10.0.10.111/24', '000c.295c.4271')),
+#  (3.5, InternalNode('10.0.0.2/24', '003e.5c02.8001')),
+#  (2.5, InternalNode('10.0.0.1/24', '003e.5c01.8001')),
+#  (1.5, InternalNode('10.0.0.5/24', '003e.5c05.8001')),
+#  (1, InternalNode('10.0.0.3/24', '003e.5c03.8001')),
+#  (0.5, LeafNode('10.0.10.6/24', '0050.7966.6807')),
+#  (0.5, LeafNode('10.0.10.5/24', '0050.7966.6808')),
+#  (0.5, LeafNode('10.0.10.4/24', '0050.7966.680a')),
+#  (0.5, LeafNode('10.0.10.3/24', '0050.7966.6809')),
+#  (0.5, LeafNode('10.0.10.2/24', '0050.7966.6805')),
+#  (0.5, LeafNode('10.0.10.1/24', '0050.7966.680c'))]
+# >>> Vertices 'Y': (12)
+# {Vertex({'leaf_1*root*'}),
+#  Vertex({'v3'}),
+#  Vertex({'v1'}),
+#  Vertex({'v2'}),
+#  Vertex({'v5'}),
+#  Vertex({'hub_1'}),
+#  Vertex({'leaf_7'}),
+#  Vertex({'leaf_4'}),
+#  Vertex({'leaf_6'}),
+#  Vertex({'leaf_5'}),
+#  Vertex({'leaf_3'}),
+#  Vertex({'leaf_2'})}
+# >>> Arcos 'A': (11)
+# {Arch(Vertex({'v1'}), '15', Vertex({'leaf_2'}), None),
+#  Arch(Vertex({'v3'}), '16', Vertex({'leaf_3'}), None),
+#  Arch(Vertex({'v1'}), '3', Vertex({'v2'}), None),
+#  Arch(Vertex({'leaf_1*root*'}), '1', Vertex({'v1'}), None),
+#  Arch(Vertex({'v2'}), '3', Vertex({'v3'}), None),
+#  Arch(Vertex({'v3'}), '2', Vertex({'hub_1'}), None),
+#  Arch(Vertex({'v5'}), '16', Vertex({'leaf_5'}), None),
+#  Arch(Vertex({'v5'}), '15', Vertex({'leaf_4'}), None),
+#  Arch(Vertex({'hub_1'}), None, Vertex({'v5'}), None),
+#  Arch(Vertex({'hub_1'}), None, Vertex({'leaf_7'}), None),
+#  Arch(Vertex({'hub_1'}), None, Vertex({'leaf_6'}), None)}
+#
+# Skeleton Tree H(Y, A): SkeletonTree('10.0.20.0/24')
+# >>> Lista 'L' de Nodes ordenados por value_n:
+# [(5.5, LeafNode('10.0.20.111/24', '000c.295c.4271')),
+#  (3.5, InternalNode('10.0.0.2/24', '003e.5c02.8001')),
+#  (2.5, InternalNode('10.0.0.1/24', '003e.5c01.8001')),
+#  (1.5, InternalNode('10.0.0.4/24', '003e.5c04.8001')),
+#  (1, InternalNode('10.0.0.3/24', '003e.5c03.8001')),
+#  (0.5, LeafNode('10.0.20.4/24', '0050.7966.6806')),
+#  (0.5, LeafNode('10.0.20.3/24', '0050.7966.6804')),
+#  (0.5, LeafNode('10.0.20.2/24', '0050.7966.6803')),
+#  (0.5, LeafNode('10.0.20.1/24', '0050.7966.6802'))]
+# >>> Vertices 'Y': (9)
+# {Vertex({'leaf_8*root*'}),
+#  Vertex({'v2'}),
+#  Vertex({'v1'}),
+#  Vertex({'v4'}),
+#  Vertex({'leaf_11'}),
+#  Vertex({'v3'}),
+#  Vertex({'leaf_12'}),
+#  Vertex({'leaf_10'}),
+#  Vertex({'leaf_9'})}
+# >>> Arcos 'A': (8)
+# {Arch(Vertex({'leaf_8*root*'}), '1', Vertex({'v1'}), None),
+#  Arch(Vertex({'v1'}), '3', Vertex({'v2'}), None),
+#  Arch(Vertex({'v2'}), '2', Vertex({'v4'}), None),
+#  Arch(Vertex({'v2'}), '3', Vertex({'v3'}), None),
+#  Arch(Vertex({'v2'}), '16', Vertex({'leaf_11'}), None),
+#  Arch(Vertex({'v4'}), '16', Vertex({'leaf_10'}), None),
+#  Arch(Vertex({'v4'}), '15', Vertex({'leaf_9'}), None),
+#  Arch(Vertex({'v3'}), '2', Vertex({'leaf_12'}), None)}
+#
+# Skeleton Tree H(Y, A): SkeletonTree('10.0.30.0/24')
+# >>> Lista 'L' de Nodes ordenados por value_n:
+# [(4.5, LeafNode('10.0.30.111/24', '000c.295c.4271')),
+#  (2.5, InternalNode('10.0.0.1/24', '003e.5c01.8001')),
+#  (1.5, InternalNode('10.0.0.6/24', '003e.5c06.8001')),
+#  (0.5, LeafNode('10.0.30.3/24', '0050.7966.6801')),
+#  (0.5, LeafNode('10.0.30.2/24', '0050.7966.680b')),
+#  (0.5, LeafNode('10.0.30.1/24', '0050.7966.6800'))]
+# >>> Vertices 'Y': (6)
+# {Vertex({'leaf_13*root*'}),
+#  Vertex({'v1'}),
+#  Vertex({'leaf_16'}),
+#  Vertex({'v6'}),
+#  Vertex({'leaf_15'}),
+#  Vertex({'leaf_14'})}
+# >>> Arcos 'A': (5)
+# {Arch(Vertex({'leaf_13*root*'}), '1', Vertex({'v1'}), None),
+#  Arch(Vertex({'v1'}), '2', Vertex({'v6'}), None),
+#  Arch(Vertex({'v1'}), '16', Vertex({'leaf_16'}), None),
+#  Arch(Vertex({'v6'}), '15', Vertex({'leaf_14'}), None),
+#  Arch(Vertex({'v6'}), '16', Vertex({'leaf_15'}), None)}
+#
+# Skeleton Tree H(Y, A): SkeletonTree('bone_5')
+# >>> Lista 'L' de Nodes ordenados por value_n:
+# [(14.5, InternalNode('10.0.0.1/24', '003e.5c01.8001')),
+#  (8.5, InternalNode('10.0.0.2/24', '003e.5c02.8001')),
+#  (5.5, InternalNode('10.0.0.3/24', '003e.5c03.8001')),
+#  (1.5, InternalNode('10.0.0.6/24', '003e.5c06.8001')),
+#  (1.5, InternalNode('10.0.0.5/24', '003e.5c05.8001')),
+#  (1.5, InternalNode('10.0.0.4/24', '003e.5c04.8001')),
+#  (0.5, LeafNode('10.0.30.3/24', '0050.7966.6801')),
+#  (0.5, LeafNode('10.0.30.2/24', '0050.7966.680b')),
+#  (0.5, LeafNode('10.0.30.1/24', '0050.7966.6800')),
+#  (0.5, LeafNode('10.0.20.4/24', '0050.7966.6806')),
+#  (0.5, LeafNode('10.0.20.3/24', '0050.7966.6804')),
+#  (0.5, LeafNode('10.0.20.2/24', '0050.7966.6803')),
+#  (0.5, LeafNode('10.0.20.1/24', '0050.7966.6802')),
+#  (0.5, LeafNode('10.0.10.6/24', '0050.7966.6807')),
+#  (0.5, LeafNode('10.0.10.5/24', '0050.7966.6808')),
+#  (0.5, LeafNode('10.0.10.4/24', '0050.7966.680a')),
+#  (0.5, LeafNode('10.0.10.3/24', '0050.7966.6809')),
+#  (0.5, LeafNode('10.0.10.2/24', '0050.7966.6805')),
+#  (0.5, LeafNode('10.0.10.1/24', '0050.7966.680c'))]
+# >>> Vertices 'Y': (20)
+# {Vertex({'v1'}),
+#  Vertex({'v2'}),
+#  Vertex({'v3'}),
+#  Vertex({'v6'}),
+#  Vertex({'v5'}),
+#  Vertex({'hub_3'}),
+#  Vertex({'v4'}),
+#  Vertex({'leaf_16'}),
+#  Vertex({'leaf_15'}),
+#  Vertex({'leaf_14'}),
+#  Vertex({'leaf_12'}),
+#  Vertex({'leaf_11'}),
+#  Vertex({'leaf_10'}),
+#  Vertex({'leaf_9'}),
+#  Vertex({'leaf_7'}),
+#  Vertex({'leaf_6'}),
+#  Vertex({'leaf_5'}),
+#  Vertex({'leaf_4'}),
+#  Vertex({'leaf_3'}),
+#  Vertex({'leaf_2'})}
+# >>> Arcos 'A': (19)
+# {Arch(Vertex({'v1'}), '16', Vertex({'leaf_16'}), None),
+#  Arch(Vertex({'v1'}), '15', Vertex({'leaf_2'}), None),
+#  Arch(Vertex({'v1'}), '3', Vertex({'v2'}), None),
+#  Arch(Vertex({'v1'}), '2', Vertex({'v6'}), None),
+#  Arch(Vertex({'v2'}), '16', Vertex({'leaf_11'}), None),
+#  Arch(Vertex({'v2'}), '3', Vertex({'v3'}), None),
+#  Arch(Vertex({'v2'}), '2', Vertex({'v4'}), None),
+#  Arch(Vertex({'v3'}), '16', Vertex({'leaf_3'}), None),
+#  Arch(Vertex({'v3'}), '2', Vertex({'hub_3'}), None),
+#  Arch(Vertex({'v6'}), '16', Vertex({'leaf_15'}), None),
+#  Arch(Vertex({'v6'}), '15', Vertex({'leaf_14'}), None),
+#  Arch(Vertex({'v5'}), '16', Vertex({'leaf_5'}), None),
+#  Arch(Vertex({'v5'}), '15', Vertex({'leaf_4'}), None),
+#  Arch(Vertex({'hub_3'}), None, Vertex({'v5'}), None),
+#  Arch(Vertex({'hub_3'}), None, Vertex({'leaf_12'}), None),
+#  Arch(Vertex({'v4'}), '16', Vertex({'leaf_10'}), None),
+#  Arch(Vertex({'v4'}), '15', Vertex({'leaf_9'}), None),
+#  Arch(Vertex({'hub_3'}), None, Vertex({'leaf_7'}), None),
+#  Arch(Vertex({'hub_3'}), None, Vertex({'leaf_6'}), None)}
+#
+# Skeleton Tree H(Y, A): SkeletonTree('bone_5')
+# >>> Lista 'L' de Nodes descobertos ordenados: (19)
+# (14.5, v1)
+# (8.5, v2)
+# (5.5, v3)
+# (1.5, v6)
+# (1.5, v5)
+# (1.5, v4)
+# (0.5, leaf_16)
+# (0.5, leaf_15)
+# (0.5, leaf_14)
+# (0.5, leaf_12)
+# (0.5, leaf_11)
+# (0.5, leaf_10)
+# (0.5, leaf_9)
+# (0.5, leaf_7)
+# (0.5, leaf_6)
+# (0.5, leaf_5)
+# (0.5, leaf_4)
+# (0.5, leaf_3)
+# (0.5, leaf_2)
+# >>> Vertices 'Y': (20)
+# hub_3, None
+# leaf_10, 10.0.20.2
+# leaf_11, 10.0.20.3
+# leaf_12, 10.0.20.4
+# leaf_14, 10.0.30.1
+# leaf_15, 10.0.30.2
+# leaf_16, 10.0.30.3
+# leaf_2, 10.0.10.1
+# leaf_3, 10.0.10.2
+# leaf_4, 10.0.10.3
+# leaf_5, 10.0.10.4
+# leaf_6, 10.0.10.5
+# leaf_7, 10.0.10.6
+# leaf_9, 10.0.20.1
+# v1, 10.0.0.1
+# v2, 10.0.0.2
+# v3, 10.0.0.3
+# v4, 10.0.0.4
+# v5, 10.0.0.5
+# v6, 10.0.0.6
+# >>> Arcos 'A': (19)
+# {hub_3, leaf_12}
+# {hub_3, leaf_6}
+# {hub_3, leaf_7}
+# {hub_3, v3}
+# {hub_3, v5}
+# {leaf_10, v4}
+# {leaf_11, v2}
+# {leaf_14, v6}
+# {leaf_15, v6}
+# {leaf_16, v1}
+# {leaf_2, v1}
+# {leaf_3, v3}
+# {leaf_4, v5}
+# {leaf_5, v5}
+# {leaf_9, v4}
+# {v1, v2}
+# {v1, v6}
+# {v2, v3}
+# {v2, v4}
 
 # '\u2208'
 # Out[2]: '∈'
