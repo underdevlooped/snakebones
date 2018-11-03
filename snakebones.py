@@ -35,7 +35,7 @@ from netaddr import EUI
 from netaddr.strategy.eui48 import mac_cisco
 from pprint import pprint
 from typing import List, Union, Dict, Optional, \
-    Set, Iterable  # Tuple, Callable, Any, Union
+    Set, Iterable, Tuple  # , Callable, Any, Union
 from easysnmp import Session
 
 # from easysnmp.exceptions import EasySNMPTimeoutError, EasySNMPConnectionError
@@ -494,7 +494,12 @@ class LeafNode(Node):
         self._name = f"leaf_{len(LeafNode._all_leaves)}"
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """Nome criado para o node, indicando quando for root
+
+        :return: Nome do node
+        :rtype: str
+        """
         if self.is_root:
             return self._name + "*root*"
         return self._name
@@ -609,7 +614,7 @@ class InternalNode(Node):
         InternalNode._num_of_inodes -= 1
 
     @property
-    def port_list(self) -> Union[None, List[str]]:
+    def port_list(self) -> Optional[List[str]]:
         """Retorna lista de portas na ordem coletada pelo snmp
 
         :return: Lista de portas
@@ -821,15 +826,9 @@ class InternalNode(Node):
         """
         ports = self._snmp_data['dot1d_tp_fdb_port']
         mac_data = self._snmp_data['dot1d_tp_fdb_address']
-        indexes = list()
         while ports.count(porta):
-            # indexes.append(ports.index(porta))
             mac_data.pop(ports.index(porta))
             ports.remove(porta)
-        # if indexes:
-        #     for index in indexes.reverse():
-        #         ports.pop(index)
-        #         mac_data.pop(index)
 
         for mac in new_macs:
             if mac in mac_data:
@@ -862,6 +861,9 @@ class InternalNode(Node):
                         and (arp_set < subnet.mac_set)):
                 self.associated_subnets.add(subnet)
                 subnet._nodes.append(self)
+
+
+NodeL3 = Union[LeafNode, InternalNode]
 
 
 # %% classe Tree Tn(Vn, En)
@@ -989,8 +991,7 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
 
     :param node:
         Enderedeo em bytes ou string do IP ou MAC do node a ser pesquisado
-    :
-: Objeto que representa o node
+    :return: Objeto que representa o node
     :rtype: LeafNode,InternalNode
     """
     if isinstance(node, bytes):
@@ -1159,7 +1160,7 @@ def get_subnet(subnet: Union[str, IPv4Network, SubNet]) -> Optional[SubNet]:
 
 
 # %% Funcao port_activeset
-def port_activeset(node: Union[LeafNode, InternalNode],
+def port_activeset(node: NodeL3,
                    subnet: Optional[str] = None) -> set:
     """
     Retorna conjunto de portas ativas do node. Para objetos LeafNode retorna
@@ -1223,7 +1224,7 @@ def port_activeset(node: Union[LeafNode, InternalNode],
 # HINT get_active_ports: retorna portas ativas para grupo de nodes (opcional)
 # %% Funcao get_active_ports
 def get_active_ports(node: Union[bytes, str, LeafNode, InternalNode],
-                     *netnodes: Optional[Union[LeafNode, InternalNode]]) \
+                     *netnodes: Optional[Tuple[NodeL3, NodeL3]]) \
         -> set:
     """
     Retorna conjunto de portas ativas do node. Para objetos LeafNode retorna
@@ -1467,7 +1468,12 @@ class Vertex(object):
         self._nodes_set = value
 
     @property
-    def value_n(self):
+    def value_n(self) -> float:
+        """Retorna valor do no para a lista L
+
+        :return: valor nv
+        :rtype: float
+        """
         return self._value_ny
 
     @value_n.setter
@@ -1477,6 +1483,9 @@ class Vertex(object):
 
 # %% classe Arch
 class Arch(object):
+    """
+    Define arco que interliga 2 vertices em uma SkeletonTree
+    """
     _all = set()  # conjunto de todos os arcos criados
 
     # HINT Arch: criado atributo netnodes para conjunto de nodes da SkeletonTree
@@ -1508,7 +1517,13 @@ class Arch(object):
 
     # HINT Arch: reachable_mac para conjunto de macs do arco
     @property
-    def reachable_mac(self):
+    def reachable_mac(self) -> Set[EUI]:
+        """
+        Retorna conjunto de objetos EUI com mac dos nodes acessados pelo arco
+
+        :return: Conjunto de EUI (MAC)
+        :rtype: set
+        """
         return {node.mac for node in self._reachable_nodes_set}
 
     @reachable_mac.setter
@@ -1565,11 +1580,12 @@ class SkeletonTree(object):
     # HINT SkeletonTree: restruturação para fase de união (removendo subnets)
     # SKELETONTREE(N, VN , root, AFTs)
     def __init__(self,
-                 netnodes: List[LeafNode],  # N
-                 nodes: Set[Union[LeafNode, InternalNode]],  # Vn
-                 root: LeafNode,  # root
+                 netnodes: Union[Set[LeafNode], List[LeafNode]],  # N
+                 nodes: Set[NodeL3],  # Vn
+                 root: NodeL3,  # root
                  subnet: Optional[Union[str, IPv4Network, SubNet]] = None,
-                 remove = None) \
+                 remove: List[
+                     Union[bytes, str, LeafNode, InternalNode]] = None) \
             -> None:
         """
         Inicializa a skeleton-tree
@@ -1591,7 +1607,7 @@ class SkeletonTree(object):
         if remove:
             remove_set = {get_node(node) for node in remove}
             self.nodes = set(nodes) - remove_set  # Vn
-            self.netnodes = set(netnodes) - remove_set # N
+            self.netnodes = set(netnodes) - remove_set  # N
         else:
             self.nodes = set(nodes)  # Vn
             self.netnodes = set(netnodes)  # N
@@ -1704,11 +1720,21 @@ class SkeletonTree(object):
 
     # HINT SkeletonTree: propriedades macs e netmacs para conjunto de mac N e VN
     @property
-    def macs(self):
+    def macs(self) -> Set[EUI]:
+        """Retorna conjunto VN com objetos EUI de MACs dos nodes
+
+        :return: conjunto VN com EUIs
+        :rtype: set
+        """
         return {node.mac for node in self.nodes}
 
     @property
-    def netmacs(self):
+    def netmacs(self) -> Set[EUI]:
+        """Retorna conjunto N de objetos EUI com MACs dos nodes
+
+        :return: conjunto N com EUIs
+        :rtype: set
+        """
         return {node.mac for node in self.netnodes}
 
     @property
@@ -1748,7 +1774,7 @@ class SkeletonTree(object):
         return ordered[ordered.index(vertex) + 1:]
 
     @property
-    def anchors(self) -> Set[Union[Node, InternalNode]]:
+    def anchors(self) -> Set[NodeL3]:
         """
         Retorna conjunto de vertices que sao anchoras de uma skeleton-tree dada
         :return: Conjunto de Ancoras
@@ -1765,9 +1791,19 @@ class SkeletonTree(object):
 
 
 # %% Funcao ext_aft para aft estendida
-def ext_aft(y_vertex: Vertex,
-            x_anchors: Set[Union[Node, LeafNode, InternalNode]],
-            skeleton: SkeletonTree) -> Set[Union[Node, LeafNode, InternalNode]]:
+def ext_aft(y_vertex: Vertex, x_anchors: Set[NodeL3], skeleton: SkeletonTree) \
+        -> Set[NodeL3]:
+    """
+    Expande a tabela AFT com base em vertice raiz e ancoras de entrada para
+    SkeletonTree especificada. Atualiza recursivamente a base da tabela AFT
+    conforme necessario.
+
+    :param y_vertex: vertex raiz da SkeletonTree
+    :param x_anchors: conjunto de ancoras iniciais
+    :param skeleton: SkeletonTree de referencia
+    :return: Conjunto de nodes ancoras
+    :rtype: set
+    """
     x_child = dict()  # Xyi
     children = skeleton.get_children(y_vertex)
     from_node = list(y_vertex._nodes_set)[0]
@@ -1811,7 +1847,16 @@ def ext_aft(y_vertex: Vertex,
 # %% Funcao get_aft retorna aft em porta especifica do node
 def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
             port: str,
-            *netnodes) -> Set[Union[LeafNode, InternalNode]]:
+            *netnodes) -> Set[NodeL3]:
+    """Retorna conjunto de nodes acessados pela porta fornecida. Opcional definir
+    filtro de nodes destino como referencia.
+
+    :param node: node origem
+    :param port: interface do node para coletar informacao
+    :param netnodes: (opcional) filtra somente os nodes fornecidos
+    :return: nodes acessados pela porta
+    :rtype: set
+    """
     source_node = get_node(node)
     # HINT get_aft: corrigido bug na comparação de endereços
     aft_atport = source_node.aft_atports(port)
@@ -1829,6 +1874,12 @@ def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
 # HINT boneprint: função imprime dados da SkeletonTree
 # FIXME boneprint: imprime tambem arcos da SkeletonTree
 def boneprint(skeleton: SkeletonTree) -> None:
+    """
+    Imprime dados da SkeletonTree informada.
+    Vertices, Arcos e Lista hierarquica de nodes.
+
+    :param skeleton: SkeletonTree para imprimir
+    """
     print("\n" + f"Skeleton Tree: {skeleton}")
     print('conjunto de Vertices:')
     pprint(skeleton.vertices)
@@ -1837,6 +1888,7 @@ def boneprint(skeleton: SkeletonTree) -> None:
                    for node in skeleton.nodes], reverse=True))
 
 
+# HINT correções de typing, docstring e inpection em geral
 # %% main
 def main():
     """
