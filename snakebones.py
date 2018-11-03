@@ -1934,6 +1934,14 @@ def boneprint(skeleton: SkeletonTree, verbose: bool = True) -> None:
             print(f"{{{node_a}, {node_b}}}")
 
 
+# HINT subnet_creator: criar Subnets processo de inicialização
+def subnet_creator(management, *subnets):
+    nets = {SubNet(management, has_switches=True)}
+    for subnet in subnets:
+        nets.add(SubNet(subnet))
+    return nets
+
+
 # HINT correções de typing, docstring e inpection em geral
 # %% main
 def main():
@@ -1942,15 +1950,28 @@ def main():
         ----
     """
     global mymac, SNMP_DATA, ARP_TABLE_DATA, AUTOFILL_MODE
-    AUTOFILL_MODE = True
+    AUTOFILL_MODE = False
 
     # 1) OBTENDO DADOS
-    config(['10.0.0.1',
-            '10.0.0.2',
-            '10.0.0.3',
-            '10.0.0.4',
-            '10.0.0.5',
-            '10.0.0.6'], complete_aft=False)
+    # FIXME main: inicialisar coleta em rede simulada
+
+    internal_nodes = \
+        ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5', '10.0.0.6']
+    if AUTOFILL_MODE:
+        SNMP_DATA = auto_snmp_data(complete_aft=False)
+        ARP_TABLE_DATA = auto_arp_table_data()
+    else:
+        nms_config(True)
+        # breakpoint()
+        SNMP_DATA = get_snmp_data(*internal_nodes)
+        ARP_TABLE_DATA = dict()
+
+    # config(['10.0.0.1',
+    #         '10.0.0.2',
+    #         '10.0.0.3',
+    #         '10.0.0.4',
+    #         '10.0.0.5',
+    #         '10.0.0.6'], complete_aft=False)
     redes = (SubNet('10.0.0.0/24', auto_fill=AUTOFILL_MODE, has_switches=True),
              SubNet('10.0.10.0/24', auto_fill=AUTOFILL_MODE),
              SubNet('10.0.20.0/24', auto_fill=AUTOFILL_MODE),

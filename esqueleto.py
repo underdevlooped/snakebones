@@ -1201,7 +1201,6 @@ def nms_config(mode: bool = START) -> None:
                                      stdout=subprocess.PIPE,
                                      universal_newlines=True)
         print('Configurando inteface ens33:0...')
-        sleep(1.5)
         while 'inet 10.0.0.111' not in ifconfig.stdout \
                 and '10.0.0.0' not in route_table.stdout:
             subprocess.run('sudo ifconfig ens33:0 10.0.0.111 \
@@ -1216,7 +1215,6 @@ def nms_config(mode: bool = START) -> None:
                                          universal_newlines=True)
             conf.route.resync()
         print('Configurando inteface ens33:10...')
-        sleep(1.5)
         while 'inet 10.0.10.111' not in ifconfig.stdout \
                 and '10.0.10.0' not in route_table.stdout:
             subprocess.run('sudo ifconfig ens33:10 10.0.10.111 \
@@ -1231,7 +1229,6 @@ def nms_config(mode: bool = START) -> None:
                                          universal_newlines=True)
             conf.route.resync()
         print('Configurando inteface ens33:20...')
-        sleep(1.5)
         while 'inet 10.0.20.111' not in ifconfig.stdout \
                 and '10.0.20.0' not in route_table.stdout:
             subprocess.run('sudo ifconfig ens33:20 10.0.20.111 \
