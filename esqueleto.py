@@ -936,27 +936,28 @@ def set_arp_table(subnet: SubNet,
                      ARP(pdst=subnet.address),
                      timeout=timeout)
 
-        ip_list, mac_list = [], []
-        # TODO função set_arp_table: testar
-        if include_me:
-            for ip in get_myip():
-                if ip in subnet:
-                    ip_list.append(ip)
-            mac_list.append(get_mymac())
-            mac_list[-1].dialect = mac_cisco
+# HINT set_arp_table: removido tratamento da resposta do loop de probes da rede
+    ip_list, mac_list = [], []
+    # TODO função set_arp_table: testar
+    if include_me:
+        for ip in get_myip():
+            if ip in subnet:
+                ip_list.append(ip)
+        mac_list.append(get_mymac())
+        mac_list[-1].dialect = mac_cisco
 
-        for _, recebe in ans:
-            ip_list.append(
-                IPv4Interface(recebe[0][1].summary().split()[5]
-                              + '/'
-                              + str(subnet.prefixlen))
+    for _, recebe in ans:
+        ip_list.append(
+            IPv4Interface(recebe[0][1].summary().split()[5]
+                          + '/'
+                          + str(subnet.prefixlen))
+        )
+        mac_list.append(
+            EUI(
+                recebe[0][1].summary().split()[3].replace(':', '')
             )
-            mac_list.append(
-                EUI(
-                    recebe[0][1].summary().split()[3].replace(':', '')
-                )
-            )
-            mac_list[-1].dialect = mac_cisco
+        )
+        mac_list[-1].dialect = mac_cisco
 
         arp_table_list = sorted(list(zip(ip_list, mac_list)))
         if not arp_table_list:

@@ -1996,19 +1996,18 @@ def main():
     else:
         nms_config(False)
         # breakpoint()
-        SNMP_DATA = get_snmp_data(*internal_nodes)
         ARP_TABLE_DATA = dict()
+        for rede in redes:
+            rede.arp_table = set_arp_table(rede, probes=2, timeout=3)
+            ARP_TABLE_DATA[rede.compressed] = rede.arp_table
+        SNMP_DATA = get_snmp_data(*internal_nodes)
 
     # mymac = get_mymac(interface='ens33')
     # mymac = get_mymac(interface='enp0s17')
-    if not AUTOFILL_MODE:
-        for rede in redes:
-            rede.update_arp_table(auto_fill=False, post=True)
-            ARP_TABLE_DATA[rede.compressed] = rede.arp_table
 
     for rede in redes:
         rede.set_all_nodes()
-    for inode in get_subnet(sw_subnet).internal_nodes:
+    for inode in sw_subnet.internal_nodes:
         inode.set_associated_subnets()
 
     print('\nNodes descobertos:')
