@@ -149,10 +149,8 @@ class SubNet(IPv4Network):
         """
         super().__init__(network_address, strict)
         self._has_switches = has_switches
-        if auto_fill:
-            self._arp_table = ARP_TABLE_DATA.get(self.compressed)
-        else:
-            self._arp_table = None
+        # HINT SubNet: auto_fill corrigido na inicialização da classe
+        self._arp_table = None
         self._internal_nodes = []
         self._leaf_nodes = []
         self._nodes = []
@@ -225,6 +223,11 @@ class SubNet(IPv4Network):
     def arp_table(self):
         """Retorna tabela arp da SubNet"""
         return self._arp_table
+
+    # HINT SubNet: definido settes para arp_table
+    @arp_table.setter
+    def arp_table(self, value):
+        self._arp_table = value
 
     def update_arp_table(self,
                          probes=1,
@@ -1977,30 +1980,24 @@ def main():
     # 1) OBTENDO DADOS
     # FIXME main: inicialisar coleta em rede simulada
 
+    # HINT main: criação de SubNet movido para inicio do processo
+    sw_subnet = '10.0.0.0/24'  # subnet que contem switches gerenciaveis (snmp)
+    redes = subnet_creator(
+        sw_subnet, '10.0.10.0/24', '10.0.20.0/24', '10.0.30.0/24')
+
     internal_nodes = \
         ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5', '10.0.0.6']
+    # HINT main: ajustada ordem correta de executar AUTOFILL_MODE
     if AUTOFILL_MODE:
         SNMP_DATA = auto_snmp_data(complete_aft=False)
         ARP_TABLE_DATA = auto_arp_table_data()
+        for rede in redes:
+            rede.arp_table = ARP_TABLE_DATA.get(rede.compressed)
     else:
         nms_config(False)
         # breakpoint()
         SNMP_DATA = get_snmp_data(*internal_nodes)
         ARP_TABLE_DATA = dict()
-
-    # config(['10.0.0.1',
-    #         '10.0.0.2',
-    #         '10.0.0.3',
-    #         '10.0.0.4',
-    #         '10.0.0.5',
-    #         '10.0.0.6'], complete_aft=False)
-    sw_subnet = '10.0.0.0/24'  # subnet que contem switches gerenciaveis (snmp)
-    redes = subnet_creator(
-        sw_subnet, '10.0.10.0/24', '10.0.20.0/24', '10.0.30.0/24')
-    # redes = (SubNet('10.0.0.0/24', auto_fill=AUTOFILL_MODE, has_switches=True),
-    #          SubNet('10.0.10.0/24', auto_fill=AUTOFILL_MODE),
-    #          SubNet('10.0.20.0/24', auto_fill=AUTOFILL_MODE),
-    #          SubNet('10.0.30.0/24', auto_fill=AUTOFILL_MODE))
 
     # mymac = get_mymac(interface='ens33')
     # mymac = get_mymac(interface='enp0s17')
