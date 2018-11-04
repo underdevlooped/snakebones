@@ -1935,10 +1935,32 @@ def boneprint(skeleton: SkeletonTree, verbose: bool = True) -> None:
 
 
 # HINT subnet_creator: criar Subnets processo de inicialização
-def subnet_creator(management, *subnets):
-    nets = {SubNet(management, has_switches=True)}
+# HINT subnet_creator: verifica existencia previa das redes e doc add
+def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
+                   *subnets: Union[str, IPv4Network, SubNet])\
+        -> Set[SubNet]:
+    """
+    Verifica se redes existem e retorna objetos Subnets para cada uma
+    fornecida. Cria objetos SubNet conforme necessario. Primeira rede referente
+     a que contem switches gerenciaveis (respondem SNMP).
+
+    :param sw_subnet: rede dos switches gerenciaveis
+    :param subnets: redes a serem criadas
+    :return: conjunto de redes
+    :rtype: set
+    """
+    found_subnet = get_subnet(sw_subnet)
+    if found_subnet:
+        found_subnet._has_switches=True
+        nets = {found_subnet}
+    else:
+        nets = {SubNet(sw_subnet, has_switches=True)}
     for subnet in subnets:
-        nets.add(SubNet(subnet))
+        found_subnet = get_subnet(subnet)
+        if found_subnet:
+            nets.update({found_subnet})
+        else:
+            nets.add(SubNet(subnet))
     return nets
 
 
@@ -1950,7 +1972,7 @@ def main():
         ----
     """
     global mymac, SNMP_DATA, ARP_TABLE_DATA, AUTOFILL_MODE
-    AUTOFILL_MODE = False
+    AUTOFILL_MODE = True
 
     # 1) OBTENDO DADOS
     # FIXME main: inicialisar coleta em rede simulada
@@ -1961,7 +1983,7 @@ def main():
         SNMP_DATA = auto_snmp_data(complete_aft=False)
         ARP_TABLE_DATA = auto_arp_table_data()
     else:
-        nms_config(True)
+        nms_config(False)
         # breakpoint()
         SNMP_DATA = get_snmp_data(*internal_nodes)
         ARP_TABLE_DATA = dict()
@@ -1972,10 +1994,13 @@ def main():
     #         '10.0.0.4',
     #         '10.0.0.5',
     #         '10.0.0.6'], complete_aft=False)
-    redes = (SubNet('10.0.0.0/24', auto_fill=AUTOFILL_MODE, has_switches=True),
-             SubNet('10.0.10.0/24', auto_fill=AUTOFILL_MODE),
-             SubNet('10.0.20.0/24', auto_fill=AUTOFILL_MODE),
-             SubNet('10.0.30.0/24', auto_fill=AUTOFILL_MODE))
+    sw_subnet = '10.0.0.0/24'  # subnet que contem switches gerenciaveis (snmp)
+    redes = subnet_creator(
+        sw_subnet, '10.0.10.0/24', '10.0.20.0/24', '10.0.30.0/24')
+    # redes = (SubNet('10.0.0.0/24', auto_fill=AUTOFILL_MODE, has_switches=True),
+    #          SubNet('10.0.10.0/24', auto_fill=AUTOFILL_MODE),
+    #          SubNet('10.0.20.0/24', auto_fill=AUTOFILL_MODE),
+    #          SubNet('10.0.30.0/24', auto_fill=AUTOFILL_MODE))
 
     # mymac = get_mymac(interface='ens33')
     # mymac = get_mymac(interface='enp0s17')
@@ -1986,7 +2011,7 @@ def main():
 
     for rede in redes:
         rede.set_all_nodes()
-    for inode in redes[0].internal_nodes:
+    for inode in get_subnet(sw_subnet).internal_nodes:
         inode.set_associated_subnets()
 
     print('\nNodes descobertos:')
