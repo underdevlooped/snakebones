@@ -239,7 +239,7 @@ class SubNet(IPv4Network):
         """
         # TODO: SubNet: update_arp_table (testar)
         self._arp_table = set_arp_table(
-            self, probes, auto_fill, manual_fill, post)
+            self, probes, auto_fill, manual_fill)
 
     def set_all_nodes(self, auto_fill=AUTOFILL_MODE):
         """
@@ -1984,7 +1984,7 @@ def main():
     sw_subnet = '10.0.0.0/24'  # subnet que contem switches gerenciaveis (snmp)
     redes = subnet_creator(
         sw_subnet, '10.0.10.0/24', '10.0.20.0/24', '10.0.30.0/24')
-
+    sw_subnet = get_subnet(sw_subnet)
     internal_nodes = \
         ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5', '10.0.0.6']
     # HINT main: ajustada ordem correta de executar AUTOFILL_MODE

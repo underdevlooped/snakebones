@@ -879,13 +879,15 @@ def auto_arp_table_data() -> ArpTableData:
 ARP_TABLE_DATA = auto_arp_table_data()
 
 
+# HINT set_arp_table: parâmetro timeout define tempo de espera pela resposta
+# HINT set_arp_table: parâmetro post removido
 # %% funcao update_arp_table
 def set_arp_table(subnet: SubNet,
                   probes: int = 1,
                   auto_fill: Optional[bool] = None,
                   manual_fill: Optional[List[Tuple[str, str]]] = None,
-                  post: Optional[bool] = None,
-                  include_me: Optional[bool] = None) \
+                  include_me: Optional[bool] = None,
+                  timeout: int = 4) \
         -> ArpTable:
     """
     Envia pacotes ARP em broadcast p/ atualizar a tabela MAC dos elementos
@@ -918,8 +920,8 @@ def set_arp_table(subnet: SubNet,
     :param probes: quantidade de quadros para cada elemento destino
     :param auto_fill: atribuido automaticamente da constante ARP_TABLE_DATA
     :param manual_fill: tuplas de (ip: str, mac: str)
-    :param post: imprime etapas na tela
     :param include_me: True para incluir o NMS na arp table
+    :param timeout: tempo para considerar sem reposta (segundos)
     :return: Lista com tupla (IPv4Interface, EUI) dos elementos identificados
     :rtype: List[Tupla[IPv4Interface, EUI]]
     """
@@ -929,13 +931,10 @@ def set_arp_table(subnet: SubNet,
     if auto_fill:
         print('Valores da Tabela ARP atribuidos automaticamente')
         return ARP_TABLE_DATA.get(subnet.compressed)
-    if post:
-        print()
-        print(f'===> Iniciando descoberta da rede {subnet.with_prefixlen}')
     for _ in range(probes):
         ans, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff") /
                      ARP(pdst=subnet.address),
-                     timeout=4)
+                     timeout=timeout)
 
         ip_list, mac_list = [], []
         # TODO função set_arp_table: testar
@@ -958,19 +957,12 @@ def set_arp_table(subnet: SubNet,
                 )
             )
             mac_list[-1].dialect = mac_cisco
-        if post:
-            print(f'Tabela ARP para a rede {subnet.address!r}:')
-            for node in range(len(ip_list)):
-                print(f'IP: {ip_list[node]}, MAC: {mac_list[node]}')
 
         arp_table_list = sorted(list(zip(ip_list, mac_list)))
         if not arp_table_list:
-            return f'Tabela ARP nao definida para rede {subnet.address!r}'
-        else:
-            if post:
-                print(f'Tabela ARP definida para rede {subnet.address!r}; '
-                      f'Total de nodes: {str(len(arp_table_list))!r}')
-            return arp_table_list
+            print(f'Tabela ARP nao definida para rede {subnet.address!r}')
+            return None
+        return arp_table_list
 
 
 # %% funcao get_mymac
