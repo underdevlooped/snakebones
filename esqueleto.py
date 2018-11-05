@@ -917,7 +917,7 @@ def set_arp_table(subnet: SubNet,
                                ('10.0.0.5', '003e.5c05.8001'),
                                ('10.0.0.6', '003e.5c06.8001')])
     :param subnet: Rede a ter elementos rastreados
-    :param probes: quantidade de quadros para cada elemento destino
+    :param probes: quantidade de quadros para cada endereco da rede destino
     :param auto_fill: atribuido automaticamente da constante ARP_TABLE_DATA
     :param manual_fill: tuplas de (ip: str, mac: str)
     :param include_me: True para incluir o NMS na arp table
@@ -937,6 +937,7 @@ def set_arp_table(subnet: SubNet,
                      timeout=timeout)
 
 # HINT set_arp_table: removido tratamento da resposta do loop de probes da rede
+# HINT set_arp_table: bug retorno da função
     ip_list, mac_list = [], []
     # TODO função set_arp_table: testar
     if include_me:
@@ -960,10 +961,10 @@ def set_arp_table(subnet: SubNet,
         mac_list[-1].dialect = mac_cisco
 
         arp_table_list = sorted(list(zip(ip_list, mac_list)))
-        if not arp_table_list:
-            print(f'Tabela ARP nao definida para rede {subnet.address!r}')
-            return None
-        return arp_table_list
+    if not arp_table_list:
+        print(f'Tabela ARP nao definida para rede {subnet.address!r}')
+        return None
+    return arp_table_list
 
 
 # %% funcao get_mymac

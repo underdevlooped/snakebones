@@ -241,6 +241,7 @@ class SubNet(IPv4Network):
         self._arp_table = set_arp_table(
             self, probes, auto_fill, manual_fill)
 
+    # HINT SubNet: bug set_all_nodes permitia criar mesmo node varias vezes
     def set_all_nodes(self, auto_fill=AUTOFILL_MODE):
         """
         Define lista de nodes, internal_nodes e leaf_nodes da SubNet.
@@ -252,33 +253,34 @@ class SubNet(IPv4Network):
         if not self._arp_table:
             self.update_arp_table()
         for interface, mac in self._arp_table:
-            if auto_fill:
-                if self._has_switches:
-                    # if self._has_switches and mac != get_mymac():
+            if not get_node(interface.compressed):
+                if auto_fill:
+                    if self._has_switches:
+                        # if self._has_switches and mac != get_mymac():
+                        self._internal_nodes.append(
+                            InternalNode(interface.compressed, str(mac))
+                        )
+                        self._internal_nodes[-1]._snmp_data = \
+                            SNMP_DATA[interface.compressed]
+                        self._nodes.append(self._internal_nodes[-1])
+                    else:
+                        self._leaf_nodes.append(
+                            LeafNode(interface.compressed, str(mac))
+                        )
+                        self._nodes.append(self._leaf_nodes[-1])
+
+                elif is_internal_node(interface.ip.compressed):
                     self._internal_nodes.append(
                         InternalNode(interface.compressed, str(mac))
                     )
                     self._internal_nodes[-1]._snmp_data = \
-                        SNMP_DATA[interface.compressed]
+                        get_snmp_data(self._internal_nodes[-1])
                     self._nodes.append(self._internal_nodes[-1])
                 else:
                     self._leaf_nodes.append(
                         LeafNode(interface.compressed, str(mac))
                     )
                     self._nodes.append(self._leaf_nodes[-1])
-
-            elif is_internal_node(interface.ip.compressed):
-                self._internal_nodes.append(
-                    InternalNode(interface.compressed, str(mac))
-                )
-                self._internal_nodes[-1]._snmp_data = \
-                    get_snmp_data(self._internal_nodes[-1])
-                self._nodes.append(self._internal_nodes[-1])
-            else:
-                self._leaf_nodes.append(
-                    LeafNode(interface.compressed, str(mac))
-                )
-                self._nodes.append(self._leaf_nodes[-1])
 
 
 # %% classe  Hub
@@ -1975,7 +1977,7 @@ def main():
         ----
     """
     global mymac, SNMP_DATA, ARP_TABLE_DATA, AUTOFILL_MODE
-    AUTOFILL_MODE = True
+    AUTOFILL_MODE = False
 
     # 1) OBTENDO DADOS
     # FIXME main: inicialisar coleta em rede simulada
@@ -1994,11 +1996,10 @@ def main():
         for rede in redes:
             rede.arp_table = ARP_TABLE_DATA.get(rede.compressed)
     else:
-        nms_config(False)
-        # breakpoint()
+        # nms_config(True)
         ARP_TABLE_DATA = dict()
         for rede in redes:
-            rede.arp_table = set_arp_table(rede, probes=2, timeout=3)
+            rede.arp_table = set_arp_table(rede, probes=1, timeout=2)
             ARP_TABLE_DATA[rede.compressed] = rede.arp_table
         SNMP_DATA = get_snmp_data(*internal_nodes)
 
@@ -2010,12 +2011,12 @@ def main():
     for inode in sw_subnet.internal_nodes:
         inode.set_associated_subnets()
 
-    print('\nNodes descobertos:')
+    print("\n" + f"Nodes descobertos: ({len(Node._all)})")
     pprint(Node._all)
 
-    print('\nInodes:')
+    print("\n" + f"Inodes: ({len(InternalNode._allinodes_set)})")
     pprint(InternalNode._allinodes_set)
-
+    # breakpoint()
     # procedimento atualiza aft parcial conforme topologia de referencia
     # for inode in InternalNode._allinodes_set:
     #     inode: InternalNode
@@ -2035,6 +2036,8 @@ def main():
             continue
         # SkeletonTree(Ni,Vni,ri,AFTs)
         # HINT main: ajustado atributo na criação da SkeletonTree
+        # FIXME main: erro atributo '_endpoint_a' na criação da SkeletonTree na rede simulada
+        breakpoint()
         skeletons.append(SkeletonTree(subnet.leaf_nodes,  # Ni
                                       subnet.nodes_set,  # Vni
                                       get_root(subnet),  # ri
