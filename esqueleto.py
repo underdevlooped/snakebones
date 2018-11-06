@@ -879,8 +879,6 @@ def auto_arp_table_data() -> ArpTableData:
 ARP_TABLE_DATA = auto_arp_table_data()
 
 
-# HINT set_arp_table: parâmetro timeout define tempo de espera pela resposta
-# HINT set_arp_table: parâmetro post removido
 # %% funcao update_arp_table
 def set_arp_table(subnet: SubNet,
                   probes: int = 1,
@@ -936,8 +934,6 @@ def set_arp_table(subnet: SubNet,
                      ARP(pdst=subnet.address),
                      timeout=timeout)
 
-# HINT set_arp_table: removido tratamento da resposta do loop de probes da rede
-# HINT set_arp_table: bug retorno da função
     ip_list, mac_list = [], []
     # TODO função set_arp_table: testar
     if include_me:

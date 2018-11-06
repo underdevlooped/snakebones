@@ -50,7 +50,7 @@ YES = ON = START = True
 NO = OFF = STOP = False
 
 # %% Configuracao
-AUTOFILL_MODE = ON
+AUTOFILL_MODE = False
 POST_MODE = ON
 mymac = None
 
@@ -149,7 +149,6 @@ class SubNet(IPv4Network):
         """
         super().__init__(network_address, strict)
         self._has_switches = has_switches
-        # HINT SubNet: auto_fill corrigido na inicialização da classe
         self._arp_table = None
         self._internal_nodes = []
         self._leaf_nodes = []
@@ -224,7 +223,6 @@ class SubNet(IPv4Network):
         """Retorna tabela arp da SubNet"""
         return self._arp_table
 
-    # HINT SubNet: definido settes para arp_table
     @arp_table.setter
     def arp_table(self, value):
         self._arp_table = value
@@ -241,7 +239,7 @@ class SubNet(IPv4Network):
         self._arp_table = set_arp_table(
             self, probes, auto_fill, manual_fill)
 
-    # HINT SubNet: bug set_all_nodes permitia criar mesmo node varias vezes
+    # HINT SubNet: bug set_all_nodes em rede simulada
     def set_all_nodes(self, auto_fill=AUTOFILL_MODE):
         """
         Define lista de nodes, internal_nodes e leaf_nodes da SubNet.
@@ -273,8 +271,8 @@ class SubNet(IPv4Network):
                     self._internal_nodes.append(
                         InternalNode(interface.compressed, str(mac))
                     )
-                    self._internal_nodes[-1]._snmp_data = \
-                        get_snmp_data(self._internal_nodes[-1])
+                    # self._internal_nodes[-1]._snmp_data = \
+                    #     get_snmp_data(self._internal_nodes[-1])
                     self._nodes.append(self._internal_nodes[-1])
                 else:
                     self._leaf_nodes.append(
@@ -610,7 +608,8 @@ class InternalNode(Node):
         if auto_fill and SNMP_DATA.get(self.compressed):
             self._snmp_data = SNMP_DATA.get(self.compressed)
         else:
-            self._snmp_data = get_snmp_data(self)
+            # HINT InternalNode: bug atribuição dados snmp
+            self._snmp_data = get_snmp_data(self).get(self.compressed)
 
         InternalNode._allinodes_set.add(self)
         Node._all.add(self)
@@ -842,6 +841,7 @@ class InternalNode(Node):
             mac_data.append(mac)
             ports.append(porta)
 
+    # HINT InternalNode: bug set_associated_subnets devido mac_list ausente
     def set_associated_subnets(self):
         """
         Define redes associadas ao internal node 'v' dentre redes criadas,
@@ -1037,7 +1037,6 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
             if net_node.mac.packed == node.packed:
                 return net_node
     else:
-        # HINT get_node: corrigido bug
         for net_node in Node._all:
             if net_node == node:
                 return net_node
@@ -1226,7 +1225,6 @@ def port_activeset(node: NodeL3,
             return subnet_ports
 
 
-# HINT get_active_ports: retorna portas ativas para grupo de nodes (opcional)
 # %% Funcao get_active_ports
 def get_active_ports(node: Union[bytes, str, LeafNode, InternalNode],
                      *netnodes: Optional[Tuple[NodeL3, NodeL3]]) \
@@ -1493,7 +1491,6 @@ class Arch(object):
     """
     _all = set()  # conjunto de todos os arcos criados
 
-    # HINT Arch: criado atributo netnodes para conjunto de nodes da SkeletonTree
     def __init__(self,
                  endpoint_a: Vertex,
                  port_a: Optional[str] = None,
@@ -1520,7 +1517,6 @@ class Arch(object):
                f"({self._endpoint_a!r}, {self._port_a!r}, {self._endpoint_b}, " \
                f"{self._port_b!r})"
 
-    # HINT Arch: reachable_mac para conjunto de macs do arco
     @property
     def reachable_mac(self) -> Set[EUI]:
         """
@@ -1582,7 +1578,6 @@ class SkeletonTree(object):
     """
     _all = set()  # conjunto de totos skeletons criadas
 
-    # HINT SkeletonTree: restruturação para fase de união (removendo subnets)
     # SKELETONTREE(N, VN , root, AFTs)
     def __init__(self,
                  netnodes: Union[Set[LeafNode], List[LeafNode]],  # N
@@ -1608,7 +1603,6 @@ class SkeletonTree(object):
         else:
             self.name = f"('bone_{len(SkeletonTree._all)+1}')"
 
-# HINT SkeletonTree: atributo 'remove' opcional para excluir nodes do cálculo
         if remove:
             remove_set = {get_node(node) for node in remove}
             self.nodes = set(nodes) - remove_set  # Vn
@@ -1623,25 +1617,22 @@ class SkeletonTree(object):
         self.arches: Set[Arch] = set()  # set A de H(Y, A)
 
         # definindo |Bv| de N para cada node com root em v
-        # HINT SkeletonTree: restruturado formação do conjunto de folhas Bv para fase de união
         for node in self.nodes - {self.root}:
-            # HINT SkeletonTree: bug bv_set para NMS
             if isinstance(node, InternalNode):
                 node.bv_set = set()  # Bv
                 # Dv - {v(r)}
+                # FIXME SkeletonTree: bug definição port root
                 leaves_ports = \
                     port_activeset(node) - {get_port(node, self.root)}
                 for port in leaves_ports:
                     node.bv_set |= {aftnode.mac for aftnode in
                                     get_aft(node, port, *self.netnodes)}
-                # HINT SkeletonTree: bug bv_set vazio para AFT incompleta
                 if not node.bv_set:
                     self.nodes.remove(node)
 
             else:
                 node.bv_set = {node.mac}
             # v ∈ N or |DNv| != 2
-            # HINT SkeletonTree: corrigido geração do conjunto de portas ativas DNv
             if node in self.netnodes \
                     or len(get_active_ports(node, *self.netnodes)) != 2:
                 node._value_nv = len(node.bv_set) - 0.5  # nv = |Bv| - 1/2
@@ -1661,11 +1652,9 @@ class SkeletonTree(object):
             self.frontier_set.add(arch_out)
 
         # main loop
-        # HINT SkeletonTree: ajustado criação de arcos em concordância com etapa de união
         while self.sorted_l:
             node = self.sorted_l.pop(0)  # v'
             arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
-            # HINT SkeletonTree: bug no metodo self.find_arch
             vertex = arch_a._endpoint_a  # y = start a in Y
             if vertex.value_n == node.value_nv:
                 vertex._nodes_set.add(node)  # Cy U {v'}
@@ -1718,7 +1707,6 @@ class SkeletonTree(object):
                     arch_a1._endpoint_b = next_vertex  # y' to a1
         SkeletonTree._all.add(self)
 
-    # HINT SkeletonTree: bug representação, representação sem subnet
     def __repr__(self):
         if hasattr(self, 'subnet'):
             return self.__class__.__name__ + f"({self.subnet.compressed!r})"
@@ -1726,7 +1714,6 @@ class SkeletonTree(object):
             return self.__class__.__name__ + self.name
         return self.__class__.__name__ + f"('__init__')"
 
-    # HINT SkeletonTree: propriedades macs e netmacs para conjunto de mac N e VN
     @property
     def macs(self) -> Set[EUI]:
         """Retorna conjunto VN com objetos EUI de MACs dos nodes
@@ -1833,7 +1820,6 @@ def ext_aft(y_vertex: Vertex, x_anchors: Set[NodeL3], skeleton: SkeletonTree) \
     # Xy = (U Xyj) U (X ∩ Cy)
     xy = x_child_union | (x_anchors & y_vertex.nodes_set)
     for node in y_vertex.nodes_set:  # node v ∈ Cy
-    # HINT ext_aft: bug na identificação do root
         if isinstance(node, InternalNode) and node != skeleton.root:
             port_root = get_port(node, skeleton.root)  # v(r)
 
@@ -1851,7 +1837,6 @@ def ext_aft(y_vertex: Vertex, x_anchors: Set[NodeL3], skeleton: SkeletonTree) \
     return xy
 
 
-# HINT get_aft: retorna aft em porta especifica do node
 # %% Funcao get_aft retorna aft em porta especifica do node
 def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
             port: str,
@@ -1866,7 +1851,6 @@ def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
     :rtype: set
     """
     source_node = get_node(node)
-    # HINT get_aft: corrigido bug na comparação de endereços
     aft_atport = source_node.aft_atports(port)
     if not aft_atport:
         return {source_node}
@@ -1879,9 +1863,6 @@ def get_aft(node: Union[bytes, str, LeafNode, InternalNode],
         return {get_node(aft_node) for aft_node in aft}
 
 
-# HINT boneprint: função imprime dados da SkeletonTree
-# HINT boneprint: imprime tambem arcos da SkeletonTree
-# HINT boneprint: opção de imprimir simplificado
 def boneprint(skeleton: SkeletonTree, verbose: bool = True) -> None:
     """
     Imprime dados da SkeletonTree informada.
@@ -1939,8 +1920,6 @@ def boneprint(skeleton: SkeletonTree, verbose: bool = True) -> None:
             print(f"{{{node_a}, {node_b}}}")
 
 
-# HINT subnet_creator: criar Subnets processo de inicialização
-# HINT subnet_creator: verifica existencia previa das redes e doc add
 def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
                    *subnets: Union[str, IPv4Network, SubNet])\
         -> Set[SubNet]:
@@ -1969,7 +1948,6 @@ def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
     return nets
 
 
-# HINT correções de typing, docstring e inpection em geral
 # %% main
 def main():
     """
@@ -1982,14 +1960,12 @@ def main():
     # 1) OBTENDO DADOS
     # FIXME main: inicialisar coleta em rede simulada
 
-    # HINT main: criação de SubNet movido para inicio do processo
     sw_subnet = '10.0.0.0/24'  # subnet que contem switches gerenciaveis (snmp)
     redes = subnet_creator(
         sw_subnet, '10.0.10.0/24', '10.0.20.0/24', '10.0.30.0/24')
     sw_subnet = get_subnet(sw_subnet)
     internal_nodes = \
         ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5', '10.0.0.6']
-    # HINT main: ajustada ordem correta de executar AUTOFILL_MODE
     if AUTOFILL_MODE:
         SNMP_DATA = auto_snmp_data(complete_aft=False)
         ARP_TABLE_DATA = auto_arp_table_data()
@@ -1999,7 +1975,8 @@ def main():
         # nms_config(True)
         ARP_TABLE_DATA = dict()
         for rede in redes:
-            rede.arp_table = set_arp_table(rede, probes=1, timeout=2)
+            rede.arp_table = \
+                set_arp_table(rede, probes=1, timeout=3, include_me=True)
             ARP_TABLE_DATA[rede.compressed] = rede.arp_table
         SNMP_DATA = get_snmp_data(*internal_nodes)
 
@@ -2008,6 +1985,7 @@ def main():
 
     for rede in redes:
         rede.set_all_nodes()
+    breakpoint()
     for inode in sw_subnet.internal_nodes:
         inode.set_associated_subnets()
 
@@ -2016,7 +1994,6 @@ def main():
 
     print("\n" + f"Inodes: ({len(InternalNode._allinodes_set)})")
     pprint(InternalNode._allinodes_set)
-    # breakpoint()
     # procedimento atualiza aft parcial conforme topologia de referencia
     # for inode in InternalNode._allinodes_set:
     #     inode: InternalNode
@@ -2035,7 +2012,6 @@ def main():
         if subnet._has_switches:
             continue
         # SkeletonTree(Ni,Vni,ri,AFTs)
-        # HINT main: ajustado atributo na criação da SkeletonTree
         # FIXME main: erro atributo '_endpoint_a' na criação da SkeletonTree na rede simulada
         breakpoint()
         skeletons.append(SkeletonTree(subnet.leaf_nodes,  # Ni
@@ -2050,29 +2026,22 @@ def main():
                 bone)  # H(Y,A)
         boneprint(bone)
 
-    # HINT main: união de 2 skeleton trees como base para unir todas
 
     # for skeleton in skeletons:
     #     boneprint(skeleton)
 
-    # HINT main: união entre SkeletonTree restantes gerando 'united_skeleton' com arvore unificada
     while len(skeletons) >= 2 and skeletons[0].anchors & skeletons[1].anchors:
         first, second = skeletons[0], skeletons[1]  # Hi and Hj
-        # HINT main: removido teste redundante de comparação de ancoras
-        # HINT main: união dos atributos das SkeletonTree
         new_netnodes = first.netnodes | second.netnodes  # Nk = Ni U Nj
         anchors_inter = first.anchors & second.anchors
         new_root = anchors_inter.pop()  # rk = any node in Xi ∩ Xj
         new_nodes = first.nodes | second.nodes  # VNk = VNi U VNj
-        # HINT main: criação da nova skeleton com atributos unificados
         new_skeleton = SkeletonTree(new_netnodes,
                                     new_nodes,
                                     new_root,
                                     remove=['10.0.10.111',
                                             '10.0.20.111',
                                             '10.0.30.111'])
-        # HINT main: extensão da tabela AFT para skeleton unida
-        # HINT main: bug porta indefinida AFT extendida
         ext_aft(new_skeleton.root_vertex,
                 new_skeleton.anchors,
                 new_skeleton)
