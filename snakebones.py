@@ -1042,32 +1042,57 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
                 return net_node
 
 
+# HINT set_root: restruturado para considerar NMS e Subnet
 # %% Funcao set_root(node)
-def set_root(node: Union[bytes, str, LeafNode, InternalNode]) \
+def set_root(node: Union[bytes, str, LeafNode, InternalNode] = None,
+             subnet: Union[str, IPv4Network, SubNet, None] = None) \
         -> None:
     """
     Define LeafNode fornecido como root de uma SubNet
     atributo is_root do LeafNode: LeafNode.is_root = True
 
-    :param node:
-        node a ser pesquisado definido como root node
-    :return:
-        None
+    :param node: node a ser pesquisado definido como root node
+    :param subnet: rede a ser definido root para o NMS
+    :return: None
     """
-    root_node = get_node(node)
-    if not root_node:
-        print(f"Node não definido para {node}")
-        return None
-    subnet = get_subnet(root_node.network.compressed)
-    if not subnet:
-        print(f"Rede nao definida para {root_node}")
-        return None
-    if subnet.leaf_nodes:
-        for node in subnet.leaf_nodes:
-            if node == root_node:
-                root_node.is_root = True
+    if node:
+        root_node = get_node(node)
+        if not root_node:
+            print(f"Node não definido para {node}")
+            return None
+        found_net = get_subnet(root_node.network.compressed)
+        if not found_net:
+            print(f"Rede nao definida para {root_node}")
+            return None
+        if found_net.leaf_nodes:
+            for node in found_net.leaf_nodes:
+                if node == root_node:
+                    root_node.is_root = True
+                else:
+                    node.is_root = False
+            if not root_node.is_root:
+                print("Nao localizado")
+                return None
+        else:
+            print(f"Rede {found_net} nao possui leaf_nodes definidos")
+            return None
+    elif subnet:
+        found_net = get_subnet(subnet)
+        if found_net:
+            if found_net.leaf_nodes:
+                for node in found_net.leaf_nodes:
+                    if node.is_root:
+                        node.is_root = False
+                for ip in get_myip():
+                    if ip in found_net:
+                        root = get_node(ip)
+                        root.is_root = True
+                return None
             else:
-                node.is_root = False
+                print(f"Rede {found_net} nao possui leaf_nodes definidos")
+                return None
+        else:
+            print(f"Rede {subnet} nao localizada")
 
 
 # %% Funcao get_root(subnet: SubNet) -> bool
@@ -1976,7 +2001,7 @@ def main():
         ARP_TABLE_DATA = dict()
         for rede in redes:
             rede.arp_table = \
-                set_arp_table(rede, probes=1, timeout=3, include_me=True)
+                set_arp_table(rede, probes=1, timeout=1, include_me=True)
             ARP_TABLE_DATA[rede.compressed] = rede.arp_table
         SNMP_DATA = get_snmp_data(*internal_nodes)
 
@@ -1985,7 +2010,7 @@ def main():
 
     for rede in redes:
         rede.set_all_nodes()
-    breakpoint()
+    # breakpoint()
     for inode in sw_subnet.internal_nodes:
         inode.set_associated_subnets()
 
