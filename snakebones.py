@@ -1095,6 +1095,7 @@ def set_root(node: Union[bytes, str, LeafNode, InternalNode] = None,
             print(f"Rede {subnet} nao localizada")
 
 
+# HINT get_root: removido atribuicao automatica devido bug
 # %% Funcao get_root(subnet: SubNet) -> bool
 def get_root(subnet: Union[str, IPv4Network, SubNet]) -> Optional[LeafNode]:
     """
@@ -1106,12 +1107,11 @@ def get_root(subnet: Union[str, IPv4Network, SubNet]) -> Optional[LeafNode]:
         Objeto LeafNode definido como root
     """
     subnet = get_subnet(subnet)
-    if subnet.leaf_nodes:
-        for node in subnet.leaf_nodes:
-            if node.is_root:
-                return node
-        subnet.leaf_nodes[0].is_root = True
-        return subnet.leaf_nodes[0]
+    if subnet:
+        if subnet.leaf_nodes:
+            for node in subnet.leaf_nodes:
+                if node.is_root:
+                    return node
     return None
     # print(f'Root nao definido para {subnet}')
 
