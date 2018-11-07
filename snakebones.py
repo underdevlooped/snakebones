@@ -50,7 +50,7 @@ YES = ON = START = True
 NO = OFF = STOP = False
 
 # %% Configuracao
-AUTOFILL_MODE = False
+AUTOFILL_MODE = True
 POST_MODE = ON
 mymac = None
 
@@ -1984,7 +1984,7 @@ def main():
         ----
     """
     global mymac, SNMP_DATA, ARP_TABLE_DATA, AUTOFILL_MODE
-    AUTOFILL_MODE = False
+    AUTOFILL_MODE = True
 
     # 1) OBTENDO DADOS
     # HINT main: inicializado coleta em rede simulada
@@ -2017,6 +2017,14 @@ def main():
     for inode in sw_subnet.internal_nodes:
         inode.set_associated_subnets()
 
+    # HINT main: validacao de ips do NMS para AUTOFILL_MODE
+    if AUTOFILL_MODE:
+        my_ips = ['10.0.0.111', '10.0.10.111', '10.0.20.111', '10.0.30.111']
+    else:
+        my_ips = get_myip()
+    for my_ip in my_ips:
+        set_root(my_ip)
+
     print("\n" + f"Nodes descobertos: ({len(Node._all)})")
     pprint(Node._all)
 
@@ -2041,7 +2049,8 @@ def main():
             continue
         # SkeletonTree(Ni,Vni,ri,AFTs)
         # HINT main: erro de atributo na criacao da SkeletonTree em rede simulada
-        set_root(subnet=subnet)
+        if not AUTOFILL_MODE:
+            set_root(subnet=subnet)
         skeletons.append(SkeletonTree(subnet.leaf_nodes,  # Ni
                                       subnet.nodes_set,  # Vni
                                       get_root(subnet),  # ri
