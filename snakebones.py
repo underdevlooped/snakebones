@@ -23,6 +23,7 @@ sys.path.append(
     '/media/sf_Projeto_Final_Dissertacao/snakebones'
 )
 
+import networkx as nx  # para trabalhar com grafos
 from pdb import set_trace as breakpoint
 from esqueleto import (to_bytes, ip_mac_to_arp_table, nms_config, ping_ip,
                        auto_arp_table_data, auto_snmp_data, is_internal_node,
@@ -2089,6 +2090,16 @@ def main():
     boneprint(united_skeleton)
     boneprint(united_skeleton, verbose=False)
 
+    # HINT main: Iniciado criacao do grafo de referencia usando networkx
+    # Gerando grafos
+    grafo = nx.Graph([(arco._endpoint_a, arco._endpoint_b)
+                      for arco in united_skeleton.arches])
+    # for arco in united_skeleton.arches:
+    #     grafo.add_edge(arco._endpoint_a, arco._endpoint_b)
+    # grafo.add_edges_from([(arco._endpoint_a, arco._endpoint_b)
+    #                       for arco in united_skeleton.arches])
+    pprint(list(grafo.nodes))
+    breakpoint()
 
 # %% executa main()
 if __name__ == '__main__':
