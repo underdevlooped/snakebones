@@ -1483,6 +1483,15 @@ class Vertex(object):
         nodes = {node.name for node in self._nodes_set}
         return f"{self.__class__.__name__}({nodes})"
 
+    # HINT Vertex: metodo __lt__ para comparar com base em value_n
+    def __lt__(self, other):
+        if not isinstance(other, Vertex):
+            return NotImplemented
+        try:
+            return self._value_ny < other._value_ny
+        except AttributeError:
+            return NotImplemented
+
     @property
     def nodes_set(self):
         """
@@ -2092,13 +2101,16 @@ def main():
 
     # HINT main: Iniciado criacao do grafo de referencia usando networkx
     # Gerando grafos
+    print('\nGerando grafos')
     grafo = nx.Graph([(arco._endpoint_a, arco._endpoint_b)
                       for arco in united_skeleton.arches])
     # for arco in united_skeleton.arches:
     #     grafo.add_edge(arco._endpoint_a, arco._endpoint_b)
     # grafo.add_edges_from([(arco._endpoint_a, arco._endpoint_b)
     #                       for arco in united_skeleton.arches])
-    pprint(list(grafo.nodes))
+    pprint(sorted(list(grafo.nodes), reverse=True))
+    pprint(list(zip(nx.convert_node_labels_to_integers(grafo,1),
+                    sorted(list(grafo.nodes), reverse=True))))
     breakpoint()
 
 # %% executa main()
