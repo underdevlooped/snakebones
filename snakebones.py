@@ -24,6 +24,7 @@ sys.path.append(
 )
 
 import networkx as nx  # para trabalhar com grafos
+import matplotlib.pyplot as plt
 from pdb import set_trace as breakpoint
 from esqueleto import (to_bytes, ip_mac_to_arp_table, nms_config, ping_ip,
                        auto_arp_table_data, auto_snmp_data, is_internal_node,
@@ -2111,7 +2112,24 @@ def main():
     pprint(sorted(list(grafo.nodes), reverse=True))
     pprint(list(zip(nx.convert_node_labels_to_integers(grafo,1),
                     sorted(list(grafo.nodes), reverse=True))))
-    breakpoint()
+    # HINT main: extraido informacoes do grafo (degree, neighbor, etc)
+    pprint(f"Grau {sorted(list(grafo.nodes), reverse=True)[0]}: "
+           f"{grafo.degree(sorted(list(grafo.nodes), reverse=True)[0])}")
+    # pprint(grafo.degree(sorted(list(grafo.nodes), reverse=True)[0]))
+    dict(nx.all_pairs_shortest_path(grafo))
+
+    # HINT main: grafo plotado com matplotlib
+    options = {
+        'node_color': 'blue',
+        'node_size': 500,
+        'width': 2,
+        'with_labels': True,
+        'font_weight': 'bold'
+    }
+    # plt.subplot()
+    nx.draw(grafo, **options)
+    plt.show()
+
 
 # %% executa main()
 if __name__ == '__main__':
