@@ -2120,11 +2120,11 @@ def main():
 
     # HINT main: grafo plotado com matplotlib
     options = {
-        'node_color': 'blue',
-        'node_size': 500,
+        'node_color': 'lightblue',
+        # 'node_size': 500,
         'width': 2,
-        'with_labels': True,
-        'font_weight': 'bold'
+        'with_labels': True
+        # 'font_weight': 'bold'
     }
     # plt.subplot()
     nx.draw(grafo, **options)
