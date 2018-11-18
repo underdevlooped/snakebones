@@ -1044,10 +1044,11 @@ def get_myip() -> List[IPv4Interface]:
 
 
 # %% ping icmp
+# HINT ping_ip: alterado retorno para indicar falha
 def ping_ip(ip_address: str,
             repete: int = 3,
             espera: int = 1,
-            tamanho: int = 1) -> str:
+            tamanho: int = 1) -> bool:
     """
     Executa um comando de PING para teste de conectividade ICMP.
 
@@ -1078,11 +1079,15 @@ def ping_ip(ip_address: str,
                           stdout=subprocess.PIPE,
                           universal_newlines=True)
     if not pong.stdout:
-        return f'Falha ao iniciar PING para {ip_address!r}'
+        print(f'Falha ao iniciar PING para {ip_address!r}')
+        return False
     else:
         print(pong.stdout)
         resultado = pong.stdout.split(sep='\n')[-3]
-    return f"PING para {ip_address!r}: {resultado}"
+        print(f"PING para {ip_address!r}: {resultado}")
+        if '100% packet loss' in resultado:
+            return False
+    return True
 
 
 # %% funcao ip_mac_to_arp_table
