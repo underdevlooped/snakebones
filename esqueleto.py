@@ -6,7 +6,7 @@ Created on Thu May  3 21:24:09 2018
 
 Funcoes de suporte para a criacao da skeleton tree
 """
-import subprocess, pdb
+import subprocess
 from time import sleep
 from scapy.all import *
 from easysnmp import Session
@@ -16,6 +16,7 @@ from easysnmp.exceptions import (
 from ipaddress import IPv4Interface  # , IPv4Network
 from netaddr import EUI
 from netaddr.strategy.eui48 import mac_cisco, mac_unix_expanded
+from pdb import set_trace as breakpoint
 from typing import Union, Tuple, List, Dict, Optional, TypeVar, Set
 
 # Callable, Any
@@ -879,13 +880,14 @@ def auto_arp_table_data() -> ArpTableData:
 ARP_TABLE_DATA = auto_arp_table_data()
 
 
-# %% funcao update_arp_table
+# %% funcao set_arp_table
 def set_arp_table(subnet: SubNet,
                   probes: int = 1,
                   auto_fill: Optional[bool] = None,
                   manual_fill: Optional[List[Tuple[str, str]]] = None,
                   include_me: Optional[bool] = None,
-                  timeout: int = 4) \
+                  timeout: int = 4,
+                  icmp: bool = False) \
         -> ArpTable:
     """
     Envia pacotes ARP em broadcast p/ atualizar a tabela MAC dos elementos
@@ -929,34 +931,59 @@ def set_arp_table(subnet: SubNet,
     if auto_fill:
         print('Valores da Tabela ARP atribuidos automaticamente')
         return ARP_TABLE_DATA.get(subnet.compressed)
-    for _ in range(probes):
-        ans, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff") /
-                     ARP(pdst=subnet.address),
-                     timeout=timeout)
-
     ip_list, mac_list = [], []
-    # TODO função set_arp_table: testar
+    # HINT set_arp_table: opcao de probes icmp , ignora NMS
     if include_me:
         for ip in get_myip():
             if ip in subnet:
+                myip = ip
                 ip_list.append(ip)
         mac_list.append(get_mymac())
         mac_list[-1].dialect = mac_cisco
 
-    for _, recebe in ans:
-        ip_list.append(
-            IPv4Interface(recebe[0][1].summary().split()[5]
-                          + '/'
-                          + str(subnet.prefixlen))
-        )
-        mac_list.append(
-            EUI(
-                recebe[0][1].summary().split()[3].replace(':', '')
+    if not icmp:
+        for _ in range(probes):
+            ans, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff") /
+                         ARP(pdst=subnet.address),
+                         timeout=timeout)
+        for _, recebe in ans:
+            ip_list.append(
+                IPv4Interface(recebe[0][1].summary().split()[5]
+                              + '/'
+                              + str(subnet.prefixlen))
             )
-        )
-        mac_list[-1].dialect = mac_cisco
+            mac_list.append(
+                EUI(
+                    recebe[0][1].summary().split()[3].replace(':', '')
+                )
+            )
+            mac_list[-1].dialect = mac_cisco
+
+            arp_table_list = sorted(list(zip(ip_list, mac_list)))
+    else:  # icmp=True
+        ips = (ip_obj.compressed for ip_obj in subnet.hosts())
+        for ip in ips:
+            if ip == myip.ip.compressed: continue
+            # for _ in range(probes):
+            if ping_ip(ip, probes, timeout):
+                ip_list.append(IPv4Interface(ip + '/' + str(subnet.prefixlen)))
+                arp_out = subprocess.run("arp -n".split() + [ip],
+                                         stdout=subprocess.PIPE,
+                                         universal_newlines=True)
+                arp = arp_out.stdout.split('\n')[1].split(maxsplit=3)[2]
+                mac_list.append(EUI(arp.replace(':', '')))
+                mac_list[-1].dialect = mac_cisco
+            #     ans, _ = sr(IP(dst=ip)/ICMP(), timeout=timeout)
+            # for _, recebe in ans:
+            #     ip = recebe[1].summary().split(None, 2)[1]
+            #     ip_list.append(
+            #         IPv4Interface(ip + '/' + str(subnet.prefixlen)))
+            #     # arp_cmd = "arp -n".split() + [ip]
+            else:
+                continue
 
         arp_table_list = sorted(list(zip(ip_list, mac_list)))
+
     if not arp_table_list:
         print(f'Tabela ARP nao definida para rede {subnet.address!r}')
         return None
