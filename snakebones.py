@@ -52,7 +52,7 @@ YES = ON = START = True
 NO = OFF = STOP = False
 
 # %% Configuracao
-AUTOFILL_MODE = True
+AUTOFILL_MODE = False
 POST_MODE = ON
 mymac = None
 
@@ -1995,7 +1995,7 @@ def main():
         ----
     """
     global mymac, SNMP_DATA, ARP_TABLE_DATA, AUTOFILL_MODE
-    AUTOFILL_MODE = True
+    AUTOFILL_MODE = False
 
     # 1) OBTENDO DADOS
     # HINT main: inicializado coleta em rede simulada
@@ -2012,12 +2012,14 @@ def main():
         for rede in redes:
             rede.arp_table = ARP_TABLE_DATA.get(rede.compressed)
     else:
-        # nms_config(True)
+        nms_config(True)
         ARP_TABLE_DATA = dict()
         for rede in redes:
+        # FIXME main: bug descoberta icmp/ping (lentidao e arp timeout)
             rede.arp_table = \
-                set_arp_table(rede, probes=1, timeout=2, include_me=True)
+                set_arp_table(rede, probes=1, timeout=1, include_me=True, icmp=True)
             ARP_TABLE_DATA[rede.compressed] = rede.arp_table
+        # breakpoint()
         SNMP_DATA = get_snmp_data(*internal_nodes)
 
     # mymac = get_mymac(interface='ens33')
