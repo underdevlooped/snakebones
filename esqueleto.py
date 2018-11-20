@@ -104,38 +104,40 @@ def manual_aft() -> Aft:
 
     # (ip, porta, macs)
     aft = {'10.0.0.1/24': {
-               '15': {a},
-               '16': {z},
-               '2': {y, x, v6},
-               '3': {v2, v3, v4, v5, j, k, l, m, b, c, d, e, f},
-               '1': {nms}
-               },
-           '10.0.0.2/24': {
-               '1': {nms},
-               '16': {l},
-               '2': {v4, j, k},
-               '3': {v3, v5, b, c, d, e, f, m}
-               },
-           '10.0.0.3/24': {
-               '1': {nms},
-               '2': {v5, c, d, e, f, m},
-               '16': {b} },
-           '10.0.0.4/24': {
-               '1': {nms},
-               '15': {j},
-               '16': {k} },
-           '10.0.0.5/24': {
-               '1': {nms},
-               '15': {c},
-               '16': {d} },
-           '10.0.0.6/24': {
-               '1': {nms},
-               '15': {x},
-               '16': {y} }
-           }
+        '15': {a},
+        '16': {z},
+        '2': {y, x, v6},
+        '3': {v2, v3, v4, v5, j, k, l, m, b, c, d, e, f},
+        '1': {nms}
+        },
+        '10.0.0.2/24': {
+            '1': {nms},
+            '16': {l},
+            '2': {v4, j, k},
+            '3': {v3, v5, b, c, d, e, f, m}
+        },
+        '10.0.0.3/24': {
+            '1': {nms},
+            '2': {v5, c, d, e, f, m},
+            '16': {b}},
+        '10.0.0.4/24': {
+            '1': {nms},
+            '15': {j},
+            '16': {k}},
+        '10.0.0.5/24': {
+            '1': {nms},
+            '15': {c},
+            '16': {d}},
+        '10.0.0.6/24': {
+            '1': {nms},
+            '15': {x},
+            '16': {y}}
+    }
     return aft
 
+
 aft_fdb = manual_aft()
+
 
 # aft_fdb data:
 # {'10.0.0.1/24': {'1': {b'\x00\x0c)\\Bq'},
@@ -369,141 +371,142 @@ def auto_snmp_data(complete_aft: bool = True) -> dict:
     #      }
 
     snmp_data = \
-    {'10.0.0.1/24': {'dot1_base_type': '2',
-                     'dot1d_base_num_ports': '16',
-                     'dot1d_tp_fdb_address': [b'\xc4\x01\x08\x83\x00\x01',
-                                              b'\xc4\x01\x08\x83\x00\x10',
-                                              b'\xc4\x01\x08\x83\x00 ',
-                                              b'\xc4\x01\x08\x83\x000',
-                                              b'\x00\x0c)\\Bq',
-                                              b'\x00Pyfh\x0c',
-                                              b'\x00Pyfh\x01',
-                                              b'\x00>\\\x06\x80\x01',
-                                              b'\x00Pyfh\x0b',
-                                              b'\x00Pyfh\x00',
-                                              b'\x00Pyfh\x04',
-                                              b'\x00Pyfh\x03',
-                                              b'\x00Pyfh\n',
-                                              b'\x00Pyfh\x02',
-                                              b'\x00>\\\x04\x80\x01',
-                                              b'\x00Pyfh\t',
-                                              b'\x00>\\\x03\x80\x01',
-                                              b'\x00Pyfh\x06',
-                                              b'\x00Pyfh\x08',
-                                              b'\x00Pyfh\x05',
-                                              b'\x00Pyfh\x07',
-                                              b'\x00>\\\x02\x80\x01',
-                                              b'\x00>\\\x05\x80\x01'],
-                     'dot1d_tp_fdb_port': ['5',
-                                           '6',
-                                           '7',
-                                           '8',
-                                           '1',
-                                           '15',
-                                           '16',
-                                           '2',
-                                           '2',
-                                           '2',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3'],
-                     'port_activelist': [('2', 'Gi0/1'),
-                                         ('3', 'Gi0/2'),
-                                         ('5', 'Gi1/0'),
-                                         ('6', 'Gi1/1'),
-                                         ('7', 'Gi1/2'),
-                                         ('8', 'Gi1/3'),
-                                         ('15', 'Gi3/2'),
-                                         ('16', 'Gi3/3')],
-                     'sys_name': 'v1'},
-     '10.0.0.2/24': {'dot1_base_type': '2',
-                     'dot1d_base_num_ports': '16',
-                     'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
-                                              b'\x00Pyfh\x04',
-                                              b'\x00>\\\x04\x80\x01',
-                                              b'\x00Pyfh\x02',
-                                              b'\x00Pyfh\x03',
-                                              b'\x00Pyfh\n',
-                                              b'\x00Pyfh\t',
-                                              b'\x00>\\\x03\x80\x01',
-                                              b'\x00Pyfh\x06',
-                                              b'\x00Pyfh\x08',
-                                              b'\x00Pyfh\x05',
-                                              b'\x00Pyfh\x07',
-                                              b'\x00>\\\x05\x80\x01'],
-                     'dot1d_tp_fdb_port': ['1',
-                                           '16',
-                                           '2',
-                                           '2',
-                                           '2',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3',
-                                           '3'],
-                     'port_activelist': [('1', 'Gi0/0'),
-                                         ('2', 'Gi0/1'),
-                                         ('3', 'Gi0/2'),
-                                         ('16', 'Gi3/3')],
-                     'sys_name': 'v2'},
-     '10.0.0.3/24': {'dot1_base_type': '2',
-                     'dot1d_base_num_ports': '16',
-                     'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
-                                              b'\x00Pyfh\x05',
-                                              b'\x00Pyfh\n',
-                                              b'\x00Pyfh\t',
-                                              b'\x00Pyfh\x06',
-                                              b'\x00Pyfh\x08',
-                                              b'\x00Pyfh\x07',
-                                              b'\x00>\\\x05\x80\x01'],
-                     'dot1d_tp_fdb_port': ['1', '16', '2', '2', '2', '2', '2', '2'],
-                     'port_activelist': [('1', 'Gi0/0'),
-                                         ('2', 'Gi0/1'),
-                                         ('16', 'Gi3/3')],
-                     'sys_name': 'v3'},
-     '10.0.0.4/24': {'dot1_base_type': '2',
-                     'dot1d_base_num_ports': '16',
-                     'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
-                                              b'\x00Pyfh\x02',
-                                              b'\x00Pyfh\x03'],
-                     'dot1d_tp_fdb_port': ['1', '15', '16'],
-                     'port_activelist': [('1', 'Gi0/0'),
-                                         ('15', 'Gi3/2'),
-                                         ('16', 'Gi3/3')],
-                     'sys_name': 'v4'},
-     '10.0.0.5/24': {'dot1_base_type': '2',
-                     'dot1d_base_num_ports': '16',
-                     'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
-                                              b'\x00Pyfh\t',
-                                              b'\x00Pyfh\n'],
-                     'dot1d_tp_fdb_port': ['1', '15', '16'],
-                     'port_activelist': [('1', 'Gi0/0'),
-                                         ('15', 'Gi3/2'),
-                                         ('16', 'Gi3/3')],
-                     'sys_name': 'v5'},
-     '10.0.0.6/24': {'dot1_base_type': '2',
-                     'dot1d_base_num_ports': '16',
-                     'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
-                                              b'\x00Pyfh\x00',
-                                              b'\x00Pyfh\x0b'],
-                     'dot1d_tp_fdb_port': ['1', '15', '16'],
-                     'port_activelist': [('1', 'Gi0/0'),
-                                         ('15', 'Gi3/2'),
-                                         ('16', 'Gi3/3')],
-                     'sys_name': 'v6'}}
+        {'10.0.0.1/24': {'dot1_base_type': '2',
+                         'dot1d_base_num_ports': '16',
+                         'dot1d_tp_fdb_address': [b'\xc4\x01\x08\x83\x00\x01',
+                                                  b'\xc4\x01\x08\x83\x00\x10',
+                                                  b'\xc4\x01\x08\x83\x00 ',
+                                                  b'\xc4\x01\x08\x83\x000',
+                                                  b'\x00\x0c)\\Bq',
+                                                  b'\x00Pyfh\x0c',
+                                                  b'\x00Pyfh\x01',
+                                                  b'\x00>\\\x06\x80\x01',
+                                                  b'\x00Pyfh\x0b',
+                                                  b'\x00Pyfh\x00',
+                                                  b'\x00Pyfh\x04',
+                                                  b'\x00Pyfh\x03',
+                                                  b'\x00Pyfh\n',
+                                                  b'\x00Pyfh\x02',
+                                                  b'\x00>\\\x04\x80\x01',
+                                                  b'\x00Pyfh\t',
+                                                  b'\x00>\\\x03\x80\x01',
+                                                  b'\x00Pyfh\x06',
+                                                  b'\x00Pyfh\x08',
+                                                  b'\x00Pyfh\x05',
+                                                  b'\x00Pyfh\x07',
+                                                  b'\x00>\\\x02\x80\x01',
+                                                  b'\x00>\\\x05\x80\x01'],
+                         'dot1d_tp_fdb_port': ['5',
+                                               '6',
+                                               '7',
+                                               '8',
+                                               '1',
+                                               '15',
+                                               '16',
+                                               '2',
+                                               '2',
+                                               '2',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3'],
+                         'port_activelist': [('2', 'Gi0/1'),
+                                             ('3', 'Gi0/2'),
+                                             ('5', 'Gi1/0'),
+                                             ('6', 'Gi1/1'),
+                                             ('7', 'Gi1/2'),
+                                             ('8', 'Gi1/3'),
+                                             ('15', 'Gi3/2'),
+                                             ('16', 'Gi3/3')],
+                         'sys_name': 'v1'},
+         '10.0.0.2/24': {'dot1_base_type': '2',
+                         'dot1d_base_num_ports': '16',
+                         'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
+                                                  b'\x00Pyfh\x04',
+                                                  b'\x00>\\\x04\x80\x01',
+                                                  b'\x00Pyfh\x02',
+                                                  b'\x00Pyfh\x03',
+                                                  b'\x00Pyfh\n',
+                                                  b'\x00Pyfh\t',
+                                                  b'\x00>\\\x03\x80\x01',
+                                                  b'\x00Pyfh\x06',
+                                                  b'\x00Pyfh\x08',
+                                                  b'\x00Pyfh\x05',
+                                                  b'\x00Pyfh\x07',
+                                                  b'\x00>\\\x05\x80\x01'],
+                         'dot1d_tp_fdb_port': ['1',
+                                               '16',
+                                               '2',
+                                               '2',
+                                               '2',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3',
+                                               '3'],
+                         'port_activelist': [('1', 'Gi0/0'),
+                                             ('2', 'Gi0/1'),
+                                             ('3', 'Gi0/2'),
+                                             ('16', 'Gi3/3')],
+                         'sys_name': 'v2'},
+         '10.0.0.3/24': {'dot1_base_type': '2',
+                         'dot1d_base_num_ports': '16',
+                         'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
+                                                  b'\x00Pyfh\x05',
+                                                  b'\x00Pyfh\n',
+                                                  b'\x00Pyfh\t',
+                                                  b'\x00Pyfh\x06',
+                                                  b'\x00Pyfh\x08',
+                                                  b'\x00Pyfh\x07',
+                                                  b'\x00>\\\x05\x80\x01'],
+                         'dot1d_tp_fdb_port': ['1', '16', '2', '2', '2', '2',
+                                               '2', '2'],
+                         'port_activelist': [('1', 'Gi0/0'),
+                                             ('2', 'Gi0/1'),
+                                             ('16', 'Gi3/3')],
+                         'sys_name': 'v3'},
+         '10.0.0.4/24': {'dot1_base_type': '2',
+                         'dot1d_base_num_ports': '16',
+                         'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
+                                                  b'\x00Pyfh\x02',
+                                                  b'\x00Pyfh\x03'],
+                         'dot1d_tp_fdb_port': ['1', '15', '16'],
+                         'port_activelist': [('1', 'Gi0/0'),
+                                             ('15', 'Gi3/2'),
+                                             ('16', 'Gi3/3')],
+                         'sys_name': 'v4'},
+         '10.0.0.5/24': {'dot1_base_type': '2',
+                         'dot1d_base_num_ports': '16',
+                         'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
+                                                  b'\x00Pyfh\t',
+                                                  b'\x00Pyfh\n'],
+                         'dot1d_tp_fdb_port': ['1', '15', '16'],
+                         'port_activelist': [('1', 'Gi0/0'),
+                                             ('15', 'Gi3/2'),
+                                             ('16', 'Gi3/3')],
+                         'sys_name': 'v5'},
+         '10.0.0.6/24': {'dot1_base_type': '2',
+                         'dot1d_base_num_ports': '16',
+                         'dot1d_tp_fdb_address': [b'\x00\x0c)\\Bq',
+                                                  b'\x00Pyfh\x00',
+                                                  b'\x00Pyfh\x0b'],
+                         'dot1d_tp_fdb_port': ['1', '15', '16'],
+                         'port_activelist': [('1', 'Gi0/0'),
+                                             ('15', 'Gi3/2'),
+                                             ('16', 'Gi3/3')],
+                         'sys_name': 'v6'}}
     snmp_data_full = \
         {'10.0.0.1/24': {'sys_name': 'v1',
                          'port_activelist': [
@@ -881,14 +884,15 @@ ARP_TABLE_DATA = auto_arp_table_data()
 
 
 # %% funcao set_arp_table
+# HINT set_arp_table: incluido modo 'multiping' para usar nmap paralelo
 def set_arp_table(subnet: SubNet,
                   probes: int = 1,
                   auto_fill: Optional[bool] = None,
                   manual_fill: Optional[List[Tuple[str, str]]] = None,
                   include_me: Optional[bool] = None,
                   timeout: int = 4,
-                  icmp: bool = False) \
-        -> ArpTable:
+                  mode: str = 'arp') \
+        -> Optional[ArpTable]:
     """
     Envia pacotes ARP em broadcast p/ atualizar a tabela MAC dos elementos
     Retorna tupla para cada rede fornecida contendo lista de IPs, de MACs e
@@ -922,9 +926,11 @@ def set_arp_table(subnet: SubNet,
     :param manual_fill: tuplas de (ip: str, mac: str)
     :param include_me: True para incluir o NMS na arp table
     :param timeout: tempo para considerar sem reposta (segundos)
+    :param mode: 'arp' 'ping' 'multping'
     :return: Lista com tupla (IPv4Interface, EUI) dos elementos identificados
-    :rtype: List[Tupla[IPv4Interface, EUI]]
+    :rtype: Optional[List[Tupla[IPv4Interface, EUI]]]
     """
+    mode = mode.lower()
     if manual_fill:
         print('Valores da Tabela ARP atribuidos manualmente')
         return ip_mac_to_arp_table(manual_fill, subnet.prefixlen)
@@ -939,8 +945,12 @@ def set_arp_table(subnet: SubNet,
                 ip_list.append(ip)
         mac_list.append(get_mymac())
         mac_list[-1].dialect = mac_cisco
+    ips = []
+    for ip_obj in subnet.hosts():
+        if ip_obj.compressed != myip.ip.compressed:
+            ips.append(ip_obj.compressed)
 
-    if not icmp:
+    if mode == 'arp':
         for _ in range(probes):
             ans, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff") /
                          ARP(pdst=subnet.address),
@@ -959,11 +969,10 @@ def set_arp_table(subnet: SubNet,
             mac_list[-1].dialect = mac_cisco
 
             arp_table_list = sorted(list(zip(ip_list, mac_list)))
-    else:  # icmp=True
-        ips = (ip_obj.compressed for ip_obj in subnet.hosts())
+    elif mode == 'ping':
         for ip in ips:
-            if ip == myip.ip.compressed: continue
-            # for _ in range(probes):
+            if ip == myip.ip.compressed:
+                continue
             if ping_ip(ip, probes, timeout):
                 ip_list.append(IPv4Interface(ip + '/' + str(subnet.prefixlen)))
                 arp_out = subprocess.run("arp -n".split() + [ip],
@@ -972,15 +981,26 @@ def set_arp_table(subnet: SubNet,
                 arp = arp_out.stdout.split('\n')[1].split(maxsplit=3)[2]
                 mac_list.append(EUI(arp.replace(':', '')))
                 mac_list[-1].dialect = mac_cisco
-            #     ans, _ = sr(IP(dst=ip)/ICMP(), timeout=timeout)
-            # for _, recebe in ans:
-            #     ip = recebe[1].summary().split(None, 2)[1]
-            #     ip_list.append(
-            #         IPv4Interface(ip + '/' + str(subnet.prefixlen)))
-            #     # arp_cmd = "arp -n".split() + [ip]
             else:
                 continue
-
+        arp_table_list = sorted(list(zip(ip_list, mac_list)))
+    elif mode == 'multping':
+        # ips = (ip_obj.compressed for ip_obj in hosts)
+        # for ip in ips:
+        #     if myip.ip.compressed in ips:
+        #         continue
+        print(f"Iniciando envio de ({len(ips)*probes}) "
+              f"multi-ping para {subnet!r}...")
+        alives = ping_nmap(ips, probes, timeout)
+        if alives:
+            for ip in alives:
+                ip_list.append(IPv4Interface(ip + '/' + str(subnet.prefixlen)))
+                arp_out = subprocess.run("arp -n".split() + [ip],
+                                         stdout=subprocess.PIPE,
+                                         universal_newlines=True)
+                arp = arp_out.stdout.split('\n')[1].split(maxsplit=3)[2]
+                mac_list.append(EUI(arp.replace(':', '')))
+                mac_list[-1].dialect = mac_cisco
         arp_table_list = sorted(list(zip(ip_list, mac_list)))
 
     if not arp_table_list:
@@ -1107,7 +1127,7 @@ def ping_nmap(ips: List[str],
         'nmap',
         '-T', str(timeout_template),
         '--min-rtt-timeout', str(timeout),
-        '--max-retries' , str(probes-1),
+        '--max-retries', str(probes - 1),
         '-sn',
         '-PE',
         '-n',
@@ -1116,8 +1136,8 @@ def ping_nmap(ips: List[str],
     ]
 
     answer = subprocess.run(command + ips,
-                              stdout=subprocess.PIPE,
-                              universal_newlines=True).stdout
+                            stdout=subprocess.PIPE,
+                            universal_newlines=True).stdout
     if not answer:
         print(f'Falha ao iniciar PING para {ips!r}')
         return False
