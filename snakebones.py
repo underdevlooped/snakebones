@@ -1949,12 +1949,12 @@ def boneprint(skeleton: SkeletonTree, verbose: bool = True) -> None:
             for node in arco._endpoint_b._nodes_set:
                 endpoint_b = node.name
             arco_simples.append(sorted([endpoint_a, endpoint_b]))
-        for node_a, node_b  in sorted(arco_simples):
+        for node_a, node_b in sorted(arco_simples):
             print(f"{{{node_a}, {node_b}}}")
 
 
 def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
-                   *subnets: Union[str, IPv4Network, SubNet])\
+                   *subnets: Union[str, IPv4Network, SubNet]) \
         -> Set[SubNet]:
     """
     Verifica se redes existem e retorna objetos Subnets para cada uma
@@ -1968,7 +1968,7 @@ def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
     """
     found_subnet = get_subnet(sw_subnet)
     if found_subnet:
-        found_subnet._has_switches=True
+        found_subnet._has_switches = True
         nets = {found_subnet}
     else:
         nets = {SubNet(sw_subnet, has_switches=True)}
@@ -2007,9 +2007,13 @@ def main():
         nms_config(True)
         ARP_TABLE_DATA = dict()
         for rede in redes:
-        # FIXME main: bug descoberta icmp/ping (lentidao e arp timeout)
+            # HINT main: bug descoberta icmp/ping (lentidao e arp timeout)
             rede.arp_table = \
-                set_arp_table(rede, probes=1, timeout=1, include_me=True, icmp=True)
+                set_arp_table(rede,
+                              probes=1,
+                              timeout=3,
+                              include_me=True,
+                              mode='arp')
             ARP_TABLE_DATA[rede.compressed] = rede.arp_table
         # breakpoint()
         SNMP_DATA = get_snmp_data(*internal_nodes)
@@ -2066,7 +2070,6 @@ def main():
                 bone)  # H(Y,A)
         boneprint(bone)
 
-
     # for skeleton in skeletons:
     #     boneprint(skeleton)
 
@@ -2101,7 +2104,7 @@ def main():
     # grafo.add_edges_from([(arco._endpoint_a, arco._endpoint_b)
     #                       for arco in united_skeleton.arches])
     pprint(sorted(list(grafo.nodes), reverse=True))
-    pprint(list(zip(nx.convert_node_labels_to_integers(grafo,1),
+    pprint(list(zip(nx.convert_node_labels_to_integers(grafo, 1),
                     sorted(list(grafo.nodes), reverse=True))))
     pprint(f"Grau {sorted(list(grafo.nodes), reverse=True)[0]}: "
            f"{grafo.degree(sorted(list(grafo.nodes), reverse=True)[0])}")
@@ -2630,7 +2633,6 @@ if __name__ == '__main__':
 # {v1, v6}
 # {v2, v3}
 # {v2, v4}
-
 
 
 # '\u2208'
