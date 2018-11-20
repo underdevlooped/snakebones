@@ -1044,7 +1044,7 @@ def get_myip() -> List[IPv4Interface]:
 
 # %% ping icmp
 def ping_ip(ip_address: str,
-            repete: int = 3,
+            repete: int = 1,
             espera: int = 1,
             tamanho: int = 1) -> bool:
     """
@@ -1079,13 +1079,52 @@ def ping_ip(ip_address: str,
     if not pong.stdout:
         print(f'Falha ao iniciar PING para {ip_address!r}')
         return False
-    else:
-        print(pong.stdout)
-        resultado = pong.stdout.split(sep='\n')[-3]
-        print(f"PING para {ip_address!r}: {resultado}")
-        if '100% packet loss' in resultado:
-            return False
+    print(pong.stdout)
+    resultado = pong.stdout.split(sep='\n')[-3]
+    print(f"PING para {ip_address!r}: {resultado}")
+    if '100% packet loss' in resultado:
+        return False
     return True
+
+
+# HINT ping_nmap: ping concorrente com nmap para ip ou range de ips
+def ping_nmap(ips: List[str],
+              probes: int = 1,
+              timeout: int = 4,
+              timeout_template: int = 3) -> Optional[List[str]]:
+    """Gera icmp echo request (ping) concorrente com nmap para lista de ips de
+    destino.
+
+    :param ips: lista com ips a rastrear
+    :param probes: quantidade de pacotes para cada destino
+    :param timeout: tempo de espera por responta
+    :param timeout_template: polite (2), normal (3), aggressive (4)
+    :return: lista de IPs dos hosts up/alive
+    :rtype: List[str]
+    """
+    # nmap -T3 -sn -PE -n --send-ip --disable-arp-ping 10.0.0,10,20,30.-
+    command = [
+        'nmap',
+        '-T', str(timeout_template),
+        '--min-rtt-timeout', str(timeout),
+        '--max-retries' , str(probes-1),
+        '-sn',
+        '-PE',
+        '-n',
+        '--send-ip',
+        '--disable-arp-ping'
+    ]
+
+    answer = subprocess.run(command + ips,
+                              stdout=subprocess.PIPE,
+                              universal_newlines=True).stdout
+    if not answer:
+        print(f'Falha ao iniciar PING para {ips!r}')
+        return False
+    lines = answer.split(sep='\n')
+    hosts = [line.rsplit(maxsplit=1)[-1] for line in lines
+             if 'Nmap scan report' in line]
+    return hosts
 
 
 # %% funcao ip_mac_to_arp_table
