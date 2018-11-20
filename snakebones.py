@@ -241,7 +241,6 @@ class SubNet(IPv4Network):
         self._arp_table = set_arp_table(
             self, probes, auto_fill, manual_fill)
 
-    # HINT SubNet: bug set_all_nodes em rede simulada
     def set_all_nodes(self, auto_fill=AUTOFILL_MODE):
         """
         Define lista de nodes, internal_nodes e leaf_nodes da SubNet.
@@ -610,7 +609,6 @@ class InternalNode(Node):
         if auto_fill and SNMP_DATA.get(self.compressed):
             self._snmp_data = SNMP_DATA.get(self.compressed)
         else:
-            # HINT InternalNode: bug atribuição dados snmp
             self._snmp_data = get_snmp_data(self).get(self.compressed)
 
         InternalNode._allinodes_set.add(self)
@@ -843,7 +841,6 @@ class InternalNode(Node):
             mac_data.append(mac)
             ports.append(porta)
 
-    # HINT InternalNode: bug set_associated_subnets devido mac_list ausente
     def set_associated_subnets(self):
         """
         Define redes associadas ao internal node 'v' dentre redes criadas,
@@ -1044,7 +1041,6 @@ def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
                 return net_node
 
 
-# HINT set_root: restruturado para considerar NMS e Subnet
 # %% Funcao set_root(node)
 def set_root(node: Union[bytes, str, LeafNode, InternalNode] = None,
              subnet: Union[str, IPv4Network, SubNet, None] = None) \
@@ -1101,7 +1097,6 @@ def set_root(node: Union[bytes, str, LeafNode, InternalNode] = None,
             print(f"Rede {subnet} nao localizada")
 
 
-# HINT get_root: removido atribuicao automatica devido bug
 # %% Funcao get_root(subnet: SubNet) -> bool
 def get_root(subnet: Union[str, IPv4Network, SubNet]) -> Optional[LeafNode]:
     """
@@ -1484,7 +1479,6 @@ class Vertex(object):
         nodes = {node.name for node in self._nodes_set}
         return f"{self.__class__.__name__}({nodes})"
 
-    # HINT Vertex: metodo __lt__ para comparar com base em value_n
     def __lt__(self, other):
         if not isinstance(other, Vertex):
             return NotImplemented
@@ -1661,7 +1655,6 @@ class SkeletonTree(object):
             if isinstance(node, InternalNode):
                 node.bv_set = set()  # Bv
                 # Dv - {v(r)}
-                # HINT SkeletonTree: bug definicao root port
                 leaves_ports = \
                     port_activeset(node) - {get_port(node, self.root)}
                 for port in leaves_ports:
@@ -1998,7 +1991,6 @@ def main():
     AUTOFILL_MODE = False
 
     # 1) OBTENDO DADOS
-    # HINT main: inicializado coleta em rede simulada
 
     sw_subnet = '10.0.0.0/24'  # subnet que contem switches gerenciaveis (snmp)
     redes = subnet_creator(
@@ -2030,7 +2022,6 @@ def main():
     for inode in sw_subnet.internal_nodes:
         inode.set_associated_subnets()
 
-    # HINT main: validacao de ips do NMS para AUTOFILL_MODE
     if AUTOFILL_MODE:
         my_ips = ['10.0.0.111', '10.0.10.111', '10.0.20.111', '10.0.30.111']
     else:
@@ -2061,7 +2052,6 @@ def main():
         if subnet._has_switches:
             continue
         # SkeletonTree(Ni,Vni,ri,AFTs)
-        # HINT main: erro de atributo na criacao da SkeletonTree em rede simulada
         if not AUTOFILL_MODE:
             set_root(subnet=subnet)
         skeletons.append(SkeletonTree(subnet.leaf_nodes,  # Ni
@@ -2102,7 +2092,6 @@ def main():
     boneprint(united_skeleton)
     boneprint(united_skeleton, verbose=False)
 
-    # HINT main: Iniciado criacao do grafo de referencia usando networkx
     # Gerando grafos
     print('\nGerando grafos')
     grafo = nx.Graph([(arco._endpoint_a, arco._endpoint_b)
@@ -2114,13 +2103,11 @@ def main():
     pprint(sorted(list(grafo.nodes), reverse=True))
     pprint(list(zip(nx.convert_node_labels_to_integers(grafo,1),
                     sorted(list(grafo.nodes), reverse=True))))
-    # HINT main: extraido informacoes do grafo (degree, neighbor, etc)
     pprint(f"Grau {sorted(list(grafo.nodes), reverse=True)[0]}: "
            f"{grafo.degree(sorted(list(grafo.nodes), reverse=True)[0])}")
     # pprint(grafo.degree(sorted(list(grafo.nodes), reverse=True)[0]))
     dict(nx.all_pairs_shortest_path(grafo))
 
-    # HINT main: grafo plotado com matplotlib
     options = {
         'node_color': 'lightblue',
         # 'node_size': 500,

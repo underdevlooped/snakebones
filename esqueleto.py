@@ -932,7 +932,6 @@ def set_arp_table(subnet: SubNet,
         print('Valores da Tabela ARP atribuidos automaticamente')
         return ARP_TABLE_DATA.get(subnet.compressed)
     ip_list, mac_list = [], []
-    # HINT set_arp_table: opcao de probes icmp , ignora NMS
     if include_me:
         for ip in get_myip():
             if ip in subnet:
@@ -1044,7 +1043,6 @@ def get_myip() -> List[IPv4Interface]:
 
 
 # %% ping icmp
-# HINT ping_ip: alterado retorno para indicar falha
 def ping_ip(ip_address: str,
             repete: int = 3,
             espera: int = 1,
