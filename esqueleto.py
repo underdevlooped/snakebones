@@ -931,6 +931,9 @@ def set_arp_table(subnet: SubNet,
     :rtype: Optional[List[Tupla[IPv4Interface, EUI]]]
     """
     mode = mode.lower()
+    # HINT set_arp_table: corrigido possivel bug em arp_table_list e myip
+    myip = None
+    arp_table_list = None
     if manual_fill:
         print('Valores da Tabela ARP atribuidos manualmente')
         return ip_mac_to_arp_table(manual_fill, subnet.prefixlen)
@@ -968,7 +971,7 @@ def set_arp_table(subnet: SubNet,
             )
             mac_list[-1].dialect = mac_cisco
 
-            arp_table_list = sorted(list(zip(ip_list, mac_list)))
+        arp_table_list = sorted(list(zip(ip_list, mac_list)))
     elif mode == 'ping':
         for ip in ips:
             if ip == myip.ip.compressed:
