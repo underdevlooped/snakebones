@@ -27,19 +27,25 @@ class Gns3(object):
         self.server = server
         self.port = str(port)
         self.version = curl_cmd(server, port, 'version')
-        breakpoint()
         self.computes = curl_cmd(server, port, 'computes')
 
     def __repr__(self):
         return f"Gns3({self.server!r}, {self.port})"
 
-
+# criar node
+# curl -X POST
+# 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes
+# -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 # HINT curl_cmd: funcao envia comandos para o servidor GNS3 e captura resposta
 def curl_cmd(server, port, cmd):
     """
     Envia comando cURL para servidor GNS3, captura resposta em string, formata e
     retorca conversao em objeto apropriado.
     dict, list, tuple, True, False, None, str.
+
+    Exemplo:
+    >>> curl_cmd('192.168.139.128', 3080, 'computes')
+    curl 192.168.139.128:3080/v2/computes
 
     :param server: IP do servidor http alvo
     :param port: porta TCP do servidor alvo
@@ -740,6 +746,9 @@ type(None)
 
 
 def main():
+    # project id
+    # 389dde3d-08ac-447b-8d54-b053a3f6ed19 scritp-test
+
     vm = Gns3('192.168.139.128')
     # curl "http://192.168.139.128:3080/v2/computes"
     print(vm)
@@ -747,6 +756,7 @@ def main():
     print(f"GNS3 VM version: {vm.version['version']}")
     pprint(vm.computes)
 
+# curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 
 if __name__ == '__main__':
     main()
