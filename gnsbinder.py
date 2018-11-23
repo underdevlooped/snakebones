@@ -12,6 +12,7 @@ Integrar cURL a API GNS3 com python
 """
 from ast import literal_eval
 from pdb import set_trace as breakpoint
+from pprint import pprint
 from subprocess import run, PIPE
 
 
@@ -21,24 +22,40 @@ class Gns3(object):
     integracao entre cURP e API GNS3, lendo e escrevendo dados
 
     """
+
     def __init__(self, server='localhost', port=3080, user=None, pword=None):
         self.server = server
         self.port = str(port)
-        cmd_version = "".join(
-            ('curl ', self.server, ':', self.port, '/v2/version'
-                                                   '')).split()
-
-        print("".join(cmd_version))
-
-        self.version_out: str = run(cmd_version, stdout=PIPE,
-                                    universal_newlines=True).stdout
-        strdict = ''.join(self.version_out.replace(" ", "").split('\n'))
-        strdict = strdict.replace('false', 'False')
-        self.version = literal_eval(strdict)
-        # breakpoint()
+        self.version = curl_cmd(server, port, 'version')
+        breakpoint()
+        self.computes = curl_cmd(server, port, 'computes')
 
     def __repr__(self):
-        return f"Gns3({self.server!r},{self.port})"
+        return f"Gns3({self.server!r}, {self.port})"
+
+
+# HINT curl_cmd: funcao envia comandos para o servidor GNS3 e captura resposta
+def curl_cmd(server, port, cmd):
+    """
+    Envia comando cURL para servidor GNS3, captura resposta em string, formata e
+    retorca conversao em objeto apropriado.
+    dict, list, tuple, True, False, None, str.
+
+    :param server: IP do servidor http alvo
+    :param port: porta TCP do servidor alvo
+    :param cmd: parametro final do comando
+    :return: resposta em objto convertido
+    """
+    cmd_prefix = "".join(('curl ', server, ':', str(port), '/v2/'))
+    cmd_send = (cmd_prefix + cmd).split()
+    cmd_ans = run(cmd_send, stdout=PIPE, universal_newlines=True).stdout
+    strdict = ''.join(cmd_ans.replace(" ", "").split('\n'))
+    strdict = strdict.replace('false',
+                              'False').replace('true',
+                                               'True').replace(':null',
+                                                               ':None')
+    str.replace(strdict, 'false', 'False')
+    return literal_eval(strdict)
 
 
 # Server version
@@ -64,7 +81,9 @@ class Gns3(object):
 #         "user": "admin"
 #     }
 # ]
-# There is only one compute server where nodes can be run in this example. This compute as a special id: local, this is the local server which is embedded in the GNS3 controller.
+# There is only one compute server where nodes can be run in this example. This
+# compute as a special id: local, this is the local server which is embedded in
+# the GNS3 controller.
 #
 # Create a project
 # The next step is to create a project:
@@ -722,9 +741,11 @@ type(None)
 
 def main():
     vm = Gns3('192.168.139.128')
+    # curl "http://192.168.139.128:3080/v2/computes"
     print(vm)
-    print(vm.version_out)
-    print(vm.version['local'])
+    pprint(vm.version)
+    print(f"GNS3 VM version: {vm.version['version']}")
+    pprint(vm.computes)
 
 
 if __name__ == '__main__':
