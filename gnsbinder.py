@@ -45,13 +45,13 @@ class Gns3(object):
         return f"Gns3({self.server!r}, {self.port})"
 
     # HINT Gns3: metodo nodes para criar e listar nodes
-    def nodes(self, project_id=None, add=None):
-        if add:
+    def nodes(self, project_id=None, new=None):
+        if new:
             node = curl_post(server=self.server,
                              port=self.port,
                              project_id=project_id,
                              cmd='nodes',
-                             data=add)
+                             data=new)
             return node
         nodes = curl_get(server=self.server,
                          port=self.port,
@@ -168,6 +168,88 @@ def set_node(ip=None, prefix='24', gateway=None):
         # "z": 1
     }
     return node_cfg
+
+
+# HINT set_hub: gerador de script modelo para hubs
+def set_hub():
+    hub_cfg = \
+        {
+            "compute_id": "vm",
+            # "console": null,
+            # "console_type": null,
+            # "first_port_name": null,
+            # "height": 32,
+            # "label": {
+            #     "rotation": 0,
+            #     "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
+            #     "text": "SW-HUB",
+            #     "x": 14,
+            #     "y": -24
+            # },
+            "name": "SW-HUB",
+            # "node_id": "3c59e645-08af-4d77-90b9-1c212f67929f",
+            "node_type": "ethernet_switch",
+            "port_name_format": "Ethernet{0}",
+            "port_segment_size": 0,
+            # "properties": {
+            #     "ports_mapping": [
+            #         {
+            #             "name": "Ethernet0",
+            #             "port_number": 0,
+            #             "type": "access",
+            #             "vlan": 1
+            #         },
+            #         {
+            #             "name": "Ethernet1",
+            #             "port_number": 1,
+            #             "type": "access",
+            #             "vlan": 1
+            #         },
+            #         {
+            #             "name": "Ethernet2",
+            #             "port_number": 2,
+            #             "type": "access",
+            #             "vlan": 1
+            #         },
+            #         {
+            #             "name": "Ethernet3",
+            #             "port_number": 3,
+            #             "type": "access",
+            #             "vlan": 1
+            #         },
+            #         {
+            #             "name": "Ethernet4",
+            #             "port_number": 4,
+            #             "type": "access",
+            #             "vlan": 1
+            #         },
+            #         {
+            #             "name": "Ethernet5",
+            #             "port_number": 5,
+            #             "type": "access",
+            #             "vlan": 1
+            #         },
+            #         {
+            #             "name": "Ethernet6",
+            #             "port_number": 6,
+            #             "type": "access",
+            #             "vlan": 1
+            #         },
+            #         {
+            #             "name": "Ethernet7",
+            #             "port_number": 7,
+            #             "type": "access",
+            #             "vlan": 1
+            #         }
+            #     ]
+            # },
+            "symbol": ":/symbols/ethernet_switch.svg",
+            # "width": 72,
+            # "x": 114,
+            # "y": 134,
+            # "z": 1
+        }
+    return hub_cfg
 
 
 # Server version
@@ -857,21 +939,24 @@ def main():
     # curl "http://192.168.139.128:3080/v2/computes"
     vm = Gns3('192.168.139.128')
     print("\nGNS3 VM: ")
-    print(vm)
-    pprint(vm.version)
-    pprint(vm.computes)
-    pprint(vm.projects)
+    # print(vm)
+    # pprint(vm.version)
+    # pprint(vm.computes)
+    # pprint(vm.projects)
 
     pc = Gns3('192.168.139.1')
-    print("\nGNS3 PC: ")
-    print(pc)
-    pprint(pc.version)
-    pprint(pc.computes)
-    pprint(pc.projects)
+    # print("\nGNS3 PC: ")
+    # print(pc)
+    # pprint(pc.version)
+    # pprint(pc.computes)
+    # pprint(pc.projects)
     nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3')
-    for nodeip in nodes:
-        new_node = set_node(nodeip, '24')
-        pprint(pc.nodes(project_id=project_id, add=new_node))
+    new_hub = set_hub()
+    # breakpoint()
+    pprint(pc.nodes(project_id=project_id, new=new_hub))
+    # for nodeip in nodes:
+    #     new_node = set_node(nodeip, '24')
+    #     pprint(pc.nodes(project_id=project_id, new=new_node))
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 
@@ -912,79 +997,79 @@ host model
 
 HUB model
 {
-                "compute_id": "vm",
-                "console": null,
-                "console_type": null,
-                "first_port_name": null,
-                "height": 32,
-                "label": {
-                    "rotation": 0,
-                    "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
-                    "text": "SW-HUB",
-                    "x": 14,
-                    "y": -24
-                },
-                "name": "SW-HUB",
-                "node_id": "3c59e645-08af-4d77-90b9-1c212f67929f",
-                "node_type": "ethernet_switch",
-                "port_name_format": "Ethernet{0}",
-                "port_segment_size": 0,
-                "properties": {
-                    "ports_mapping": [
-                        {
-                            "name": "Ethernet0",
-                            "port_number": 0,
-                            "type": "access",
-                            "vlan": 1
-                        },
-                        {
-                            "name": "Ethernet1",
-                            "port_number": 1,
-                            "type": "access",
-                            "vlan": 1
-                        },
-                        {
-                            "name": "Ethernet2",
-                            "port_number": 2,
-                            "type": "access",
-                            "vlan": 1
-                        },
-                        {
-                            "name": "Ethernet3",
-                            "port_number": 3,
-                            "type": "access",
-                            "vlan": 1
-                        },
-                        {
-                            "name": "Ethernet4",
-                            "port_number": 4,
-                            "type": "access",
-                            "vlan": 1
-                        },
-                        {
-                            "name": "Ethernet5",
-                            "port_number": 5,
-                            "type": "access",
-                            "vlan": 1
-                        },
-                        {
-                            "name": "Ethernet6",
-                            "port_number": 6,
-                            "type": "access",
-                            "vlan": 1
-                        },
-                        {
-                            "name": "Ethernet7",
-                            "port_number": 7,
-                            "type": "access",
-                            "vlan": 1
-                        }
-                    ]
-                },
-                "symbol": ":/symbols/ethernet_switch.svg",
-                "width": 72,
-                "x": 114,
-                "y": 134,
-                "z": 1
+    "compute_id": "vm",
+    "console": null,
+    "console_type": null,
+    "first_port_name": null,
+    "height": 32,
+    "label": {
+        "rotation": 0,
+        "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
+        "text": "SW-HUB",
+        "x": 14,
+        "y": -24
+    },
+    "name": "SW-HUB",
+    "node_id": "3c59e645-08af-4d77-90b9-1c212f67929f",
+    "node_type": "ethernet_switch",
+    "port_name_format": "Ethernet{0}",
+    "port_segment_size": 0,
+    "properties": {
+        "ports_mapping": [
+            {
+                "name": "Ethernet0",
+                "port_number": 0,
+                "type": "access",
+                "vlan": 1
             },
+            {
+                "name": "Ethernet1",
+                "port_number": 1,
+                "type": "access",
+                "vlan": 1
+            },
+            {
+                "name": "Ethernet2",
+                "port_number": 2,
+                "type": "access",
+                "vlan": 1
+            },
+            {
+                "name": "Ethernet3",
+                "port_number": 3,
+                "type": "access",
+                "vlan": 1
+            },
+            {
+                "name": "Ethernet4",
+                "port_number": 4,
+                "type": "access",
+                "vlan": 1
+            },
+            {
+                "name": "Ethernet5",
+                "port_number": 5,
+                "type": "access",
+                "vlan": 1
+            },
+            {
+                "name": "Ethernet6",
+                "port_number": 6,
+                "type": "access",
+                "vlan": 1
+            },
+            {
+                "name": "Ethernet7",
+                "port_number": 7,
+                "type": "access",
+                "vlan": 1
+            }
+        ]
+    },
+    "symbol": ":/symbols/ethernet_switch.svg",
+    "width": 72,
+    "x": 114,
+    "y": 134,
+    "z": 1
+},
 """
