@@ -9,6 +9,17 @@ terca, 203‎ de novembro de ‎2018, 21:08:21
 @author: Andre Kern
 
 Integrar cURL a API GNS3 com python
+
+Initially, we generated a random tree of switches that defines
+the switches’ connectivity. Then, we randomly connect the
+required number of hubs to free switch ports and we uniformly
+attached hosts to the switches and the hubs of the constructed
+tree. In the following, we arbitrarily associated each host with
+a single subnet-id and we connected the constructed tree to a
+router with a dedicated port for each subnet.
+
+Simulation results of networks with 10 switches (with 8 ports), 10 dumbhubs
+(with 8 ports) and 100 hosts.  3:7 subnets, 0:5 uncooperative switchs
 """
 from ast import literal_eval
 from pdb import set_trace as breakpoint
@@ -109,14 +120,54 @@ def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
 
     cmd_send = cmd_prefix + data_str
     cmd_ans = run(cmd_send, stdout=PIPE, universal_newlines=True, shell=True).stdout
-    breakpoint()
     strdict = ''.join(cmd_ans.replace(" ", "").split('\n'))
     strdict = strdict.replace('false',
                               'False').replace('true',
                                                'True').replace(':null',
                                                                ':None')
-    str.replace(strdict, 'false', 'False')
+    # str.replace(strdict, 'false', 'False')
     return literal_eval(strdict)
+
+# HINT set_node: gerador de script modelo para nodes
+def set_node(ip=None, prefix='24', gateway=None):
+    if gateway:
+        starturp_script = "set pcname -" + ip + "-\n" + \
+                          " ".join(("ip", ip, gateway, prefix, "\n"))
+    else:
+        starturp_script = "set pcname -" + ip + "-\n" + \
+                          " ".join(("ip", ip, prefix, "\n"))
+
+    null = False
+    node_cfg = \
+    {
+        "compute_id": "vm",
+        # "console": 5001,
+        "console_type": "telnet",
+        # "first_port_name": null,
+        # "height": 59,
+        # "label": {
+        #     "rotation": 0,
+        #     # "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
+        #     "text": ip,
+        #     # "x": 19,
+        #     # "y": -25
+        # },
+        "name": ip[ip.find('.',3)+1:],
+        # "node_id": "1c867306-7db3-4368-bc26-a76ec61451fe",
+        "node_type": "vpcs",
+        "port_name_format": "Ethernet{0}",
+        "port_segment_size": 0,
+        "properties": {
+            "startup_script": starturp_script,
+            "startup_script_path": "startup.vpc"
+        },
+        "symbol": ":/symbols/vpcs_guest.svg"
+        # "width": 65,
+        # "x": -257,
+        # "y": -254,
+        # "z": 1
+    }
+    return node_cfg
 
 
 # Server version
@@ -817,8 +868,10 @@ def main():
     pprint(pc.version)
     pprint(pc.computes)
     pprint(pc.projects)
-    new_node = {"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}
-    pprint(pc.nodes(project_id=project_id, add=new_node))
+    nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3')
+    for nodeip in nodes:
+        new_node = set_node(nodeip, '24')
+        pprint(pc.nodes(project_id=project_id, add=new_node))
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 
