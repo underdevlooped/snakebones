@@ -26,28 +26,41 @@ class Gns3(object):
     def __init__(self, server='localhost', port=3080, project_id=None, user=None, pword=None):
         self.server = server
         self.port = str(port)
-        self.version = curl_cmd(server=server, port=port, cmd='version')
-        self.computes = curl_cmd(server=server, port=port, cmd='computes')
-        self.projects = curl_cmd(server=server, port=port, cmd='projects')
+        self.version = curl_get(server=server, port=port, cmd='version')
+        self.computes = curl_get(server=server, port=port, cmd='computes')
+        self.projects = curl_get(server=server, port=port, cmd='projects')
 
     def __repr__(self):
         return f"Gns3({self.server!r}, {self.port})"
 
+    # HINT Gns3: metodo nodes para criar e listar nodes
+    def nodes(self, project_id=None, add=None):
+        if add:
+            node = curl_post(server=self.server,
+                             port=self.port,
+                             project_id=project_id,
+                             cmd='nodes',
+                             data=add)
+            return node
+        nodes = curl_get(server=self.server,
+                         port=self.port,
+                         project_id=project_id,
+                         cmd='nodes')
+        return nodes
 
 # criar node
 # curl -X POST
-# 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes
-# -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
-# HINT curl_cmd: funcao envia comandos para o servidor GNS3 e captura resposta
-# HINT curl_cmd: nomeado atribugos
-def curl_cmd(server=None, port=None, project_id=None, cmd=None):
+# 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
+# HINT curl_get: funcao envia comandos para o servidor GNS3 e captura resposta
+# HINT curl_get: atributos nomeados
+def curl_get(server=None, port=None, project_id=None, cmd=None):
     """
     Envia comando cURL para servidor GNS3, captura resposta em string, formata e
     retorca conversao em objeto apropriado.
     dict, list, tuple, True, False, None, str.
 
     Exemplo:
-    >>> curl_cmd('192.168.139.128', 3080, 'computes')
+    >>> curl_get('192.168.139.128', 3080, 'computes')
     curl 192.168.139.128:3080/v2/computes
 
     :param server: IP do servidor http alvo
@@ -55,13 +68,48 @@ def curl_cmd(server=None, port=None, project_id=None, cmd=None):
     :param cmd: parametro final do comando
     :return: resposta em objto convertido
     """
-    cmd_prefix = "".join(('curl ', server, ':', str(port), '/v2/'))
+    cmd_prefix = "".join(('curl ', server, ':', str(port), '/v2'))
     if project_id:
-        cmd_prefix = "".join((cmd_prefix, 'projects/', project_id))
+        cmd_prefix = "".join((cmd_prefix, '/projects/', project_id))
     if cmd:
-        cmd_prefix = "".join((cmd_prefix, cmd))
+        cmd_prefix = "".join((cmd_prefix, '/', cmd))
     cmd_send = cmd_prefix.split()
     cmd_ans = run(cmd_send, stdout=PIPE, universal_newlines=True).stdout
+    strdict = ''.join(cmd_ans.replace(" ", "").split('\n'))
+    strdict = strdict.replace('false',
+                              'False').replace('true',
+                                               'True').replace(':null',
+                                                               ':None')
+    str.replace(strdict, 'false', 'False')
+    return literal_eval(strdict)
+
+
+def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
+    """
+    Envia comando cURL para servidor GNS3, captura resposta em string, formata e
+    retorca conversao em objeto apropriado.
+    dict, list, tuple, True, False, None, str.
+
+    Exemplo:
+    >>> curl_put('192.168.139.128', 3080, 'computes')
+    curl 192.168.139.128:3080/v2/computes
+
+    :param server: IP do servidor http alvo
+    :param port: porta TCP do servidor alvo
+    :param cmd: parametro final do comando
+    :return: resposta em objto convertido
+    """
+    cmd_prefix = "".join(('curl -X POST ', server, ':', str(port),
+                          '/v2/projects/', project_id, '/', cmd, ' -d '))
+    data_str = repr(data).replace('False',
+                                  'false').replace('True',
+                                                   'true').replace(':None',
+                                                                   ':null')
+    data_str = '\'' + data_str.replace('\'', '"') + '\''
+
+    cmd_send = cmd_prefix + data_str
+    cmd_ans = run(cmd_send, stdout=PIPE, universal_newlines=True, shell=True).stdout
+    breakpoint()
     strdict = ''.join(cmd_ans.replace(" ", "").split('\n'))
     strdict = strdict.replace('false',
                               'False').replace('true',
@@ -769,7 +817,8 @@ def main():
     pprint(pc.version)
     pprint(pc.computes)
     pprint(pc.projects)
-
+    new_node = {"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}
+    pprint(pc.nodes(project_id=project_id, add=new_node))
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 
