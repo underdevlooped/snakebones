@@ -39,9 +39,6 @@ class Gns3(object):
     def __init__(self, server='localhost', port=3080, project_id=None, user=None, pword=None):
         self.server = server
         self.port = str(port)
-        self.version = curl_get(server=server, port=port, cmd='version')
-        self.computes = curl_get(server=server, port=port, cmd='computes')
-        self.projects = curl_get(server=server, port=port, cmd='projects')
 
     def __repr__(self):
         return f"Gns3({self.server!r}, {self.port})"
@@ -60,6 +57,19 @@ class Gns3(object):
                          project_id=project_id,
                          cmd='nodes')
         return nodes
+
+    # HINT Gns3: atributos convertidos em property p mostrar estado atualizado
+    @property
+    def version(self):
+        return curl_get(server=self.server, port=self.port, cmd='version')
+
+    @property
+    def computes(self):
+        return curl_get(server=self.server, port=self.port, cmd='computes')
+
+    @property
+    def projects(self):
+        return curl_get(server=self.server, port=self.port, cmd='projects')
 
 # criar node
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
@@ -118,44 +128,81 @@ def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
         run(cmd_send, stdout=PIPE, universal_newlines=True, shell=True).stdout
     return loads(cmd_ans)  # convertido em json
 
-# HINT set_node: gerador de script modelo para nodes
-def set_node(ip=None, prefix='24', gateway=None):
+# HINT set_switch: gerador de script modelo para switch
+def set_switch(name_index=1):
+    name = f"v{name_index}"
     false, null, true = False, None, True
-    if gateway:
-        starturp_script = f"set pcname -{ip}-\nip {ip} {gateway} {prefix}\n"
-    else:
-        starturp_script = f"set pcname -{ip}-\nip {ip} {prefix}\n"
-
-    node_cfg = \
-    {
-        "compute_id": "vm",
-        # "console": 5001,
-        "console_type": "telnet",
-        # "first_port_name": null,
-        # "height": 59,
-        # "label": {
-        #     "rotation": 0,
-        #     # "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
-        #     "text": ip,
-        #     # "x": 19,
-        #     # "y": -25
-        # },
-        "name": ip[ip.find('.',3)+1:],
-        # "node_id": "1c867306-7db3-4368-bc26-a76ec61451fe",
-        "node_type": "vpcs",
-        "port_name_format": "Ethernet{0}",
-        "port_segment_size": 0,
-        "properties": {
-            "startup_script": starturp_script,
-            "startup_script_path": "startup.vpc"
-        },
-        "symbol": ":/symbols/vpcs_guest.svg"
-        # "width": 65,
-        # "x": -257,
-        # "y": -254,
-        # "z": 1
-    }
-    return node_cfg
+    # if gateway:
+    #     starturp_script = "set pcname -" + ip + "-\n" + \
+    #                       " ".join(("ip", ip, gateway, prefix, "\n"))
+    # else:
+    #     starturp_script = "set pcname -" + ip + "-\n" + \
+    #                       " ".join(("ip", ip, prefix, "\n"))
+    #
+    switch_cfg = \
+        {
+            "compute_id": "vm",
+            # "console": 5032,
+            "console_type": "telnet",
+            # "first_port_name": "",
+            # "height": 48,
+            # "label": {
+            #     "rotation": 0,
+            #     "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
+            #     "text": "v1",
+            #     "x": -24,
+            #     "y": -20
+            # },
+            "name": name,
+            # "node_id": "ebca888d-828d-4a52-b900-f7301c0e3ce3",
+            "node_type": "qemu",
+            "port_name_format": "Gi{1}/{0}",
+            "port_segment_size": 4,
+            "properties": {
+                # "acpi_shutdown": false,
+                # "adapter_type": "e1000",
+                "adapters": 16,
+                # "bios_image": "",
+                # "bios_image_md5sum": null,
+                # "boot_priority": "c",
+                # "cdrom_image": "",
+                # "cdrom_image_md5sum": null,
+                # "cpu_throttling": 0,
+                # "cpus": 1,
+                # "hda_disk_image": "vios_l2-adventerprisek9-m.vmdk.SSA.152-4.0.55.E",
+                # "hda_disk_image_md5sum": "1a3a21f5697cae64bb930895b986d71e",
+                # "hda_disk_interface": "virtio",
+                # "hdb_disk_image": "",
+                # "hdb_disk_image_md5sum": null,
+                # "hdb_disk_interface": "ide",
+                # "hdc_disk_image": "",
+                # "hdc_disk_image_md5sum": null,
+                # "hdc_disk_interface": "ide",
+                # "hdd_disk_image": "",
+                # "hdd_disk_image_md5sum": null,
+                # "hdd_disk_interface": "ide",
+                # "initrd": "",
+                # "initrd_md5sum": null,
+                # "kernel_command_line": "",
+                # "kernel_image": "",
+                # "kernel_image_md5sum": null,
+                # "legacy_networking": false,
+                # "linked_clone": true,
+                # # "mac_address": "00:3e:5c:01:00:00",
+                # "options": "-nographic",
+                # "platform": "x86_64",
+                # "process_priority": "normal",
+                "qemu_path": "/usr/bin/qemu-system-x86_64",
+                "ram": 768,
+            #     "usage": "There is no default password and enable password. There is no default configuration present."
+            },
+            "symbol": ":/symbols/multilayer_switch.svg",
+            # "width": 51,
+            # "x": 53,
+            # "y": -247,
+            # "z": 1
+        }
+    return switch_cfg
 
 
 # HINT set_hub: gerador de script modelo para hubs
@@ -242,83 +289,56 @@ def set_hub(name_index=1):
         }
     return hub_cfg
 
-# HINT set_switch: gerador de script modelo para switch
-def set_switch(name_index=1):
-    name = f"v{name_index}"
+
+# HINT set_node: gerador de script modelo para nodes
+def set_node(ip=None, prefix='24', gateway=None):
     false, null, true = False, None, True
-    # if gateway:
-    #     starturp_script = "set pcname -" + ip + "-\n" + \
-    #                       " ".join(("ip", ip, gateway, prefix, "\n"))
-    # else:
-    #     starturp_script = "set pcname -" + ip + "-\n" + \
-    #                       " ".join(("ip", ip, prefix, "\n"))
-    #
-    switch_cfg = \
+    if gateway:
+        starturp_script = f"set pcname -{ip}-\nip {ip} {gateway} {prefix}\n"
+    else:
+        starturp_script = f"set pcname -{ip}-\nip {ip} {prefix}\n"
+
+    node_cfg = \
         {
             "compute_id": "vm",
-            # "console": 5032,
+            # "console": 5001,
             "console_type": "telnet",
-            # "first_port_name": "",
-            # "height": 48,
+            # "first_port_name": null,
+            # "height": 59,
             # "label": {
             #     "rotation": 0,
-            #     "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
-            #     "text": "v1",
-            #     "x": -24,
-            #     "y": -20
+            #     # "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
+            #     "text": ip,
+            #     # "x": 19,
+            #     # "y": -25
             # },
-            "name": name,
-            # "node_id": "ebca888d-828d-4a52-b900-f7301c0e3ce3",
-            "node_type": "qemu",
-            # "port_name_format": "Gi{1}/{0}",
-            # "port_segment_size": 4,
+            "name": ip[ip.find('.',3)+1:],
+            # "node_id": "1c867306-7db3-4368-bc26-a76ec61451fe",
+            "node_type": "vpcs",
+            "port_name_format": "Ethernet{0}",
+            "port_segment_size": 0,
             "properties": {
-            #     "acpi_shutdown": false,
-            #     "adapter_type": "e1000",
-            #     "adapters": 16,
-            #     "bios_image": "",
-            #     "bios_image_md5sum": null,
-            #     "boot_priority": "c",
-            #     "cdrom_image": "",
-            #     "cdrom_image_md5sum": null,
-            #     "cpu_throttling": 0,
-            #     "cpus": 1,
-            #     "hda_disk_image": "vios_l2-adventerprisek9-m.vmdk.SSA.152-4.0.55.E",
-            #     "hda_disk_image_md5sum": "1a3a21f5697cae64bb930895b986d71e",
-            #     "hda_disk_interface": "virtio",
-            #     "hdb_disk_image": "",
-            #     "hdb_disk_image_md5sum": null,
-            #     "hdb_disk_interface": "ide",
-            #     "hdc_disk_image": "",
-            #     "hdc_disk_image_md5sum": null,
-            #     "hdc_disk_interface": "ide",
-            #     "hdd_disk_image": "",
-            #     "hdd_disk_image_md5sum": null,
-            #     "hdd_disk_interface": "ide",
-            #     "initrd": "",
-            #     "initrd_md5sum": null,
-            #     "kernel_command_line": "",
-            #     "kernel_image": "",
-            #     "kernel_image_md5sum": null,
-            #     "legacy_networking": false,
-            #     "linked_clone": true,
-            #     # "mac_address": "00:3e:5c:01:00:00",
-            #     "options": "-nographic",
-            #     "platform": "x86_64",
-            #     "process_priority": "normal",
-                "qemu_path": "/usr/bin/qemu-system-x86_64",
-                "ram": 768,
-            #     "usage": "There is no default password and enable password. There is no default configuration present."
+                "startup_script": starturp_script,
+                "startup_script_path": "startup.vpc"
             },
-            "symbol": ":/symbols/multilayer_switch.svg",
-            # "width": 51,
-            # "x": 53,
-            # "y": -247,
+            "symbol": ":/symbols/vpcs_guest.svg"
+            # "width": 65,
+            # "x": -257,
+            # "y": -254,
             # "z": 1
         }
-    return switch_cfg
+    return node_cfg
 
 
+def set_link(a_endpoint_id, b_endpoint_id):
+
+    link_cfg = \
+        {'nodes': [{'adapter_number': 0,
+                'node_id': a_endpoint_id,
+                'port_number': 0},
+               {'adapter_number': 0,
+                'node_id': b_endpoint_id,
+                'port_number': 0}]}
 # Create a project
 # The next step is to create a project:
 #
@@ -327,7 +347,9 @@ def set_switch(name_index=1):
 #     "name": "test",
 #     "project_id": "b8c070f7-f34c-4b7b-ba6f-be3d26ed073f",
 # }
+
 """"""
+
 # Link nodes
 # The two VPCS nodes can be linked together using their port number 0 (VPCS has only one network adapter with one port):
 #
@@ -351,6 +373,7 @@ def set_switch(name_index=1):
 #     ],
 #     "project_id": "b8c070f7-f34c-4b7b-ba6f-be3d26ed073f"
 # }
+""""""
 # Start nodes
 # Start the two nodes:
 #
@@ -677,7 +700,7 @@ def set_switch(name_index=1):
 #
 # Tip: requests made by a client and by a controller to the computes nodes can been seen if the server is started with the –debug parameter.
 
-type(None)
+""""""
 
 # Controller endpoints
 # The controller manages everything, it is the central decision point and has a complete view of your network topologies, what nodes run on which compute server, the links between them etc.
@@ -942,7 +965,7 @@ type(None)
 # /v2/compute/projects/{project_id}/vpcs/nodes/{node_id}/stop
 # /v2/compute/projects/{project_id}/vpcs/nodes/{node_id}/suspend
 
-type(None)
+""""""
 
 
 def main():
@@ -963,23 +986,28 @@ def main():
     pprint(pc.computes)
     pprint(pc.projects)
     nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5', '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10')
-    # new_switch = set_switch()
+    # # Cria um de cada
+    new_switch = set_switch(name_index=1)
+    pprint(pc.nodes(project_id=project_id, new=new_switch))
+    new_switch = set_switch(name_index=2)
+    pprint(pc.nodes(project_id=project_id, new=new_switch))
     # new_hub = set_hub()
-    # new_node = set_node(nodes[0], '24')
-    # pprint(pc.nodes(project_id=project_id, new=new_node))
     # pprint(pc.nodes(project_id=project_id, new=new_hub))
-    # pprint(pc.nodes(project_id=project_id, new=new_switch))
-    conta_sw = count(1)
-    conta_hub = count(1)
-    for nodeip in nodes:
-        new_switch = set_switch()
-        new_switch['name'] = f"v{next(conta_sw)}"
-        new_hub = set_hub()
-        new_hub['name'] = f"SW-HUB{next(conta_hub)}"
-        new_node = set_node(nodeip, '24')
-        pprint(pc.nodes(project_id=project_id, new=new_switch))
-        pprint(pc.nodes(project_id=project_id, new=new_hub))
-        pprint(pc.nodes(project_id=project_id, new=new_node))
+    # new_node = set_node(nodes[1], '24')
+    # pprint(pc.nodes(project_id=project_id, new=new_node))
+    """"""
+    # # Cria varios de cada
+    # conta_sw = count(1)
+    # conta_hub = count(1)
+    # for nodeip in nodes:
+    #     new_switch = set_switch()
+    #     new_switch['name'] = f"v{next(conta_sw)}"
+    #     new_hub = set_hub()
+    #     new_hub['name'] = f"SW-HUB{next(conta_hub)}"
+    #     new_node = set_node(nodeip, '24')
+    #     pprint(pc.nodes(project_id=project_id, new=new_switch))
+    #     pprint(pc.nodes(project_id=project_id, new=new_hub))
+    #     pprint(pc.nodes(project_id=project_id, new=new_node))
 
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
