@@ -60,8 +60,8 @@ class Gns3(object):
         return nodes
 
 # criar node
-# curl -X POST
-# 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
+# curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
+# curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"compute_id": "vm", "console_type": "telnet", "name": "v1", "node_type": "qemu", "properties": {"qemu_path": "/usr/bin/qemu-system-x86_64", "ram": 768}, "symbol": ":/symbols/multilayer_switch.svg"}'
 # HINT curl_get: funcao envia comandos para o servidor GNS3 e captura resposta
 # HINT curl_get: atributos nomeados
 def curl_get(server=None, port=None, project_id=None, cmd=None):
@@ -130,6 +130,7 @@ def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
 
 # HINT set_node: gerador de script modelo para nodes
 def set_node(ip=None, prefix='24', gateway=None):
+    false, null, true = False, None, True
     if gateway:
         starturp_script = "set pcname -" + ip + "-\n" + \
                           " ".join(("ip", ip, gateway, prefix, "\n"))
@@ -137,7 +138,6 @@ def set_node(ip=None, prefix='24', gateway=None):
         starturp_script = "set pcname -" + ip + "-\n" + \
                           " ".join(("ip", ip, prefix, "\n"))
 
-    null = False
     node_cfg = \
     {
         "compute_id": "vm",
@@ -172,6 +172,8 @@ def set_node(ip=None, prefix='24', gateway=None):
 
 # HINT set_hub: gerador de script modelo para hubs
 def set_hub():
+    false, null, true = False, None, True
+
     hub_cfg = \
         {
             "compute_id": "vm",
@@ -250,6 +252,83 @@ def set_hub():
             # "z": 1
         }
     return hub_cfg
+
+# HINT set_switch: gerador de script modelo para switch
+def set_switch(name_index=1):
+    name = "v" + str(name_index)
+    false, null, true = False, None, True
+    # if gateway:
+    #     starturp_script = "set pcname -" + ip + "-\n" + \
+    #                       " ".join(("ip", ip, gateway, prefix, "\n"))
+    # else:
+    #     starturp_script = "set pcname -" + ip + "-\n" + \
+    #                       " ".join(("ip", ip, prefix, "\n"))
+    #
+    switch_cfg = \
+        {
+            "compute_id": "vm",
+            # "console": 5032,
+            "console_type": "telnet",
+            # "first_port_name": "",
+            # "height": 48,
+            # "label": {
+            #     "rotation": 0,
+            #     "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
+            #     "text": "v1",
+            #     "x": -24,
+            #     "y": -20
+            # },
+            "name": name,
+            # "node_id": "ebca888d-828d-4a52-b900-f7301c0e3ce3",
+            "node_type": "qemu",
+            # "port_name_format": "Gi{1}/{0}",
+            # "port_segment_size": 4,
+            "properties": {
+            #     "acpi_shutdown": false,
+            #     "adapter_type": "e1000",
+            #     "adapters": 16,
+            #     "bios_image": "",
+            #     "bios_image_md5sum": null,
+            #     "boot_priority": "c",
+            #     "cdrom_image": "",
+            #     "cdrom_image_md5sum": null,
+            #     "cpu_throttling": 0,
+            #     "cpus": 1,
+            #     "hda_disk_image": "vios_l2-adventerprisek9-m.vmdk.SSA.152-4.0.55.E",
+            #     "hda_disk_image_md5sum": "1a3a21f5697cae64bb930895b986d71e",
+            #     "hda_disk_interface": "virtio",
+            #     "hdb_disk_image": "",
+            #     "hdb_disk_image_md5sum": null,
+            #     "hdb_disk_interface": "ide",
+            #     "hdc_disk_image": "",
+            #     "hdc_disk_image_md5sum": null,
+            #     "hdc_disk_interface": "ide",
+            #     "hdd_disk_image": "",
+            #     "hdd_disk_image_md5sum": null,
+            #     "hdd_disk_interface": "ide",
+            #     "initrd": "",
+            #     "initrd_md5sum": null,
+            #     "kernel_command_line": "",
+            #     "kernel_image": "",
+            #     "kernel_image_md5sum": null,
+            #     "legacy_networking": false,
+            #     "linked_clone": true,
+            #     # "mac_address": "00:3e:5c:01:00:00",
+            #     "options": "-nographic",
+            #     "platform": "x86_64",
+            #     "process_priority": "normal",
+                "qemu_path": "/usr/bin/qemu-system-x86_64",
+                "ram": 768,
+            #     "usage": "There is no default password and enable password. There is no default configuration present."
+            },
+            "symbol": ":/symbols/multilayer_switch.svg",
+            # "width": 51,
+            # "x": 53,
+            # "y": -247,
+            # "z": 1
+        }
+    print(switch_cfg)
+    return switch_cfg
 
 
 # Server version
@@ -951,12 +1030,16 @@ def main():
     # pprint(pc.computes)
     # pprint(pc.projects)
     nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5', '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10')
-    new_hub = set_hub()
+    new_switch = set_switch()
+    pprint(pc.nodes(project_id=project_id, new=new_switch))
+    # new_node = set_node(nodes[0], '24')
+    # pprint(pc.nodes(project_id=project_id, new=new_node))
+    # new_hub = set_hub()
     # breakpoint()
-    for nodeip in nodes:
-        new_node = set_node(nodeip, '24')
-        pprint(pc.nodes(project_id=project_id, new=new_node))
-        pprint(pc.nodes(project_id=project_id, new=new_hub))
+    # for nodeip in nodes:
+    #     new_node = set_node(nodeip, '24')
+    #     pprint(pc.nodes(project_id=project_id, new=new_node))
+    #     pprint(pc.nodes(project_id=project_id, new=new_hub))
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 
@@ -993,7 +1076,7 @@ host model
         "y": -254,
         "z": 1
     },
-    
+
 
 HUB model
 {
@@ -1071,5 +1154,70 @@ HUB model
     "x": 114,
     "y": 134,
     "z": 1
-},
+}
+
+
+switch model
+{
+    "compute_id": "vm",
+    "console": 5032,
+    "console_type": "telnet",
+    "first_port_name": "",
+    "height": 48,
+    "label": {
+        "rotation": 0,
+        "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
+        "text": "v1",
+        "x": -24,
+        "y": -20
+    },
+    "name": "v1",
+    "node_id": "ebca888d-828d-4a52-b900-f7301c0e3ce3",
+    "node_type": "qemu",
+    "port_name_format": "Gi{1}/{0}",
+    "port_segment_size": 4,
+    "properties": {
+        "acpi_shutdown": false,
+        "adapter_type": "e1000",
+        "adapters": 16,
+        "bios_image": "",
+        "bios_image_md5sum": null,
+        "boot_priority": "c",
+        "cdrom_image": "",
+        "cdrom_image_md5sum": null,
+        "cpu_throttling": 0,
+        "cpus": 1,
+        "hda_disk_image": "vios_l2-adventerprisek9-m.vmdk.SSA.152-4.0.55.E",
+        "hda_disk_image_md5sum": "1a3a21f5697cae64bb930895b986d71e",
+        "hda_disk_interface": "virtio",
+        "hdb_disk_image": "",
+        "hdb_disk_image_md5sum": null,
+        "hdb_disk_interface": "ide",
+        "hdc_disk_image": "",
+        "hdc_disk_image_md5sum": null,
+        "hdc_disk_interface": "ide",
+        "hdd_disk_image": "",
+        "hdd_disk_image_md5sum": null,
+        "hdd_disk_interface": "ide",
+        "initrd": "",
+        "initrd_md5sum": null,
+        "kernel_command_line": "",
+        "kernel_image": "",
+        "kernel_image_md5sum": null,
+        "legacy_networking": false,
+        "linked_clone": true,
+        "mac_address": "00:3e:5c:01:00:00",
+        "options": "-nographic",
+        "platform": "x86_64",
+        "process_priority": "normal",
+        "qemu_path": "/usr/bin/qemu-system-x86_64",
+        "ram": 768,
+        "usage": "There is no default password and enable password. There is no default configuration present."
+    },
+    "symbol": ":/symbols/multilayer_switch.svg",
+    "width": 51,
+    "x": 53,
+    "y": -247,
+    "z": 1
+}
 """
