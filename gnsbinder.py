@@ -73,6 +73,19 @@ class Gns3(object):
                          cmd='links')
         return links
 
+    # HINT Gns3: metodo freeports retorna portas livres de um node
+    def freeports(self, project_id=None, node_id=None):
+        node = curl_get(server=self.server,
+                         port=self.port,
+                         project_id=project_id,
+                         cmd=f'nodes/{node_id}')
+        ports = [port for port in range(node['properties']['adapters'])]
+        for link in self.links(project_id):
+            for node in link['nodes']:
+                if node['node_id'] == node_id:
+                    ports.remove(node['adapter_number'])
+        return ports
+
     # HINT Gns3: atributos convertidos em property p mostrar estado atualizado
     @property
     def version(self):
@@ -346,14 +359,15 @@ def set_node(ip=None, prefix='24', gateway=None):
 
 
 # HINT set_node: gerador de script modelo para links
-def set_link(a_endpoint_id, b_endpoint_id):
+# HINT set_node: novos atributos para definir adaptadores
+def set_link(a_id, a_adapter, b_id, b_adapter):
     # teste = {"properties": {"adapters": 16}}
     link_cfg = \
-        {'nodes': [{'node_id': a_endpoint_id,
-                    'adapter_number': 0,
+        {'nodes': [{'node_id': a_id,
+                    'adapter_number': a_adapter,
                     'port_number': 0},
-                   {'node_id': b_endpoint_id,
-                    'adapter_number': 0,
+                   {'node_id': b_id,
+                    'adapter_number': b_adapter,
                     'port_number': 0}
                    ]}
     return link_cfg
@@ -1030,9 +1044,12 @@ def main():
     pprint(pc.links(project_id=project_id))
     node_a = "82f33431-5c66-418e-a45a-a8eb542ac13a"
     node_b = "4ecdda6f-3971-495d-a95a-959d3c6d868d"
-    new_link = set_link(node_a, node_b)
+    free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+    free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+    new_link = set_link(node_a, free_a, node_b, free_b)
     print('\n\n\n')
     pprint(pc.links(project_id=project_id, new=new_link))
+    pprint(pc.freeports(project_id=project_id, node_id=node_b))
 
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
