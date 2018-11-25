@@ -22,6 +22,7 @@ Simulation results of networks with 10 switches (with 8 ports), 10 dumbhubs
 (with 8 ports) and 100 hosts.  3:7 subnets, 0:5 uncooperative switchs
 """
 from ast import literal_eval
+from json import dumps, loads
 from pdb import set_trace as breakpoint
 from pprint import pprint
 from subprocess import run, PIPE
@@ -76,25 +77,23 @@ def curl_get(server=None, port=None, project_id=None, cmd=None):
 
     :param server: IP do servidor http alvo
     :param port: porta TCP do servidor alvo
-    :param cmd: parametro final do comando
+    :param cmd:
+    parametro final do comando
+        - 'version': retorna versao do servidor e local de execucao
+        - 'computes': lista todos os servidores com seus detalhes de conexao
     :return: resposta em objto convertido
     """
-    cmd_prefix = "".join(('curl ', server, ':', str(port), '/v2'))
+    cmd_prefix = f"curl {server}:{port}/v2"
     if project_id:
-        cmd_prefix = "".join((cmd_prefix, '/projects/', project_id))
+        cmd_prefix = f"{cmd_prefix}/projects/{project_id}"
     if cmd:
-        cmd_prefix = "".join((cmd_prefix, '/', cmd))
+        cmd_prefix = f"{cmd_prefix}/{cmd}"
     cmd_send = cmd_prefix.split()
     cmd_ans = run(cmd_send, stdout=PIPE, universal_newlines=True).stdout
-    strdict = ''.join(cmd_ans.replace(" ", "").split('\n'))
-    strdict = strdict.replace('false',
-                              'False').replace('true',
-                                               'True').replace(':null',
-                                                               ':None')
-    str.replace(strdict, 'false', 'False')
-    return literal_eval(strdict)
+    return loads(cmd_ans)  # convertido em json
 
 
+# HINT usado json e f-string para melhorar legibilidade e corrigir erros
 def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
     """
     Envia comando cURL para servidor GNS3, captura resposta em string, formata e
@@ -110,33 +109,21 @@ def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
     :param cmd: parametro final do comando
     :return: resposta em objto convertido
     """
-    cmd_prefix = "".join(('curl -X POST ', server, ':', str(port),
-                          '/v2/projects/', project_id, '/', cmd, ' -d '))
-    data_str = repr(data).replace('False',
-                                  'false').replace('True',
-                                                   'true').replace(':None',
-                                                                   ':null')
-    data_str = '\'' + data_str.replace('\'', '"') + '\''
+    cmd_prefix = \
+        f"curl -X POST {server}:{port}/v2/projects/{project_id}/{cmd} -d "
 
-    cmd_send = cmd_prefix + data_str
-    cmd_ans = run(cmd_send, stdout=PIPE, universal_newlines=True, shell=True).stdout
-    strdict = ''.join(cmd_ans.replace(" ", "").split('\n'))
-    strdict = strdict.replace('false',
-                              'False').replace('true',
-                                               'True').replace(':null',
-                                                               ':None')
-    # str.replace(strdict, 'false', 'False')
-    return literal_eval(strdict)
+    cmd_send = f"{cmd_prefix} '{dumps(data)}'"
+    cmd_ans = \
+        run(cmd_send, stdout=PIPE, universal_newlines=True, shell=True).stdout
+    return loads(cmd_ans)  # convertido em json
 
 # HINT set_node: gerador de script modelo para nodes
 def set_node(ip=None, prefix='24', gateway=None):
     false, null, true = False, None, True
     if gateway:
-        starturp_script = "set pcname -" + ip + "-\n" + \
-                          " ".join(("ip", ip, gateway, prefix, "\n"))
+        starturp_script = f"set pcname -{ip}-\nip {ip} {gateway} {prefix}\n"
     else:
-        starturp_script = "set pcname -" + ip + "-\n" + \
-                          " ".join(("ip", ip, prefix, "\n"))
+        starturp_script = f"set pcname -{ip}-\nip {ip} {prefix}\n"
 
     node_cfg = \
     {
@@ -327,37 +314,9 @@ def set_switch(name_index=1):
             # "y": -247,
             # "z": 1
         }
-    print(switch_cfg)
     return switch_cfg
 
 
-# Server version
-# Check the server version with a simple curl command:
-#
-# # curl "http://localhost:3080/v2/version"
-# {
-#     "local": false,
-#     "version": "2.1.4"
-# }
-# List computes
-# List all the compute servers:
-#
-# # curl "http://localhost:3080/v2/computes"
-# [
-#     {
-#         "compute_id": "local",
-#         "connected": true,
-#         "host": "127.0.0.1",
-#         "name": "local",
-#         "port": 3080,
-#         "protocol": "http",
-#         "user": "admin"
-#     }
-# ]
-# There is only one compute server where nodes can be run in this example. This
-# compute as a special id: local, this is the local server which is embedded in
-# the GNS3 controller.
-#
 # Create a project
 # The next step is to create a project:
 #
@@ -366,35 +325,7 @@ def set_switch(name_index=1):
 #     "name": "test",
 #     "project_id": "b8c070f7-f34c-4b7b-ba6f-be3d26ed073f",
 # }
-# Create nodes
-# Using the project id, it is now possible to create two VPCS nodes:
-#
-# # curl -X POST "http://localhost:3080/v2/projects/b8c070f7-f34c-4b7b-ba6f-be3d26ed073f/nodes" -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "local"}'
-# {
-#     "compute_id": "local",
-#     "console": 5000,
-#     "console_host": "127.0.0.1",
-#     "console_type": "telnet",
-#     "name": "VPCS 1",
-#     "node_id": "f124dec0-830a-451e-a314-be50bbd58a00",
-#     "node_type": "vpcs",
-#     "project_id": "b8c070f7-f34c-4b7b-ba6f-be3d26ed073f",
-#     "status": "stopped"
-# }
-#
-# # curl -X POST "http://localhost:3080/v2/projects/b8c070f7-f34c-4b7b-ba6f-be3d26ed073f/nodes" -d '{"name": "VPCS 2", "node_type": "vpcs", "compute_id": "local"}'
-# {
-#     "compute_id": "local",
-#     "console": 5001,
-#     "console_host": "127.0.0.1",
-#     "console_type": "telnet",
-#     "name": "VPCS 2",
-#     "node_id": "83892a4d-aea0-4350-8b3e-d0af3713da74",
-#     "node_type": "vpcs",
-#     "project_id": "b8c070f7-f34c-4b7b-ba6f-be3d26ed073f",
-#     "properties": {},
-#     "status": "stopped"
-# }
+""""""
 # Link nodes
 # The two VPCS nodes can be linked together using their port number 0 (VPCS has only one network adapter with one port):
 #
@@ -1017,7 +948,7 @@ def main():
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
     # curl "http://192.168.139.128:3080/v2/computes"
     vm = Gns3('192.168.139.128')
-    print("\nGNS3 VM: ")
+    # print("\nGNS3 VM: ")
     # print(vm)
     # pprint(vm.version)
     # pprint(vm.computes)
@@ -1030,16 +961,19 @@ def main():
     # pprint(pc.computes)
     # pprint(pc.projects)
     nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5', '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10')
-    new_switch = set_switch()
-    pprint(pc.nodes(project_id=project_id, new=new_switch))
     # new_node = set_node(nodes[0], '24')
     # pprint(pc.nodes(project_id=project_id, new=new_node))
-    # new_hub = set_hub()
-    # breakpoint()
+    new_switch = set_switch()
+    new_hub = set_hub()
+    new_node = set_node(nodes[0], '24')
+    pprint(pc.nodes(project_id=project_id, new=new_node))
+    pprint(pc.nodes(project_id=project_id, new=new_hub))
+    pprint(pc.nodes(project_id=project_id, new=new_switch))
     # for nodeip in nodes:
     #     new_node = set_node(nodeip, '24')
     #     pprint(pc.nodes(project_id=project_id, new=new_node))
     #     pprint(pc.nodes(project_id=project_id, new=new_hub))
+
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 
