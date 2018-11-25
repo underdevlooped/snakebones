@@ -22,6 +22,7 @@ Simulation results of networks with 10 switches (with 8 ports), 10 dumbhubs
 (with 8 ports) and 100 hosts.  3:7 subnets, 0:5 uncooperative switchs
 """
 from ast import literal_eval
+from itertools import count
 from json import dumps, loads
 from pdb import set_trace as breakpoint
 from pprint import pprint
@@ -83,7 +84,7 @@ def curl_get(server=None, port=None, project_id=None, cmd=None):
         - 'computes': lista todos os servidores com seus detalhes de conexao
     :return: resposta em objto convertido
     """
-    cmd_prefix = f"curl {server}:{port}/v2"
+    cmd_prefix = f"curl http://{server}:{port}/v2"
     if project_id:
         cmd_prefix = f"{cmd_prefix}/projects/{project_id}"
     if cmd:
@@ -110,7 +111,7 @@ def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
     :return: resposta em objto convertido
     """
     cmd_prefix = \
-        f"curl -X POST {server}:{port}/v2/projects/{project_id}/{cmd} -d "
+        f"curl -X POST http://{server}:{port}/v2/projects/{project_id}/{cmd} -d "
 
     cmd_send = f"{cmd_prefix} '{dumps(data)}'"
     cmd_ans = \
@@ -158,8 +159,9 @@ def set_node(ip=None, prefix='24', gateway=None):
 
 
 # HINT set_hub: gerador de script modelo para hubs
-def set_hub():
+def set_hub(name_index=1):
     false, null, true = False, None, True
+    name = f"SW-HUB{name_index}"
 
     hub_cfg = \
         {
@@ -175,7 +177,7 @@ def set_hub():
             #     "x": 14,
             #     "y": -24
             # },
-            "name": "SW-HUB",
+            "name": name,
             # "node_id": "3c59e645-08af-4d77-90b9-1c212f67929f",
             "node_type": "ethernet_switch",
             "port_name_format": "Ethernet{0}",
@@ -242,7 +244,7 @@ def set_hub():
 
 # HINT set_switch: gerador de script modelo para switch
 def set_switch(name_index=1):
-    name = "v" + str(name_index)
+    name = f"v{name_index}"
     false, null, true = False, None, True
     # if gateway:
     #     starturp_script = "set pcname -" + ip + "-\n" + \
@@ -955,24 +957,29 @@ def main():
     # pprint(vm.projects)
 
     pc = Gns3('192.168.139.1')
-    # print("\nGNS3 PC: ")
-    # print(pc)
-    # pprint(pc.version)
-    # pprint(pc.computes)
-    # pprint(pc.projects)
+    print("\nGNS3 PC: ")
+    print(pc)
+    pprint(pc.version)
+    pprint(pc.computes)
+    pprint(pc.projects)
     nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5', '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10')
+    # new_switch = set_switch()
+    # new_hub = set_hub()
     # new_node = set_node(nodes[0], '24')
     # pprint(pc.nodes(project_id=project_id, new=new_node))
-    new_switch = set_switch()
-    new_hub = set_hub()
-    new_node = set_node(nodes[0], '24')
-    pprint(pc.nodes(project_id=project_id, new=new_node))
-    pprint(pc.nodes(project_id=project_id, new=new_hub))
-    pprint(pc.nodes(project_id=project_id, new=new_switch))
-    # for nodeip in nodes:
-    #     new_node = set_node(nodeip, '24')
-    #     pprint(pc.nodes(project_id=project_id, new=new_node))
-    #     pprint(pc.nodes(project_id=project_id, new=new_hub))
+    # pprint(pc.nodes(project_id=project_id, new=new_hub))
+    # pprint(pc.nodes(project_id=project_id, new=new_switch))
+    conta_sw = count(1)
+    conta_hub = count(1)
+    for nodeip in nodes:
+        new_switch = set_switch()
+        new_switch['name'] = f"v{next(conta_sw)}"
+        new_hub = set_hub()
+        new_hub['name'] = f"SW-HUB{next(conta_hub)}"
+        new_node = set_node(nodeip, '24')
+        pprint(pc.nodes(project_id=project_id, new=new_switch))
+        pprint(pc.nodes(project_id=project_id, new=new_hub))
+        pprint(pc.nodes(project_id=project_id, new=new_node))
 
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
