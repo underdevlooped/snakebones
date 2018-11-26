@@ -237,7 +237,6 @@ class SubNet(IPv4Network):
         """Define atributo 'arp_table' da SubNet. Caso nao seja atribuido
         auto_fill, atualiza tabela ARP do elemento.
         """
-        # TODO: SubNet: update_arp_table (testar)
         self._arp_table = set_arp_table(
             self, probes, auto_fill, manual_fill)
 
@@ -870,122 +869,7 @@ class InternalNode(Node):
 NodeL3 = Union[LeafNode, InternalNode]
 
 
-# %% classe Tree Tn(Vn, En)
-class Tree(object):
-    """
-    Classe destinada as arvores nao direcionadas.
-
-    - Cada 'SubNet' determina uma 'Tree' Tn(Vn, En).
-    - Cada 'Tree' implementa uma 'SkeletonTree'.
-    Represent sub-arvore do spanning-tree (UniTree) com os nodes da 'SubNet'.
-    Resultado da uniao de todos os caminhos {Ps,t} entre cada par de nodes da
-    'SubNet'.
-
-    Contem switches de juncao (junction nodes) com grau 3 ou maior e switches
-    de transito (transit nodes) com grau 2
-
-    nodes e links para designar elementos de rede e suas interconexoes.
-
-    Atributos:
-    ----
-    path:
-        caminho P(s,t) de um node *s* para node *t* na mesma sub-rede
-    nodes:
-        lista de nodes pertencentes a Tree da sub-rede
-    root:
-        elemento definido como root (raiz)
-    """
-    _num_of_trees = 0
-
-    def __new__(cls, *args, **kargs):
-        """Cria objeto Tree e incrementa contador"""
-        cls._num_of_trees += 1
-        return super().__new__(cls)
-
-    # TODO estruturacao construtor da classe Tree (em andamento)
-    def __init__(self, subnet: SubNet):
-        self.subnet = subnet
-        self.nodes = subnet.nodes
-        self._root = None
-
-    def __del__(self):
-        Tree._num_of_trees -= 1
-
-    def __repr__(self):
-        return self.__class__.__name__ + '(' + repr(self.subnet) + ')'
-
-    @property
-    def num_of_trees(self):
-        """Retorna numero de instancias Tree criadas"""
-        return self._num_of_trees
-
-    @property
-    def subnet(self):
-        """Retorna endereco de rede referente a Tree"""
-        return self._subnet
-
-    @subnet.setter
-    def subnet(self, value: SubNet):
-        self._subnet = value
-
-    @property
-    def nodes(self):
-        """Retorna lista Vn de nodes pertencentes a Tree da sub-rede"""
-        return self._nodes
-
-    @nodes.setter
-    def nodes(self, value: Union[LeafNode, InternalNode, Node]):
-        self._nodes = value
-
-    @property
-    def root(self):
-        """Retorna elemento definido como root (raiz)"""
-        return self._root
-
-    @root.setter
-    def root(self, value: LeafNode):
-        self._root = value
-
-
-# %% classe UniTree G(V,E)
-class UniTree(object):
-    """
-    Classe destinada ao Spanning Tree nao direcionado explored network).
-    Corresponde a uniao de todas as arvores Tree. Switches sao internal nodes,
-    hosts e routers sao leaf nodes.
-
-    G(V,E)
-    ----
-    - G:
-        UniTree
-
-    - V:
-        node em V representa 1 elemento de rede (labeled and unlabeled nodes)
-
-        - Labeled node:
-            - tem MAC e fornece AFT por meio de solicitacoes SNMP
-            - switchs com snmp e hosts
-            - cada labeled node eh associado a uma ou mais sub-redes
-        - Unlabeled node:
-            - sem suporte a SNMP (hub ou switch).
-    - E:
-        cada edge em E representa uma conexao fisica entre 2 portas do
-        elemento ativo
-
-    Atributos:
-    ----
-    path:
-        caminho P(s,t) de um node *s* para node *t* na mesma sub-rede
-    subnets:
-        sub-redes de G (spanning-tree), cada sub-rede definida pelo conjunto de
-        seus elementos.
-            - *N* = [N1, N2, ..., Nx]; N1 = [Node1, Node2, ..., Nodex]
-    """
-
-    # TODO estruturacao construtor da classe UniTree (em andamento)
-    def __init__(self, trees: List[Tree]):
-        self._nodes = None
-        self._root = None
+# HINT removido classes Tree e UniTree
 
 
 # %% Funcao get_node
