@@ -36,7 +36,7 @@ class Gns3(object):
 
     """
 
-    def __init__(self, server='localhost', port=3080, project_id=None, user=None, pword=None):
+    def __init__(self, server='localhost', port=3080, project_id=None):
         self.server = server
         self.port = str(port)
 
@@ -58,14 +58,49 @@ class Gns3(object):
                          cmd='nodes')
         return nodes
 
-    # HINT Gns3: metodo links para criar e listar nodes
+    # HINT Gns3: metodo links para criar e listar links
+    # HINT Gns3: metodo links para criar considera portas disponiveis
     def links(self, project_id=None, new=None):
         if new:
+            a_id, b_id = new[0], new[1]
+            node_a = curl_get(server=self.server,
+                              port=self.port,
+                              project_id=project_id,
+                              cmd=f'nodes/{a_id}')
+            node_b = curl_get(server=self.server,
+                              port=self.port,
+                              project_id=project_id,
+                              cmd=f'nodes/{b_id}')
+
+            try:
+                free_a = self.freeports(project_id=project_id, node_id=a_id)[0]
+                free_b = self.freeports(project_id=project_id, node_id=b_id)[0]
+            except IndexError as err:
+                return f'Sem porta livre para criar link'
+            if node_a.get('node_type') == 'qemu':
+                end_a = {'node_id': a_id,
+                         'adapter_number': free_a,
+                         'port_number': 0}
+            else:
+                end_a = {'node_id': a_id,
+                         'adapter_number': 0,
+                         'port_number': free_a}
+            if node_b.get('node_type') == 'qemu':
+                end_b = {'node_id': b_id,
+                         'adapter_number': free_b,
+                         'port_number': 0}
+            else:
+                end_b = {'node_id': b_id,
+                         'adapter_number': 0,
+                         'port_number': free_b}
+
+            link_cfg = {'nodes': [end_a, end_b]}
+
             link = curl_post(server=self.server,
                              port=self.port,
                              project_id=project_id,
                              cmd='links',
-                             data=new)
+                             data=link_cfg)
             return link
         links = curl_get(server=self.server,
                          port=self.port,
@@ -79,11 +114,19 @@ class Gns3(object):
                          port=self.port,
                          project_id=project_id,
                          cmd=f'nodes/{node_id}')
-        ports = [port for port in range(node['properties']['adapters'])]
-        for link in self.links(project_id):
-            for node in link['nodes']:
-                if node['node_id'] == node_id:
-                    ports.remove(node['adapter_number'])
+        if node.get('properties').get('adapters'):
+            ports = [port for port in range(node['properties']['adapters'])]
+            for link in self.links(project_id):
+                for node in link['nodes']:
+                    if node['node_id'] == node_id:
+                        ports.remove(node['adapter_number'])
+        else:
+            ports = [port for port in range(len(node['ports']))]
+            # breakpoint()
+            for link in self.links(project_id):
+                for node in link['nodes']:
+                    if node['node_id'] == node_id:
+                        ports.remove(node['port_number'])
         return ports
 
     # HINT Gns3: atributos convertidos em property p mostrar estado atualizado
@@ -1041,16 +1084,61 @@ def main():
     #     pprint(pc.nodes(project_id=project_id, new=new_node))
 
     print('\nLinks: ')
+    # breakpoint()
     pprint(pc.links(project_id=project_id))
-    node_a = "82f33431-5c66-418e-a45a-a8eb542ac13a"
-    node_b = "4ecdda6f-3971-495d-a95a-959d3c6d868d"
-    free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
-    free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
-    new_link = set_link(node_a, free_a, node_b, free_b)
+    node_a = "82f33431-5c66-418e-a45a-a8eb542ac13a"  # v1
+    node_b = "4ecdda6f-3971-495d-a95a-959d3c6d868d"  # v2
+    # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+    # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+    # new_link = set_link(node_a, free_a, node_b, free_b)
     print('\n\n\n')
-    pprint(pc.links(project_id=project_id, new=new_link))
-    pprint(pc.freeports(project_id=project_id, node_id=node_b))
+    pprint(pc.links(project_id=project_id, new=(node_a, node_b)))
 
+    node_a = "82f33431-5c66-418e-a45a-a8eb542ac13a"  # v1
+    node_b = "4ecdda6f-3971-495d-a95a-959d3c6d868d"  # v2
+    # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+    # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+    # new_link = set_link(node_a, free_a, node_b, free_b)
+    print('\n\n\n')
+    pprint(pc.links(project_id=project_id, new=(node_a, node_b)))
+
+    node_a = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
+    node_b = "4ecdda6f-3971-495d-a95a-959d3c6d868d"  # v2
+    # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+    # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+    # new_link = set_link(node_a, free_a, node_b, free_b)
+    print('\n\n\n')
+    pprint(pc.links(project_id=project_id, new=(node_a, node_b)))
+
+    node_a = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
+    node_b = "4ecdda6f-3971-495d-a95a-959d3c6d868d"  # v2
+    # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+    # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+    # new_link = set_link(node_a, free_a, node_b, free_b)
+    print('\n\n\n')
+    pprint(pc.links(project_id=project_id, new=(node_a, node_b)))
+
+    node_a = "8847f3bb-0eae-40c4-bd20-078ab55fb771"  # vpc 10.2
+    node_b = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
+    pprint(pc.links(project_id=project_id, new=(node_a, node_b)))
+
+
+    # node_a = "82f33431-5c66-418e-a45a-a8eb542ac13a"  # v1
+    # node_b = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
+    # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+    # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+    # new_link = set_link(node_a, free_a, node_b, free_b)
+    # print('\n\n\n')
+    # pprint(pc.links(project_id=project_id, new=new_link))
+    #
+    # node_a = "8847f3bb-0eae-40c4-bd20-078ab55fb771"  # vpc 10.2
+    # node_b = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
+    # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+    # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+    # new_link = set_link(node_a, free_a, node_b, free_b)
+    # print('\n\n\n')
+    # pprint(pc.links(project_id=project_id, new=new_link))
+    #
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 
