@@ -108,6 +108,18 @@ class Gns3(object):
                          cmd='links')
         return links
 
+    # HINT Gns3: metodo clear_links remove todos os links existentes
+    def clear_links(self, project_id=None):
+        links = curl_get(server=self.server,
+                         port=self.port,
+                         project_id=project_id,
+                         cmd='links')
+        for link in links:
+            curl_delete(server=self.server,
+                        port=self.port,
+                        project_id=project_id,
+                        cmd=f'links/{link.get("link_id")}')
+
     # HINT Gns3: metodo freeports retorna portas livres de um node
     def freeports(self, project_id=None, node_id=None):
         node = curl_get(server=self.server,
@@ -172,7 +184,7 @@ def curl_get(server=None, port=None, project_id=None, cmd=None):
         cmd_prefix = f"{cmd_prefix}/{cmd}"
     cmd_send = cmd_prefix.split()
     cmd_ans = run(cmd_send, stdout=PIPE, universal_newlines=True).stdout
-    return loads(cmd_ans)  # convertido em json
+    return loads(cmd_ans)  # convertido de json
 
 
 # HINT usado json e f-string para melhorar legibilidade e corrigir erros
@@ -197,7 +209,20 @@ def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
     cmd_send = f"{cmd_prefix} '{dumps(data)}'"
     cmd_ans = \
         run(cmd_send, stdout=PIPE, universal_newlines=True, shell=True).stdout
-    return loads(cmd_ans)  # convertido em json
+    return loads(cmd_ans)  # convertido de json
+
+
+# curl -i -X DELETE 'http://localhost:3080/v2/projects/project_id/links/10456b36-5917-4992-a1c0-d2e07a56f2a2'
+# HINT curl_delete: remover objetos do servidor gns3
+def curl_delete(server=None, port=None, project_id=None, cmd=None):
+    cmd_send = \
+        f"curl -X DELETE http://{server}:{port}/v2/projects/{project_id}/{cmd}"
+    cmd_ans = \
+        run(cmd_send, stdout=PIPE, universal_newlines=True, shell=True).stdout
+    if cmd_ans:
+        return loads(cmd_ans)  # convertido de json
+    return None
+
 
 # HINT set_switch: gerador de script modelo para switch
 def set_switch(name_index=1):
@@ -1084,7 +1109,6 @@ def main():
     #     pprint(pc.nodes(project_id=project_id, new=new_node))
 
     print('\nLinks: ')
-    # breakpoint()
     pprint(pc.links(project_id=project_id))
     node_a = "82f33431-5c66-418e-a45a-a8eb542ac13a"  # v1
     node_b = "4ecdda6f-3971-495d-a95a-959d3c6d868d"  # v2
@@ -1121,9 +1145,11 @@ def main():
     node_a = "8847f3bb-0eae-40c4-bd20-078ab55fb771"  # vpc 10.2
     node_b = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
     pprint(pc.links(project_id=project_id, new=(node_a, node_b)))
+    pc.clear_links(project_id=project_id)
 
 
-    # node_a = "82f33431-5c66-418e-a45a-a8eb542ac13a"  # v1
+
+# node_a = "82f33431-5c66-418e-a45a-a8eb542ac13a"  # v1
     # node_b = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
     # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
     # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
