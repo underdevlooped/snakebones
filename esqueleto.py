@@ -884,7 +884,6 @@ ARP_TABLE_DATA = auto_arp_table_data()
 
 
 # %% funcao set_arp_table
-# HINT set_arp_table: incluido modo 'multiping' para usar nmap paralelo
 def set_arp_table(subnet: SubNet,
                   probes: int = 1,
                   auto_fill: Optional[bool] = None,
@@ -931,7 +930,6 @@ def set_arp_table(subnet: SubNet,
     :rtype: Optional[List[Tupla[IPv4Interface, EUI]]]
     """
     mode = mode.lower()
-    # HINT set_arp_table: corrigido possivel bug em arp_table_list e myip
     myip = None
     arp_table_list = None
     if manual_fill:
@@ -1110,7 +1108,6 @@ def ping_ip(ip_address: str,
     return True
 
 
-# HINT ping_nmap: ping concorrente com nmap para ip ou range de ips
 def ping_nmap(ips: List[str],
               probes: int = 1,
               timeout: int = 4,

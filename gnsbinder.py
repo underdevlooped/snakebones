@@ -43,7 +43,6 @@ class Gns3(object):
     def __repr__(self):
         return f"Gns3({self.server!r}, {self.port})"
 
-    # HINT Gns3: metodo nodes para criar e listar nodes
     def nodes(self, project_id=None, new=None):
         if new:
             node = curl_post(server=self.server,
@@ -58,8 +57,6 @@ class Gns3(object):
                          cmd='nodes')
         return nodes
 
-    # HINT Gns3: metodo links para criar e listar links
-    # HINT Gns3: metodo links para criar considera portas disponiveis
     def links(self, project_id=None, new=None):
         if new:
             a_id, b_id = new[0], new[1]
@@ -108,7 +105,6 @@ class Gns3(object):
                          cmd='links')
         return links
 
-    # HINT Gns3: metodo clear_links remove todos os links existentes
     def clear_links(self, project_id=None):
         links = curl_get(server=self.server,
                          port=self.port,
@@ -120,7 +116,6 @@ class Gns3(object):
                         project_id=project_id,
                         cmd=f'links/{link.get("link_id")}')
 
-    # HINT Gns3: metodo freeports retorna portas livres de um node
     def freeports(self, project_id=None, node_id=None):
         node = curl_get(server=self.server,
                          port=self.port,
@@ -141,7 +136,6 @@ class Gns3(object):
                         ports.remove(node['port_number'])
         return ports
 
-    # HINT Gns3: atributos convertidos em property p mostrar estado atualizado
     @property
     def version(self):
         return curl_get(server=self.server, port=self.port, cmd='version')
@@ -157,9 +151,7 @@ class Gns3(object):
 # criar node
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"compute_id": "vm", "console_type": "telnet", "name": "v1", "node_type": "qemu", "properties": {"qemu_path": "/usr/bin/qemu-system-x86_64", "ram": 768}, "symbol": ":/symbols/multilayer_switch.svg"}'
-# HINT curl_get: funcao envia comandos para o servidor GNS3 e captura resposta
-# HINT curl_get: atributos nomeados
-def curl_get(server=None, port=None, project_id=None, cmd=None):
+def curl_get(server=None, port=None, project_id=None, cmd=None) -> dict:
     """
     Envia comando cURL para servidor GNS3, captura resposta em string, formata e
     retorca conversao em objeto apropriado.
@@ -187,7 +179,6 @@ def curl_get(server=None, port=None, project_id=None, cmd=None):
     return loads(cmd_ans)  # convertido de json
 
 
-# HINT usado json e f-string para melhorar legibilidade e corrigir erros
 def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
     """
     Envia comando cURL para servidor GNS3, captura resposta em string, formata e
@@ -213,7 +204,6 @@ def curl_post(server=None, port=None, project_id=None, cmd=None, data=None):
 
 
 # curl -i -X DELETE 'http://localhost:3080/v2/projects/project_id/links/10456b36-5917-4992-a1c0-d2e07a56f2a2'
-# HINT curl_delete: remover objetos do servidor gns3
 def curl_delete(server=None, port=None, project_id=None, cmd=None):
     cmd_send = \
         f"curl -X DELETE http://{server}:{port}/v2/projects/{project_id}/{cmd}"
@@ -224,7 +214,6 @@ def curl_delete(server=None, port=None, project_id=None, cmd=None):
     return None
 
 
-# HINT set_switch: gerador de script modelo para switch
 def set_switch(name_index=1):
     name = f"v{name_index}"
     false, null, true = False, None, True
@@ -301,7 +290,6 @@ def set_switch(name_index=1):
     return switch_cfg
 
 
-# HINT set_hub: gerador de script modelo para hubs
 def set_hub(name_index=1):
     false, null, true = False, None, True
     name = f"SW-HUB{name_index}"
@@ -386,7 +374,6 @@ def set_hub(name_index=1):
     return hub_cfg
 
 
-# HINT set_node: gerador de script modelo para nodes
 def set_node(ip=None, prefix='24', gateway=None):
     false, null, true = False, None, True
     if gateway:
@@ -426,8 +413,6 @@ def set_node(ip=None, prefix='24', gateway=None):
     return node_cfg
 
 
-# HINT set_node: gerador de script modelo para links
-# HINT set_node: novos atributos para definir adaptadores
 def set_link(a_id, a_adapter, b_id, b_adapter):
     # teste = {"properties": {"adapters": 16}}
     link_cfg = \

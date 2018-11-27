@@ -869,9 +869,6 @@ class InternalNode(Node):
 NodeL3 = Union[LeafNode, InternalNode]
 
 
-# HINT removido classes Tree e UniTree
-
-
 # %% Funcao get_node
 def get_node(node: Union[bytes, str, LeafNode, InternalNode]) \
         -> Union[None, LeafNode, InternalNode]:
@@ -1891,7 +1888,6 @@ def main():
         nms_config(True)
         ARP_TABLE_DATA = dict()
         for rede in redes:
-            # HINT main: bug descoberta icmp/ping (lentidao e arp timeout)
             rede.arp_table = \
                 set_arp_table(rede,
                               probes=1,
