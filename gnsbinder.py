@@ -21,11 +21,19 @@ router with a dedicated port for each subnet.
 Simulation results of networks with 10 switches (with 8 ports), 10 dumbhubs
 (with 8 ports) and 100 hosts.  3:7 subnets, 0:5 uncooperative switchs
 """
+
+import networkx as nx  # para trabalhar com grafos
+import matplotlib.pyplot as plt
+
 from ast import literal_eval
-from itertools import count
+from itertools import count, takewhile
 from json import dumps, loads
+from networkx.generators.trees import random_tree
+from networkx.algorithms.tree.recognition import is_tree, is_arborescence
 from pdb import set_trace as breakpoint
 from pprint import pprint
+from random import randint, randrange, sample
+from string import ascii_lowercase
 from subprocess import run, PIPE
 
 
@@ -1054,6 +1062,29 @@ def set_link(a_id, a_adapter, b_id, b_adapter):
 
 
 def main():
+
+    # HINT criada estrutua inicial arvore aleatoria
+    randtree = random_tree(10)
+    extras = 'a b c d e f'.split()
+    amostras = 2
+    # FIXME dividir lista extras em partes proporcionais as amostras
+    while len(extras) > 0:
+        extras.pop()
+    for node in sample(randtree.nodes, k=amostras):
+        randtree.add_edges_from([(node, 'a'), (node, 'b')])
+    pprint(list(randtree.nodes))
+    options = {
+        'node_color': 'lightblue',
+        # 'node_size': 500,
+        'width': 2,
+        'with_labels': True
+        # 'font_weight': 'bold'
+    }
+    # plt.subplot()
+    nx.draw(randtree, **options)
+    plt.show()
+
+    breakpoint()
 
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
     # curl "http://192.168.139.128:3080/v2/computes"
