@@ -6,6 +6,7 @@
 __init__.py
 *.jar
 *.sig
+gns_confgen.py
 
 
 # Created by https://www.gitignore.io/api/linux,python,windows,pycharm,pycharm+all
