@@ -446,6 +446,30 @@ def split(iterable, n):
     return (iterable[i * div + min(i, mod):(i + 1) * div + min(i + 1, mod)]
             for i in range(n))
 
+
+# HINT random_gns: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
+# FIXME random_gns: trocar nome dos nodes iniciais para switches
+def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
+    randtree = random_tree(sw_nodes)
+    hubs = (''.join(['hub', str(i)]) for i in range(1, hub_nodes + 1))
+    hosts = (''.join(['host', str(i)]) for i in range(1, host_nodes + 1))
+    switches = (''.join(['v', str(i)]) for i in range(1, 11))
+    tree_nodes = list(randtree.nodes)
+    for hub in hubs:
+        # breakpoint()
+        randtree.add_edge(sample(tree_nodes, 1).pop(), hub)
+    host_chunks = split(list(hosts), len(randtree.nodes))
+    tree_nodes = list(randtree.nodes)
+    for host_chunk, node in zip(host_chunks, tree_nodes):
+        for host in host_chunk:
+            randtree.add_edge(host, node)
+
+    if plot:
+        options = plot
+        nx.draw(randtree, **options)
+        plt.show()
+    return randtree
+
 # Create a project
 # The next step is to create a project:
 #
@@ -1077,34 +1101,15 @@ def split(iterable, n):
 
 def main():
 
-    # HINT criada arvore aleatoria para alimentar GNS3
-    randtree = random_tree(10)
-    # hubs = 'a b c d e f g'.split()
-    hubs = (''.join(['hub', str(i)]) for i in range(1,11))
-    hosts = (''.join(['host', str(i)]) for i in range(1,101))
-    switches = (''.join(['v', str(i)]) for i in range(1, 11))
-    # amostras = len(hubs)
-    tree_nodes = list(randtree.nodes)
-    for hub in hubs:
-        # breakpoint()
-        randtree.add_edge(sample(tree_nodes,1).pop(), hub)
-    host_chunks = split(list(hosts), len(randtree.nodes))
-    tree_nodes = list(randtree.nodes)
-    for host_chunk, node in zip(host_chunks, tree_nodes):
-        for host in host_chunk:
-            randtree.add_edge(host, node)
-
-    pprint(list(randtree.nodes))
-    options = {
+    plot_options = {
         'node_color': 'lightblue',
         # 'node_size': 500,
         'width': 2,
         'with_labels': True
         # 'font_weight': 'bold'
     }
-    # plt.subplot()
-    nx.draw(randtree, **options)
-    plt.show()
+    randtree = random_gns(6, 3, 27, plot_options)
+    pprint(list(randtree.nodes))
 
     breakpoint()
 
