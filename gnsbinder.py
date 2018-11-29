@@ -1077,15 +1077,23 @@ def split(iterable, n):
 
 def main():
 
-    # HINT criada estrutua inicial arvore aleatoria
+    # HINT criada arvore aleatoria para alimentar GNS3
     randtree = random_tree(10)
-    extras = 'a b c d e f'.split()
-    amostras = 2
-    # FIXME dividir lista extras em partes proporcionais as amostras
-    while len(extras) > 0:
-        extras.pop()
-    for node in sample(randtree.nodes, k=amostras):
-        randtree.add_edges_from([(node, 'a'), (node, 'b')])
+    # hubs = 'a b c d e f g'.split()
+    hubs = (''.join(['hub', str(i)]) for i in range(1,11))
+    hosts = (''.join(['host', str(i)]) for i in range(1,101))
+    switches = (''.join(['v', str(i)]) for i in range(1, 11))
+    # amostras = len(hubs)
+    tree_nodes = list(randtree.nodes)
+    for hub in hubs:
+        # breakpoint()
+        randtree.add_edge(sample(tree_nodes,1).pop(), hub)
+    host_chunks = split(list(hosts), len(randtree.nodes))
+    tree_nodes = list(randtree.nodes)
+    for host_chunk, node in zip(host_chunks, tree_nodes):
+        for host in host_chunk:
+            randtree.add_edge(host, node)
+
     pprint(list(randtree.nodes))
     options = {
         'node_color': 'lightblue',
