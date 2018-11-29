@@ -26,13 +26,13 @@ import networkx as nx  # para trabalhar com grafos
 import matplotlib.pyplot as plt
 
 from ast import literal_eval
-from itertools import count, takewhile
+from itertools import count, takewhile, repeat
 from json import dumps, loads
 from networkx.generators.trees import random_tree
 from networkx.algorithms.tree.recognition import is_tree, is_arborescence
 from pdb import set_trace as breakpoint
 from pprint import pprint
-from random import randint, randrange, sample
+from random import randint, randrange, sample, choice
 from string import ascii_lowercase
 from subprocess import run, PIPE
 
@@ -432,6 +432,20 @@ def set_link(a_id, a_adapter, b_id, b_adapter):
                     'port_number': 0}
                    ]}
     return link_cfg
+
+
+# HINT chunks: funcao para dividir em partes de n hosts
+def chunks(iterable, n):
+    for i in range(0, len(iterable), n):
+        yield iterable[i:i + n]
+
+
+# HINT split: funcao para dividir uniformemente hosts em n partes
+def split(iterable, n):
+    div, mod = divmod(len(iterable), n)
+    return (iterable[i * div + min(i, mod):(i + 1) * div + min(i + 1, mod)]
+            for i in range(n))
+
 # Create a project
 # The next step is to create a project:
 #
