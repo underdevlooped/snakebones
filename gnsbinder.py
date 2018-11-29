@@ -448,12 +448,14 @@ def split(iterable, n):
 
 
 # HINT random_gns: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
-# FIXME random_gns: trocar nome dos nodes iniciais para switches
+# HINT random_gns: trocado label dos nodes iniciais para switches
 def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
     randtree = random_tree(sw_nodes)
-    hubs = (''.join(['hub', str(i)]) for i in range(1, hub_nodes + 1))
-    hosts = (''.join(['host', str(i)]) for i in range(1, host_nodes + 1))
-    switches = (''.join(['v', str(i)]) for i in range(1, 11))
+    hubs = (''.join(['HUB', str(i)]) for i in range(1, hub_nodes + 1))
+    hosts = (''.join(['h', str(i)]) for i in range(1, host_nodes + 1))
+    switches = (''.join(['v', str(i)]) for i in range(1, sw_nodes + 1))
+    mapping = dict(list(zip(randtree.nodes, switches)))
+    randtree = nx.relabel.relabel_nodes(randtree, mapping)
     tree_nodes = list(randtree.nodes)
     for hub in hubs:
         # breakpoint()
@@ -1109,6 +1111,7 @@ def main():
         # 'font_weight': 'bold'
     }
     randtree = random_gns(6, 3, 27, plot_options)
+    # randtree = random_gns(6, 3, 27)
     pprint(list(randtree.nodes))
 
     breakpoint()
