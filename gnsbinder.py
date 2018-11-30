@@ -11,7 +11,7 @@ terca, 203‎ de novembro de ‎2018, 21:08:21
 Integrar cURL a API GNS3 com python
 
 Initially, we generated a random tree of switches that defines
-the switches’ connectivity. Then, we randomly connect the
+the switches connectivity. Then, we randomly connect the
 required number of hubs to free switch ports and we uniformly
 attached hosts to the switches and the hubs of the constructed
 tree. In the following, we arbitrarily associated each host with
@@ -126,9 +126,9 @@ class Gns3(object):
 
     def freeports(self, project_id=None, node_id=None):
         node = curl_get(server=self.server,
-                         port=self.port,
-                         project_id=project_id,
-                         cmd=f'nodes/{node_id}')
+                        port=self.port,
+                        project_id=project_id,
+                        cmd=f'nodes/{node_id}')
         if node.get('properties').get('adapters'):
             ports = [port for port in range(node['properties']['adapters'])]
             for link in self.links(project_id):
@@ -155,6 +155,7 @@ class Gns3(object):
     @property
     def projects(self):
         return curl_get(server=self.server, port=self.port, cmd='projects')
+
 
 # criar node
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
@@ -287,7 +288,8 @@ def set_switch(name_index=1):
                 # "process_priority": "normal",
                 "qemu_path": "/usr/bin/qemu-system-x86_64",
                 "ram": 768,
-            #     "usage": "There is no default password and enable password. There is no default configuration present."
+                # "usage": "There is no default password and enable password.
+                # There is no default configuration present."
             },
             "symbol": ":/symbols/multilayer_switch.svg",
             # "width": 51,
@@ -403,7 +405,7 @@ def set_node(ip=None, prefix='24', gateway=None):
             #     # "x": 19,
             #     # "y": -25
             # },
-            "name": ip[ip.find('.',3)+1:],
+            "name": ip[ip.find('.', 3) + 1:],
             # "node_id": "1c867306-7db3-4368-bc26-a76ec61451fe",
             "node_type": "vpcs",
             "port_name_format": "Ethernet{0}",
@@ -457,8 +459,12 @@ def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
     switches = (''.join(['v', str(i)]) for i in range(1, sw_nodes + 1))
     mapping = dict(list(zip(randtree.nodes, switches)))
     randtree = nx.relabel.relabel_nodes(randtree, mapping)
-    for node in randtree.nodes:
-        randtree.nodes[node]['type'] = 'switch'
+    # for node in randtree.nodes:
+    #     randtree.nodes[node]['type'] = 'switch'
+    attribs = {node: {'type': 'switch', 'color': 'orange'}
+               for node in randtree.nodes}
+    nx.set_node_attributes(randtree, attribs)
+    # nx.set_node_attributes(randtree, 'switch', 'type')
     tree_nodes = list(randtree.nodes)
     for hub in hubs:
         # breakpoint()
@@ -466,6 +472,7 @@ def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
     for node in randtree.nodes:
         if not randtree.nodes[node].get('type'):
             randtree.nodes[node]['type'] = 'hub'
+            randtree.nodes[node]['color'] = 'pink'
     host_chunks = split(list(hosts), len(randtree.nodes))
     tree_nodes = list(randtree.nodes)
     for host_chunk, node in zip(host_chunks, tree_nodes):
@@ -474,12 +481,42 @@ def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
     for node in randtree.nodes:
         if not randtree.nodes[node].get('type'):
             randtree.nodes[node]['type'] = 'host'
+            randtree.nodes[node]['color'] = 'lightblue'
 
     if plot:
-        options = plot
+        cores_nodes = [randtree.nodes[node]['color'] for node in randtree.nodes]
+        # cores = []
+        options = {
+            # 'pos':(dictionary, optional),
+            'with_labels': True,
+            'font_weight': 'bold',
+            'nodelist': randtree.nodes(),
+            'edgelist': randtree.edges(),
+            'node_size': 800,
+            # 'node_size':array,
+            # 'node_color': 'r',
+            'node_color': cores_nodes,
+            'node_shape': 'o',
+            # s - square
+            # o - circle
+            # ^>v< - triangles
+            # d - diamond
+            # p - pentagon
+            # h - hexagon
+            # 8 - 8 sides
+            'alpha': 1.0,
+            'linewidths': 1.0,
+            # ([None | scalar | sequence])
+            'width': 1.7,
+            'edge_color': 'darkblue'
+            # 'edge_color':array,
+        }
+        options.update(plot)
+        # nx.draw_networkx(randtree, **options)
         nx.draw(randtree, **options)
         plt.show()
     return randtree
+
 
 # Create a project
 # The next step is to create a project:
@@ -1111,16 +1148,16 @@ def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
 
 
 def main():
-
     plot_options = {
-        'node_color': 'lightblue',
-        # 'node_size': 500,
-        'width': 2,
+        # 'node_color': 'lightblue',
+        # 'node_size': 800,
+        # 'width': 1.7,
         'with_labels': True
         # 'font_weight': 'bold'
     }
-    randtree = random_gns(60, 30, 270, plot_options)
+    randtree = random_gns(6, 3, 27, plot_options)
     # randtree = random_gns(6, 3, 27)
+    type_ditc = nx.get_node_attributes(randtree, 'type')
     pprint(list(randtree.nodes))
 
     breakpoint()
@@ -1140,7 +1177,8 @@ def main():
     pprint(pc.version)
     pprint(pc.computes)
     pprint(pc.projects)
-    nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5', '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10')
+    nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5',
+             '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10')
     # # Cria um de cada
     # new_switch = set_switch(name_index=1)
     # pprint(pc.nodes(project_id=project_id, new=new_switch))
@@ -1203,23 +1241,22 @@ def main():
     pc.clear_links(project_id=project_id)
 
 
-
 # node_a = "82f33431-5c66-418e-a45a-a8eb542ac13a"  # v1
-    # node_b = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
-    # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
-    # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
-    # new_link = set_link(node_a, free_a, node_b, free_b)
-    # print('\n\n\n')
-    # pprint(pc.links(project_id=project_id, new=new_link))
-    #
-    # node_a = "8847f3bb-0eae-40c4-bd20-078ab55fb771"  # vpc 10.2
-    # node_b = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
-    # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
-    # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
-    # new_link = set_link(node_a, free_a, node_b, free_b)
-    # print('\n\n\n')
-    # pprint(pc.links(project_id=project_id, new=new_link))
-    #
+# node_b = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
+# free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+# free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+# new_link = set_link(node_a, free_a, node_b, free_b)
+# print('\n\n\n')
+# pprint(pc.links(project_id=project_id, new=new_link))
+#
+# node_a = "8847f3bb-0eae-40c4-bd20-078ab55fb771"  # vpc 10.2
+# node_b = "a90255bb-f7ad-4c46-86c0-e2c6ca3c0ed3"  # HUB1
+# free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+# free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+# new_link = set_link(node_a, free_a, node_b, free_b)
+# print('\n\n\n')
+# pprint(pc.links(project_id=project_id, new=new_link))
+#
 
 # curl -X POST 192.168.139.1:3080/v2/projects/389dde3d-08ac-447b-8d54-b053a3f6ed19/nodes -d '{"name": "VPCS 1", "node_type": "vpcs", "compute_id": "vm"}'
 
