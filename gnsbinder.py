@@ -448,7 +448,8 @@ def split(iterable, n):
 
 
 # HINT random_gns: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
-# HINT random_gns: trocado label dos nodes iniciais para switches
+# HINT random_gns: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
+# HINT random_gns: incluido atributo para identificar cada node do grafo
 def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
     randtree = random_tree(sw_nodes)
     hubs = (''.join(['HUB', str(i)]) for i in range(1, hub_nodes + 1))
@@ -456,15 +457,23 @@ def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
     switches = (''.join(['v', str(i)]) for i in range(1, sw_nodes + 1))
     mapping = dict(list(zip(randtree.nodes, switches)))
     randtree = nx.relabel.relabel_nodes(randtree, mapping)
+    for node in randtree.nodes:
+        randtree.nodes[node]['type'] = 'switch'
     tree_nodes = list(randtree.nodes)
     for hub in hubs:
         # breakpoint()
         randtree.add_edge(sample(tree_nodes, 1).pop(), hub)
+    for node in randtree.nodes:
+        if not randtree.nodes[node].get('type'):
+            randtree.nodes[node]['type'] = 'hub'
     host_chunks = split(list(hosts), len(randtree.nodes))
     tree_nodes = list(randtree.nodes)
     for host_chunk, node in zip(host_chunks, tree_nodes):
         for host in host_chunk:
             randtree.add_edge(host, node)
+    for node in randtree.nodes:
+        if not randtree.nodes[node].get('type'):
+            randtree.nodes[node]['type'] = 'host'
 
     if plot:
         options = plot
@@ -1110,7 +1119,7 @@ def main():
         'with_labels': True
         # 'font_weight': 'bold'
     }
-    randtree = random_gns(6, 3, 27, plot_options)
+    randtree = random_gns(60, 30, 270, plot_options)
     # randtree = random_gns(6, 3, 27)
     pprint(list(randtree.nodes))
 
