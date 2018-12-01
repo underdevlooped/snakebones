@@ -452,6 +452,7 @@ def split(iterable, n):
 # HINT random_gns: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
 # HINT random_gns: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
 # HINT random_gns: incluido atributo para identificar cada node do grafo
+# HINT random_gns: retorna grafo, posicoes e opcoes
 def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
     randtree = random_tree(sw_nodes)
     hubs = (''.join(['HUB', str(i)]) for i in range(1, hub_nodes + 1))
@@ -483,39 +484,50 @@ def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
             randtree.nodes[node]['type'] = 'host'
             randtree.nodes[node]['color'] = 'lightblue'
 
+    cores_nodes = [randtree.nodes[node]['color'] for node in randtree.nodes]
+
+    options = {
+        # 'pos':(dictionary, optional),
+        'with_labels': True,
+        'font_weight': 'bold',
+        'nodelist': randtree.nodes(),
+        'edgelist': randtree.edges(),
+        'node_size': 800,
+        # 'node_size':array,
+        # 'node_color': 'r',
+        'node_color': cores_nodes,
+        'node_shape': 'o',
+        # s - square
+        # o - circle
+        # ^>v< - triangles
+        # d - diamond
+        # p - pentagon
+        # h - hexagon
+        # 8 - 8 sides
+        'alpha': 1.0,
+        'linewidths': 1.0,
+        # ([None | scalar | sequence])
+        'width': 1.7,
+        'edge_color': 'darkblue'
+        # 'edge_color':array,
+    }
+    places = nx.spring_layout(randtree)
     if plot:
-        cores_nodes = [randtree.nodes[node]['color'] for node in randtree.nodes]
-        # cores = []
-        options = {
-            # 'pos':(dictionary, optional),
-            'with_labels': True,
-            'font_weight': 'bold',
-            'nodelist': randtree.nodes(),
-            'edgelist': randtree.edges(),
-            'node_size': 800,
-            # 'node_size':array,
-            # 'node_color': 'r',
-            'node_color': cores_nodes,
-            'node_shape': 'o',
-            # s - square
-            # o - circle
-            # ^>v< - triangles
-            # d - diamond
-            # p - pentagon
-            # h - hexagon
-            # 8 - 8 sides
-            'alpha': 1.0,
-            'linewidths': 1.0,
-            # ([None | scalar | sequence])
-            'width': 1.7,
-            'edge_color': 'darkblue'
-            # 'edge_color':array,
-        }
         options.update(plot)
         # nx.draw_networkx(randtree, **options)
-        nx.draw(randtree, **options)
+        nx.draw(randtree, pos=places, **options)
         plt.show()
-    return randtree
+    return randtree, places, options
+
+
+# HINT plot_graph: funcao para plot simplificado com cores diferenciadas
+def plot_graph(graph, pos=None, options=None):
+    if options:
+        nx.draw(graph, pos=pos, **options)
+    else:
+        cores_nodes = [graph.nodes[node]['color'] for node in graph.nodes]
+        nx.draw(graph, pos=pos, node_color=cores_nodes, with_labels=True)
+    plt.show()
 
 
 # Create a project
@@ -1155,10 +1167,17 @@ def main():
         'with_labels': True
         # 'font_weight': 'bold'
     }
-    randtree = random_gns(6, 3, 27, plot_options)
-    # randtree = random_gns(6, 3, 27)
+    randtree, randtree_pos, randtree_opt = random_gns(6, 3, 27, plot_options)
+    # randtree, randtree_pos, randtree_opt = random_gns(6, 3, 27)
     type_ditc = nx.get_node_attributes(randtree, 'type')
     pprint(list(randtree.nodes))
+    plot_graph(randtree, randtree_pos, randtree_opt)
+    nx.nx_pydot.write_dot(randtree, '/home/akern/meugrafo')
+    glido = nx.Graph(nx.nx_pydot.read_dot('/home/akern/meugrafo'))
+    plot_graph(glido)
+    # converte e retaura para pydot
+    # pydot_g = nx.nx_pydot.to_pydot(randtree)
+    # restore = nx.nx_pydot.from_pydot(pydot_g)
 
     breakpoint()
 
