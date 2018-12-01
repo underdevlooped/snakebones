@@ -449,15 +449,15 @@ def split(iterable, n):
             for i in range(n))
 
 
-# HINT random_gns: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
-# HINT random_gns: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
-# HINT random_gns: incluido atributo para identificar cada node do grafo
-# HINT random_gns: retorna grafo, posicoes e opcoes
-def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
+# HINT random_graph: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
+# HINT random_graph: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
+# HINT random_graph: incluido atributo para identificar cada node do grafo
+# HINT random_graph: retorna grafo, posicoes e opcoes
+def random_graph(sw_nodes, hub_nodes, host_nodes, plot=None):
     randtree = random_tree(sw_nodes)
+    switches = (''.join(['v', str(i)]) for i in range(1, sw_nodes + 1))
     hubs = (''.join(['HUB', str(i)]) for i in range(1, hub_nodes + 1))
     hosts = (''.join(['h', str(i)]) for i in range(1, host_nodes + 1))
-    switches = (''.join(['v', str(i)]) for i in range(1, sw_nodes + 1))
     mapping = dict(list(zip(randtree.nodes, switches)))
     randtree = nx.relabel.relabel_nodes(randtree, mapping)
     # for node in randtree.nodes:
@@ -490,8 +490,6 @@ def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
         # 'pos':(dictionary, optional),
         'with_labels': True,
         'font_weight': 'bold',
-        'nodelist': randtree.nodes(),
-        'edgelist': randtree.edges(),
         'node_size': 800,
         # 'node_size':array,
         # 'node_color': 'r',
@@ -508,16 +506,27 @@ def random_gns(sw_nodes, hub_nodes, host_nodes, plot=None):
         'linewidths': 1.0,
         # ([None | scalar | sequence])
         'width': 1.7,
+        # 'edgecolors': 'black',
         'edge_color': 'darkblue'
         # 'edge_color':array,
     }
-    places = nx.spring_layout(randtree)
+    places = nx.spring_layout(randtree,
+                              # k=1.5/(len(randtree.nodes))*(1/2),
+                              # k=1/sqrt(len(randtree.nodes)),
+                              iterations=50)
     if plot:
         options.update(plot)
         # nx.draw_networkx(randtree, **options)
         nx.draw(randtree, pos=places, **options)
         plt.show()
     return randtree, places, options
+
+
+# HINT random_graphs: gerador de grafos em lote
+def random_graphs(sw_nodes, hub_nodes, host_nodes, many=1):
+    for i in range(many):
+        yield random_graph(sw_nodes, hub_nodes, host_nodes)
+    # pass
 
 
 # HINT plot_graph: funcao para plot simplificado com cores diferenciadas
@@ -1167,17 +1176,32 @@ def main():
         'with_labels': True
         # 'font_weight': 'bold'
     }
-    randtree, randtree_pos, randtree_opt = random_gns(6, 3, 27, plot_options)
-    # randtree, randtree_pos, randtree_opt = random_gns(6, 3, 27)
+    new_switches = 6
+    new_hubs     = 3
+    new_hosts    = 27
+    # randtree, randtree_pos, randtree_opt = random_graph(new_switches,
+    #                                                     new_hubs,
+    #                                                     new_hosts,
+    #                                                     plot=plot_options)
+    randtree, randtree_pos, randtree_opt = random_graph(new_switches,
+                                                        new_hubs,
+                                                        new_hosts)
     type_ditc = nx.get_node_attributes(randtree, 'type')
     pprint(list(randtree.nodes))
-    plot_graph(randtree, randtree_pos, randtree_opt)
-    nx.nx_pydot.write_dot(randtree, '/home/akern/meugrafo')
-    glido = nx.Graph(nx.nx_pydot.read_dot('/home/akern/meugrafo'))
-    plot_graph(glido)
     # converte e retaura para pydot
-    # pydot_g = nx.nx_pydot.to_pydot(randtree)
-    # restore = nx.nx_pydot.from_pydot(pydot_g)
+    # HINT main: converte, salva e le grafo do arquivo.
+    pydot_g = nx.nx_pydot.to_pydot(randtree)
+    restore = nx.nx_pydot.from_pydot(pydot_g)
+    plot_graph(restore, randtree_pos, randtree_opt)
+    graph_path = '/home/akern/Documents/grafos/'
+    graph_gen = random_graphs(new_switches, new_hubs, new_hosts, many=5)
+    # for i, (graph, places, options) in enumerate(graph_gen):
+    #     nx.nx_pydot.write_dot(graph, graph_path + 'meugrafo_' + str(i) + '.txt')
+
+    for i in range(5):
+        graph_loaded = nx.Graph(
+            nx.nx_pydot.read_dot(graph_path + 'meugrafo_' + str(i) + '.txt'))
+        plot_graph(graph_loaded, randtree_pos, randtree_opt)
 
     breakpoint()
 
