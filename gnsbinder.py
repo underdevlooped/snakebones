@@ -198,19 +198,23 @@ class Gns3(object):
         hub_tocreate = hub_graph_amout - hub_gns_amout
         host_tocreate = host_graph_amout - host_gns_amout
 
+        # HINT nodes_from_graph: ajustado area de criacao de cada tipo de node
         # Cria switches
         for i in range(sw_tocreate):
-            new_switch = set_switch(name_index=sw_gns_amout + 1 + i)
+            new_switch = set_switch(name_index=sw_gns_amout + 1 + i,
+                                    xyrange=(-635, 640, -841, -300))
             self.nodes(new=new_switch)
 
         # Cria hubs
         for i in range(hub_tocreate):
-            new_hub = set_hub(name_index=hub_gns_amout + 1 + i)
+            new_hub = set_hub(name_index=hub_gns_amout + 1 + i,
+                              xyrange=(-635, 640, -300, 100))
             self.nodes(new=new_hub)
 
         # Cria hosts
         for i in range(host_tocreate):
-            new_host = set_host(host_ips[host_gns_amout + i])
+            new_host = set_host(host_ips[host_gns_amout + i],
+                                xyrange=(-635, 640, 100, 810))
             self.nodes(new=new_host)
 
     @property
@@ -293,7 +297,7 @@ def curl_delete(server=None, port=None, project_id=None, cmd=None):
 
 
 # HINT rand_pos: retorna coodenada aleatoria para criar node na area visivel da topologia
-def rand_pos(xstart=-635, xstop=640, ystart=-841, ystop=810, step=150):
+def rand_pos(xstart=None, xstop=None, ystart=None, ystop=None, step=None):
     """
     Retorna coodenada aleatoria para criar node na area visivel da topologia com
     base na grid padrao.
@@ -305,16 +309,29 @@ def rand_pos(xstart=-635, xstop=640, ystart=-841, ystop=810, step=150):
     :param step:
     :return:
     """
+    if not xstart:
+        xstart=-635
+    if not xstop:
+        xstop=640
+    if not ystart:
+        ystart=-841
+    if not ystop:
+        ystop=810
+    if not step:
+        step=150
     x_pos = choice(range(xstart, xstop, step))
     y_pos = choice(range(ystart, ystop, step))
     return {'x': x_pos, 'y': y_pos}
 
 
 # HINT opcao de posicao para nodes definicao ou aleatoria
-def set_switch(name_index=1, pos=None):
+def set_switch(name_index=1, pos=None, xyrange=None):
     name = f"v{name_index}"
     if not pos:
-        pos = rand_pos()
+        if xyrange:
+            pos = rand_pos(*xyrange)
+        else:
+            pos = rand_pos()
     else:
         pos['x'], pos['y'] = pos
     false, null, true = False, None, True
@@ -392,11 +409,14 @@ def set_switch(name_index=1, pos=None):
     return switch_cfg
 
 
-def set_hub(name_index=1, pos=None):
+def set_hub(name_index=1, pos=None, xyrange=None):
     false, null, true = False, None, True
     name = f"SW-HUB{name_index}"
     if not pos:
-        pos = rand_pos()
+        if xyrange:
+            pos = rand_pos(*xyrange)
+        else:
+            pos = rand_pos()
     else:
         pos['x'], pos['y'] = pos
     hub_cfg = \
@@ -479,14 +499,17 @@ def set_hub(name_index=1, pos=None):
     return hub_cfg
 
 
-def set_host(ip=None, prefix='24', gateway=None, pos=None):
+def set_host(ip=None, prefix='24', gateway=None, pos=None, xyrange=None):
     false, null, true = False, None, True
     if gateway:
         starturp_script = f"set pcname -{ip}-\nip {ip} {gateway} {prefix}\n"
     else:
         starturp_script = f"set pcname -{ip}-\nip {ip} {prefix}\n"
     if not pos:
-        pos = rand_pos()
+        if xyrange:
+            pos = rand_pos(*xyrange)
+        else:
+            pos = rand_pos()
     else:
         pos['x'], pos['y'] = pos
     node_cfg = \
