@@ -68,8 +68,8 @@ class Gns3(object):
                          cmd='nodes')
         return nodes
 
-    # HINT nodes_amout: metodo retorna quantidade de switches hubs e host no projeto
-    def nodes_amout(self,
+    # HINT nodes_amouts: metodo retorna quantidade de switches hubs e host no projeto
+    def nodes_amouts(self,
                     project_id=None,
                     sw_str='qemu',
                     hub_str='ethernet_switch',
@@ -82,7 +82,7 @@ class Gns3(object):
         :param sw_str: string que identifica switchs nos nodes GNS3
         :param hub_str: string que identifica hubs nos nodes GNS3
         :param host_str: string que identifica hosts nos nodes GNS3
-        :return: quantidades de switches hubs e host
+        :return: quantidades de switches hubs e hosts
         """
         if not project_id:
             project_id = self.project_id
@@ -582,6 +582,30 @@ def plot_graph(graph, pos=None, options=None):
         cores_nodes = [graph.nodes[node]['color'] for node in graph.nodes]
         nx.draw(graph, pos=pos, node_color=cores_nodes, with_labels=True)
     plt.show()
+
+
+# HINT graph_nodes_amouts: retorna quantidade de switches hubs e host no grafo
+def graph_nodes_amouts(graph):
+    """
+    Retorna quantidade de switches hubs e host no grafo
+
+    :param graph: grafo gerado pela funcao random_graph
+    :return: quantidades de switches hubs e hosts
+    """
+    # for node in graph.nodes:
+    #     if graph.nodes['type'] ==
+    sw_count = count()
+    hub_count = count()
+    host_count = count()
+    for node in graph.nodes:
+        if graph.nodes[node]['type'] == 'switch':
+            next(sw_count)
+        elif graph.nodes[node]['type'] == 'hub':
+            next(hub_count)
+        elif graph.nodes[node]['type'] == 'host':
+            next(host_count)
+    sw, hub, host = map(next, [sw_count, hub_count, host_count])
+    return {'sw': sw, 'hub': hub, 'host': host}
 
 
 # Create a project
@@ -1269,8 +1293,9 @@ def main():
     pprint(pc.computes)
     pprint(pc.projects)
     pprint(pc.nodes())
-    pprint(pc.nodes_amout())
-    pprint(pc.nodes_amout()['host'])
+    pprint(pc.nodes_amouts())
+    pprint(pc.nodes_amouts()['host'])
+    pprint(graph_nodes_amouts(graph_list[0]))
 
     breakpoint()
 
