@@ -47,11 +47,14 @@ class Gns3(object):
     def __init__(self, server='localhost', port=3080, project_id=None):
         self.server = server
         self.port = str(port)
+        self.project_id = project_id
 
     def __repr__(self):
         return f"Gns3({self.server!r}, {self.port})"
 
     def nodes(self, project_id=None, new=None):
+        if not project_id:
+            project_id = self.project_id
         if new:
             node = curl_post(server=self.server,
                              port=self.port,
@@ -65,7 +68,45 @@ class Gns3(object):
                          cmd='nodes')
         return nodes
 
+    # HINT nodes_amout: metodo retorna quantidade de switches hubs e host no projeto
+    def nodes_amout(self,
+                    project_id=None,
+                    sw_str='qemu',
+                    hub_str='ethernet_switch',
+                    host_str='vpcs'):
+        """
+        Retorna quantidade de switches hubs e host no projeto em um dicionario
+        {'host': 0, 'hub': 0, 'sw': 0}
+
+        :param project_id: id do projeto no servidor GNS3
+        :param sw_str: string que identifica switchs nos nodes GNS3
+        :param hub_str: string que identifica hubs nos nodes GNS3
+        :param host_str: string que identifica hosts nos nodes GNS3
+        :return: quantidades de switches hubs e host
+        """
+        if not project_id:
+            project_id = self.project_id
+        nodes = curl_get(server=self.server,
+                         port=self.port,
+                         project_id=project_id,
+                         cmd='nodes')
+        sw_count = count()
+        hub_count = count()
+        host_count = count()
+        for node in nodes:
+            node_type = node.get('node_type')
+            if node_type == sw_str:
+                next(sw_count)
+            elif node_type == hub_str:
+                next(hub_count)
+            elif node_type == host_str:
+                next(host_count)
+        sw, hub, host = map(next, [sw_count, hub_count, host_count])
+        return {'sw': sw, 'hub': hub, 'host': host}
+
     def links(self, project_id=None, new=None):
+        if not project_id:
+            project_id = self.project_id
         if new:
             a_id, b_id = new[0], new[1]
             node_a = curl_get(server=self.server,
@@ -114,6 +155,8 @@ class Gns3(object):
         return links
 
     def clear_links(self, project_id=None):
+        if not project_id:
+            project_id = self.project_id
         links = curl_get(server=self.server,
                          port=self.port,
                          project_id=project_id,
@@ -125,6 +168,8 @@ class Gns3(object):
                         cmd=f'links/{link.get("link_id")}')
 
     def freeports(self, project_id=None, node_id=None):
+        if not project_id:
+            project_id = self.project_id
         node = curl_get(server=self.server,
                         port=self.port,
                         project_id=project_id,
@@ -1176,34 +1221,37 @@ def main():
         'with_labels': True
         # 'font_weight': 'bold'
     }
-    new_switches = 6
-    new_hubs     = 3
-    new_hosts    = 27
+    new_switches = 10
+    new_hubs = 10
+    new_hosts = 100
+    new_graphs = 10
     # randtree, randtree_pos, randtree_opt = random_graph(new_switches,
     #                                                     new_hubs,
-    #                                                     new_hosts,
-    #                                                     plot=plot_options)
-    randtree, randtree_pos, randtree_opt = random_graph(new_switches,
-                                                        new_hubs,
-                                                        new_hosts)
-    type_ditc = nx.get_node_attributes(randtree, 'type')
-    pprint(list(randtree.nodes))
-    # converte e retaura para pydot
-    # HINT main: converte, salva e le grafo do arquivo.
-    pydot_g = nx.nx_pydot.to_pydot(randtree)
-    restore = nx.nx_pydot.from_pydot(pydot_g)
-    plot_graph(restore, randtree_pos, randtree_opt)
+    #                                                     new_hosts)
+    # type_ditc = nx.get_node_attributes(randtree, 'type')
+    # pprint(list(randtree.nodes))
+    # # converte e retaura para pydot
+    # # HINT main: converte, salva e le grafo do arquivo.
+    # pydot_g = nx.nx_pydot.to_pydot(randtree)
+    # restore = nx.nx_pydot.from_pydot(pydot_g)
+    # plot_graph(restore, randtree_pos, randtree_opt)
+
     graph_path = '/home/akern/Documents/grafos/'
-    graph_gen = random_graphs(new_switches, new_hubs, new_hosts, many=5)
+    # # gerar e salvar grafos
+    # graph_gen = \
+    #     random_graphs(new_switches, new_hubs, new_hosts, many=new_graphs)
     # for i, (graph, places, options) in enumerate(graph_gen):
     #     nx.nx_pydot.write_dot(graph, graph_path + 'meugrafo_' + str(i) + '.txt')
 
-    for i in range(5):
+    # ler e fazer plot dos grafos
+    graph_list = list()
+    for i in range(new_graphs):
         graph_loaded = nx.Graph(
             nx.nx_pydot.read_dot(graph_path + 'meugrafo_' + str(i) + '.txt'))
-        plot_graph(graph_loaded, randtree_pos, randtree_opt)
+        graph_list.append(graph_loaded)
+        # plot_graph(graph_loaded, randtree_pos, randtree_opt)
 
-    breakpoint()
+    # breakpoint()
 
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
     # curl "http://192.168.139.128:3080/v2/computes"
@@ -1214,12 +1262,18 @@ def main():
     # pprint(vm.computes)
     # pprint(vm.projects)
 
-    pc = Gns3('192.168.139.1')
+    pc = Gns3('192.168.139.1', project_id=project_id)
     print("\nGNS3 PC: ")
     print(pc)
     pprint(pc.version)
     pprint(pc.computes)
     pprint(pc.projects)
+    pprint(pc.nodes())
+    pprint(pc.nodes_amout())
+    pprint(pc.nodes_amout()['host'])
+
+    breakpoint()
+
     nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5',
              '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10')
     # # Cria um de cada
