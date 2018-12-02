@@ -293,6 +293,24 @@ def curl_delete(server=None, port=None, project_id=None, cmd=None):
     return None
 
 
+# HINT rand_pos: retorna coodenada aleatoria para criar node na area visivel da topologia
+def rand_pos(xstart=-635, xstop=640, ystart=-841, ystop=810, step=150):
+    """
+    Retorna coodenada aleatoria para criar node na area visivel da topologia com
+    base na grid padrao.
+
+    :param xstart:
+    :param xstop:
+    :param ystart:
+    :param ystop:
+    :param step:
+    :return:
+    """
+    x_pos = choice(range(xstart, xstop, step))
+    y_pos = choice(range(ystart, ystop, step))
+    return {'x': x_pos, 'y': y_pos}
+
+
 def set_switch(name_index=1):
     name = f"v{name_index}"
     false, null, true = False, None, True
