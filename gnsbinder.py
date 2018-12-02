@@ -182,7 +182,6 @@ class Gns3(object):
                         ports.remove(node['adapter_number'])
         else:
             ports = [port for port in range(len(node['ports']))]
-            # breakpoint()
             for link in self.links(project_id):
                 for node in link['nodes']:
                     if node['node_id'] == node_id:
@@ -311,8 +310,13 @@ def rand_pos(xstart=-635, xstop=640, ystart=-841, ystop=810, step=150):
     return {'x': x_pos, 'y': y_pos}
 
 
-def set_switch(name_index=1):
+# HINT opcao de posicao para nodes definicao ou aleatoria
+def set_switch(name_index=1, pos=None):
     name = f"v{name_index}"
+    if not pos:
+        pos = rand_pos()
+    else:
+        pos['x'], pos['y'] = pos
     false, null, true = False, None, True
     # if gateway:
     #     starturp_script = "set pcname -" + ip + "-\n" + \
@@ -381,17 +385,20 @@ def set_switch(name_index=1):
             },
             "symbol": ":/symbols/multilayer_switch.svg",
             # "width": 51,
-            # "x": 53,
-            # "y": -247,
+            "x": pos["x"],
+            "y": pos["y"]
             # "z": 1
         }
     return switch_cfg
 
 
-def set_hub(name_index=1):
+def set_hub(name_index=1, pos=None):
     false, null, true = False, None, True
     name = f"SW-HUB{name_index}"
-
+    if not pos:
+        pos = rand_pos()
+    else:
+        pos['x'], pos['y'] = pos
     hub_cfg = \
         {
             "compute_id": "vm",
@@ -465,20 +472,23 @@ def set_hub(name_index=1):
             # },
             "symbol": ":/symbols/ethernet_switch.svg",
             # "width": 72,
-            # "x": 114,
-            # "y": 134,
+            "x": pos["x"],
+            "y": pos["y"]
             # "z": 1
         }
     return hub_cfg
 
 
-def set_host(ip=None, prefix='24', gateway=None):
+def set_host(ip=None, prefix='24', gateway=None, pos=None):
     false, null, true = False, None, True
     if gateway:
         starturp_script = f"set pcname -{ip}-\nip {ip} {gateway} {prefix}\n"
     else:
         starturp_script = f"set pcname -{ip}-\nip {ip} {prefix}\n"
-
+    if not pos:
+        pos = rand_pos()
+    else:
+        pos['x'], pos['y'] = pos
     node_cfg = \
         {
             "compute_id": "vm",
@@ -502,10 +512,10 @@ def set_host(ip=None, prefix='24', gateway=None):
                 "startup_script": starturp_script,
                 "startup_script_path": "startup.vpc"
             },
-            "symbol": ":/symbols/vpcs_guest.svg"
+            "symbol": ":/symbols/vpcs_guest.svg",
             # "width": 65,
-            # "x": -257,
-            # "y": -254,
+            "x": pos["x"],
+            "y": pos["y"]
             # "z": 1
         }
     return node_cfg
@@ -556,7 +566,6 @@ def random_graph(sw_nodes, hub_nodes, host_nodes, plot=None):
     # nx.set_node_attributes(randtree, 'switch', 'type')
     tree_nodes = list(randtree.nodes)
     for hub in hubs:
-        # breakpoint()
         randtree.add_edge(sample(tree_nodes, 1).pop(), hub)
     for node in randtree.nodes:
         if not randtree.nodes[node].get('type'):
