@@ -70,10 +70,10 @@ class Gns3(object):
 
     # HINT nodes_amouts: metodo retorna quantidade de switches hubs e host no projeto
     def nodes_amouts(self,
-                    project_id=None,
-                    sw_str='qemu',
-                    hub_str='ethernet_switch',
-                    host_str='vpcs'):
+                     project_id=None,
+                     sw_str='qemu',
+                     hub_str='ethernet_switch',
+                     host_str='vpcs'):
         """
         Retorna quantidade de switches hubs e host no projeto em um dicionario
         {'host': 0, 'hub': 0, 'sw': 0}
@@ -188,6 +188,31 @@ class Gns3(object):
                     if node['node_id'] == node_id:
                         ports.remove(node['port_number'])
         return ports
+
+    # HINT nodes_from_graph: metodo cria nodes GNS3 a partir de um grafo
+    def nodes_from_graph(self, graph=None, host_ips=None):
+        sw_graph_amout, hub_graph_amout, host_graph_amout = \
+            graph_nodes_amouts(graph).values()
+        sw_gns_amout, hub_gns_amout, host_gns_amout = \
+            self.nodes_amouts().values()
+        sw_tocreate = sw_graph_amout - sw_gns_amout
+        hub_tocreate = hub_graph_amout - hub_gns_amout
+        host_tocreate = host_graph_amout - host_gns_amout
+
+        # Cria switches
+        for i in range(sw_tocreate):
+            new_switch = set_switch(name_index=sw_gns_amout + 1 + i)
+            self.nodes(new=new_switch)
+
+        # Cria hubs
+        for i in range(hub_tocreate):
+            new_hub = set_hub(name_index=hub_gns_amout + 1 + i)
+            self.nodes(new=new_hub)
+
+        # Cria hosts
+        for i in range(host_tocreate):
+            new_host = set_host(host_ips[host_gns_amout + i])
+            self.nodes(new=new_host)
 
     @property
     def version(self):
@@ -1287,66 +1312,34 @@ def main():
     pc = Gns3('192.168.139.1', project_id=project_id)
     print("\nGNS3 PC: ")
     print(pc)
-    pprint(pc.version)
-    pprint(pc.computes)
-    pprint(pc.projects)
-    pprint(pc.nodes())
-    pprint(pc.nodes_amouts())
+    # pprint(pc.version)
+    # pprint(pc.computes)
+    # pprint(pc.projects)
+    # pprint(pc.nodes())
+    # pprint(pc.nodes_amouts())
 
     # HINT main: criacao de nodes GNS3 partindo de um grafo
     graph_test = random_graph(6, 6, 15)[0]
     pprint(graph_nodes_amouts(graph_test))
 
     host_ips = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5',
-             '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10',
-             '10.0.10.11', '10.0.10.12', '10.0.10.13', '10.0.10.14', '10.0.10.15')
+                '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9',
+                '10.0.10.10', '10.0.10.11', '10.0.10.12', '10.0.10.13',
+                '10.0.10.14', '10.0.10.15')
 
-    sw_graph_amout, hub_graph_amout, host_graph_amout = \
-        graph_nodes_amouts(graph_test).values()
-    sw_gns_amout, hub_gns_amout, host_gns_amout = pc.nodes_amouts().values()
-    sw_tocreate = sw_graph_amout - sw_gns_amout
-    hub_tocreate = hub_graph_amout - hub_gns_amout
-    host_tocreate = host_graph_amout - host_gns_amout
+    pc.nodes_from_graph(graph_test, host_ips)
 
-    # Cria switches
-    for i in range(sw_tocreate):
-        new_switch = set_switch(name_index=sw_gns_amout+1+i)
-        pc.nodes(new=new_switch)
-
-    # Cria hubs
-    for i in range(hub_tocreate):
-        new_hub= set_hub(name_index=hub_gns_amout+1+i)
-        pc.nodes(new=new_hub)
-
-    # Cria hosts
-    for i in range(host_tocreate):
-        new_host = set_host(host_ips[host_gns_amout + i])
-        pc.nodes(new=new_host)
+    # FIXME criacao de links GNS3 partindo de um grafo
 
     breakpoint()
 
-
     # # Cria um de cada
     # new_switch = set_switch(name_index=1)
-    # pprint(pc.nodes(project_id=project_id, new=new_switch))
-    # new_switch = set_switch(name_index=2)
     # pprint(pc.nodes(project_id=project_id, new=new_switch))
     # new_hub = set_hub()
     # pprint(pc.nodes(project_id=project_id, new=new_hub))
     # new_node = set_host(nodes[1], '24')
     # pprint(pc.nodes(project_id=project_id, new=new_node))
-    # # Cria varios de cada
-    # conta_sw = count(1)
-    # conta_hub = count(1)
-    # for nodeip in nodes:
-    #     new_switch = set_switch()
-    #     new_switch['name'] = f"v{next(conta_sw)}"
-    #     new_hub = set_hub()
-    #     new_hub['name'] = f"SW-HUB{next(conta_hub)}"
-    #     new_node = set_host(nodeip, '24')
-    #     pprint(pc.nodes(project_id=project_id, new=new_switch))
-    #     pprint(pc.nodes(project_id=project_id, new=new_hub))
-    #     pprint(pc.nodes(project_id=project_id, new=new_node))
 
     print('\nLinks: ')
     pprint(pc.links(project_id=project_id))
