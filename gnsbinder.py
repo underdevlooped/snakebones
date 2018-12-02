@@ -429,7 +429,7 @@ def set_hub(name_index=1):
     return hub_cfg
 
 
-def set_node(ip=None, prefix='24', gateway=None):
+def set_host(ip=None, prefix='24', gateway=None):
     false, null, true = False, None, True
     if gateway:
         starturp_script = f"set pcname -{ip}-\nip {ip} {gateway} {prefix}\n"
@@ -1267,19 +1267,17 @@ def main():
     # for i, (graph, places, options) in enumerate(graph_gen):
     #     nx.nx_pydot.write_dot(graph, graph_path + 'meugrafo_' + str(i) + '.txt')
 
-    # ler e fazer plot dos grafos
-    graph_list = list()
-    for i in range(new_graphs):
-        graph_loaded = nx.Graph(
-            nx.nx_pydot.read_dot(graph_path + 'meugrafo_' + str(i) + '.txt'))
-        graph_list.append(graph_loaded)
-        # plot_graph(graph_loaded, randtree_pos, randtree_opt)
-
-    # breakpoint()
+    # # ler e fazer plot dos grafos
+    # graph_list = list()
+    # for i in range(new_graphs):
+    #     graph_loaded = nx.Graph(
+    #         nx.nx_pydot.read_dot(graph_path + 'meugrafo_' + str(i) + '.txt'))
+    #     graph_list.append(graph_loaded)
+    #     # plot_graph(graph_loaded, randtree_pos, randtree_opt)
 
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
     # curl "http://192.168.139.128:3080/v2/computes"
-    vm = Gns3('192.168.139.128')
+    # vm = Gns3('192.168.139.128')
     # print("\nGNS3 VM: ")
     # print(vm)
     # pprint(vm.version)
@@ -1294,13 +1292,40 @@ def main():
     pprint(pc.projects)
     pprint(pc.nodes())
     pprint(pc.nodes_amouts())
-    pprint(pc.nodes_amouts()['host'])
-    pprint(graph_nodes_amouts(graph_list[0]))
+
+    # HINT main: criacao de nodes GNS3 partindo de um grafo
+    graph_test = random_graph(6, 6, 15)[0]
+    pprint(graph_nodes_amouts(graph_test))
+
+    host_ips = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5',
+             '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10',
+             '10.0.10.11', '10.0.10.12', '10.0.10.13', '10.0.10.14', '10.0.10.15')
+
+    sw_graph_amout, hub_graph_amout, host_graph_amout = \
+        graph_nodes_amouts(graph_test).values()
+    sw_gns_amout, hub_gns_amout, host_gns_amout = pc.nodes_amouts().values()
+    sw_tocreate = sw_graph_amout - sw_gns_amout
+    hub_tocreate = hub_graph_amout - hub_gns_amout
+    host_tocreate = host_graph_amout - host_gns_amout
+
+    # Cria switches
+    for i in range(sw_tocreate):
+        new_switch = set_switch(name_index=sw_gns_amout+1+i)
+        pc.nodes(new=new_switch)
+
+    # Cria hubs
+    for i in range(hub_tocreate):
+        new_hub= set_hub(name_index=hub_gns_amout+1+i)
+        pc.nodes(new=new_hub)
+
+    # Cria hosts
+    for i in range(host_tocreate):
+        new_host = set_host(host_ips[host_gns_amout + i])
+        pc.nodes(new=new_host)
 
     breakpoint()
 
-    nodes = ('10.0.10.1', '10.0.10.2', '10.0.10.3', '10.0.10.4', '10.0.10.5',
-             '10.0.10.6', '10.0.10.7', '10.0.10.8', '10.0.10.9', '10.0.10.10')
+
     # # Cria um de cada
     # new_switch = set_switch(name_index=1)
     # pprint(pc.nodes(project_id=project_id, new=new_switch))
@@ -1308,7 +1333,7 @@ def main():
     # pprint(pc.nodes(project_id=project_id, new=new_switch))
     # new_hub = set_hub()
     # pprint(pc.nodes(project_id=project_id, new=new_hub))
-    # new_node = set_node(nodes[1], '24')
+    # new_node = set_host(nodes[1], '24')
     # pprint(pc.nodes(project_id=project_id, new=new_node))
     # # Cria varios de cada
     # conta_sw = count(1)
@@ -1318,7 +1343,7 @@ def main():
     #     new_switch['name'] = f"v{next(conta_sw)}"
     #     new_hub = set_hub()
     #     new_hub['name'] = f"SW-HUB{next(conta_hub)}"
-    #     new_node = set_node(nodeip, '24')
+    #     new_node = set_host(nodeip, '24')
     #     pprint(pc.nodes(project_id=project_id, new=new_switch))
     #     pprint(pc.nodes(project_id=project_id, new=new_hub))
     #     pprint(pc.nodes(project_id=project_id, new=new_node))
