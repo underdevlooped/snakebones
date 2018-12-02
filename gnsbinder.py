@@ -1379,7 +1379,20 @@ def main():
 
     pc.nodes_from_graph(graph_test, host_ips)
 
-    # FIXME criacao de links GNS3 partindo de um grafo
+    # HINT criacao de links GNS3 partindo de um grafo
+    pprint(list(zip(graph_test.nodes, (node['node_id'] for node in pc.nodes()))))
+    nodes_pairs = dict(zip(graph_test.nodes, (node['node_id'] for node in pc.nodes())))
+    for edge in graph_test.edges:
+        node_a = nodes_pairs[edge[0]]
+        node_b = nodes_pairs[edge[1]]
+        pc.links(new=(node_a, node_b))
+        # breakpoint()
+
+
+    # free_a = pc.freeports(project_id=project_id, node_id=node_a)[0]
+    # free_b = pc.freeports(project_id=project_id, node_id=node_b)[0]
+    # new_link = set_link(node_a, free_a, node_b, free_b)
+    # pc.links(project_id=project_id, new=(node_a, node_b))
 
     breakpoint()
 
