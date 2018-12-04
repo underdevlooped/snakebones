@@ -69,7 +69,6 @@ class Gns3(object):
                          cmd='nodes')
         return nodes
 
-    # HINT nodes_amouts: metodo retorna quantidade de switches hubs e host no projeto
     def nodes_amouts(self,
                      project_id=None,
                      sw_str='qemu',
@@ -191,6 +190,12 @@ class Gns3(object):
 
     # HINT nodes_from_graph: metodo cria nodes GNS3 a partir de um grafo
     def nodes_from_graph(self, graph=None, host_ips=None):
+        """
+        Cria nodes GNS3 a partir de um grafo
+
+        :param graph:
+        :param host_ips:
+        """
         sw_graph_amout, hub_graph_amout, host_graph_amout = \
             graph_nodes_amouts(graph).values()
         host_ips = list(subnet_host_ips(subnets=subnets, ips=host_graph_amout))
@@ -200,7 +205,6 @@ class Gns3(object):
         hub_tocreate = hub_graph_amout - hub_gns_amout
         host_tocreate = host_graph_amout - host_gns_amout
 
-        # HINT nodes_from_graph: ajustado area de criacao de cada tipo de node
         # Cria switches
         for i in range(sw_tocreate):
             new_switch = set_switch(name_index=sw_gns_amout + 1 + i,
@@ -219,8 +223,13 @@ class Gns3(object):
                                 xyrange=(-635, 640, 100, 810))
             self.nodes(new=new_host)
 
-    # HINT links_from_graph: metodo cria links GNS3 partindo de um grafo
+    # HINT links_from_graph: metodo
     def links_from_graph(self, graph):
+        """
+        Cria links GNS3 partindo de um grafo
+
+        :param graph:
+        """
         nodes_pairs = dict(zip(graph.nodes,
                                (node['node_id'] for node in self.nodes())))
         for edge in graph.edges:
@@ -307,7 +316,6 @@ def curl_delete(server=None, port=None, project_id=None, cmd=None):
     return None
 
 
-# HINT rand_pos: retorna coodenada aleatoria para criar node na area visivel da topologia
 def rand_pos(xstart=None, xstop=None, ystart=None, ystop=None, step=None):
     """
     Retorna coodenada aleatoria para criar node na area visivel da topologia com
@@ -335,8 +343,15 @@ def rand_pos(xstart=None, xstop=None, ystart=None, ystop=None, step=None):
     return {'x': x_pos, 'y': y_pos}
 
 
-# HINT opcao de posicao para nodes definicao ou aleatoria
 def set_switch(name_index=1, pos=None, xyrange=None):
+    """
+    Opcao de posicao para nodes definicao ou aleatoria
+
+    :param name_index:
+    :param pos:
+    :param xyrange:
+    :return:
+    """
     name = f"v{name_index}"
     if not pos:
         if xyrange:
@@ -568,24 +583,41 @@ def set_link(a_id, a_adapter, b_id, b_adapter):
     return link_cfg
 
 
-# HINT chunks: funcao para dividir em partes de n hosts
 def chunks(iterable, n):
+    """
+    Dividir em partes de n por vez.
+
+    :param iterable:
+    :param n:
+    """
     for i in range(0, len(iterable), n):
         yield iterable[i:i + n]
 
 
-# HINT split: funcao para dividir uniformemente hosts em n partes
 def split(iterable, n):
+    """
+    Dividir uniformemente em n partes
+
+    :param iterable:
+    :param n:
+    :return:
+    """
     div, mod = divmod(len(iterable), n)
     return (iterable[i * div + min(i, mod):(i + 1) * div + min(i + 1, mod)]
             for i in range(n))
 
 
-# HINT random_graph: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
-# HINT random_graph: funcao de criacao e plot de arvore aleatoria para alimentar GNS3
-# HINT random_graph: incluido atributo para identificar cada node do grafo
-# HINT random_graph: retorna grafo, posicoes e opcoes
 def random_graph(sw_nodes, hub_nodes, host_nodes, plot=None):
+    """
+    Criacao e plot (opcional) de arvore aleatoria para alimentar GNS3.
+    Retorna grafo, posicoes e opcoes
+
+    :param sw_nodes:
+    :param hub_nodes:
+    :param host_nodes:
+    :param plot:
+    :return:
+    """
     randtree = random_tree(sw_nodes)
     switches = (''.join(['v', str(i)]) for i in range(1, sw_nodes + 1))
     hubs = (''.join(['HUB', str(i)]) for i in range(1, hub_nodes + 1))
@@ -653,15 +685,28 @@ def random_graph(sw_nodes, hub_nodes, host_nodes, plot=None):
     return randtree, places, options
 
 
-# HINT random_graphs: gerador de grafos em lote
 def random_graphs(sw_nodes, hub_nodes, host_nodes, many=1):
+    """
+    Gerador de grafos em lote
+
+    :param sw_nodes:
+    :param hub_nodes:
+    :param host_nodes:
+    :param many:
+    """
     for i in range(many):
         yield random_graph(sw_nodes, hub_nodes, host_nodes)
     # pass
 
 
-# HINT plot_graph: funcao para plot simplificado com cores diferenciadas
 def plot_graph(graph, pos=None, options=None):
+    """
+    Plot simplificado do grafo com cores diferenciadas por tipo de node
+
+    :param graph:
+    :param pos:
+    :param options:
+    """
     if options:
         nx.draw(graph, pos=pos, **options)
     else:
@@ -670,10 +715,9 @@ def plot_graph(graph, pos=None, options=None):
     plt.show()
 
 
-# HINT graph_nodes_amouts: retorna quantidade de switches hubs e host no grafo
 def graph_nodes_amouts(graph):
     """
-    Retorna quantidade de switches hubs e host no grafo
+    Retorna quantidade de switches hubs e host do grafo
 
     :param graph: grafo gerado pela funcao random_graph
     :return: quantidades de switches hubs e hosts
@@ -693,9 +737,19 @@ def graph_nodes_amouts(graph):
     sw, hub, host = map(next, [sw_count, hub_count, host_count])
     return {'sw': sw, 'hub': hub, 'host': host}
 
-# HINT subnet_host_ips: lista total de IPs distribuido uniformemente por subnet
-def subnet_host_ips(subnets=1, ips=30):
-    prefix = '10.0'
+
+def subnet_host_ips(subnets=1, ips=30, prefix=None):
+    """
+    Retorna gerador com total de IPs distribuido uniformemente por subnet.
+    prefixo de 2 octedos em decima: '10.0' (padrao), '192.168'
+
+    :param subnets:
+    :param ips:
+    :param prefix:
+    :return:
+    """
+    if not prefix:
+        prefix = '10.0'
     blocks, extra = divmod(ips, subnets)
     block_ips = [list(range(blocks)) for _ in range(subnets)]
     for i in range(extra):
@@ -804,28 +858,28 @@ def main():
     # randtree, randtree_pos, randtree_opt = random_graph(new_switches,
     #                                                     new_hubs,
     #                                                     new_hosts)
-    # type_ditc = nx.get_node_attributes(randtree, 'type')
+    # type_dict = nx.get_node_attributes(randtree, 'type')
     # pprint(list(randtree.nodes))
-    # # converte e retaura para pydot
-    # # HINT main: converte, salva e le grafo do arquivo.
-    # pydot_g = nx.nx_pydot.to_pydot(randtree)
-    # restore = nx.nx_pydot.from_pydot(pydot_g)
-    # plot_graph(restore, randtree_pos, randtree_opt)
 
+    # gerar e salvar grafos
+    graph_gen = \
+        random_graphs(new_switches, new_hubs, new_hosts, many=new_graphs)
     graph_path = '/home/akern/Documents/grafos/'
-    # # gerar e salvar grafos
-    # graph_gen = \
-    #     random_graphs(new_switches, new_hubs, new_hosts, many=new_graphs)
-    # for i, (graph, places, options) in enumerate(graph_gen):
-    #     nx.nx_pydot.write_dot(graph, graph_path + 'meugrafo_' + str(i) + '.txt')
+    file_name = \
+        f'randomgraph_sw{new_switches:02}_hub{new_hubs:02}_host{new_hosts:03}_'
+    for i, (graph, places, options) in enumerate(graph_gen):
+        nx.nx_pydot.write_dot(graph, f'{graph_path}{file_name}{i+1:002}.txt')
 
     # ler e fazer plot dos grafos
     graph_list = list()
     for i in range(new_graphs):
         graph_loaded = nx.Graph(
-            nx.nx_pydot.read_dot(graph_path + 'meugrafo_' + str(i) + '.txt'))
+            nx.nx_pydot.read_dot(f'{graph_path}{file_name}{i+1:002}.txt')
+        )
         graph_list.append(graph_loaded)
         # plot_graph(graph_loaded, randtree_pos, randtree_opt)
+
+    breakpoint()
 
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
     # curl "http://192.168.139.128:3080/v2/computes"
@@ -840,10 +894,7 @@ def main():
     # pprint(pc.nodes())
     # pprint(pc.nodes_amouts())
 
-    # HINT main: criacao de nodes GNS3 partindo de um grafo
-    graph_test = random_graph(6, 6, 15)[0]
-    pprint(graph_nodes_amouts(graph_test))
-
+    # Cria noes e links no GNS3
     for graph in graph_list[:2]:
         pc.nodes_from_graph(graph, subnets=3)
         pc.clear_links()
