@@ -32,7 +32,7 @@ from networkx.generators.trees import random_tree
 from networkx.algorithms.tree.recognition import is_tree, is_arborescence
 from pdb import set_trace as breakpoint
 from pprint import pprint
-from random import randint, randrange, sample, choice
+from random import randint, randrange, sample, choice, shuffle
 from string import ascii_lowercase
 from subprocess import run, PIPE
 from time import sleep
@@ -188,8 +188,7 @@ class Gns3(object):
                         ports.remove(node['port_number'])
         return ports
 
-    # HINT nodes_from_graph: metodo cria nodes GNS3 a partir de um grafo
-    def nodes_from_graph(self, graph=None, host_ips=None):
+    def nodes_from_graph(self, graph=None, subnets=1, host_ips=None):
         """
         Cria nodes GNS3 a partir de um grafo
 
@@ -223,7 +222,7 @@ class Gns3(object):
                                 xyrange=(-635, 640, 100, 810))
             self.nodes(new=new_host)
 
-    # HINT links_from_graph: metodo
+    # FIXME links_from_graph: links nao aleatorios para hosts
     def links_from_graph(self, graph):
         """
         Cria links GNS3 partindo de um grafo
@@ -607,6 +606,7 @@ def split(iterable, n):
             for i in range(n))
 
 
+# HINT random_graph: corrigido bug hosts nao aleatorios no grafo
 def random_graph(sw_nodes, hub_nodes, host_nodes, plot=None):
     """
     Criacao e plot (opcional) de arvore aleatoria para alimentar GNS3.
@@ -637,7 +637,11 @@ def random_graph(sw_nodes, hub_nodes, host_nodes, plot=None):
         if not randtree.nodes[node].get('type'):
             randtree.nodes[node]['type'] = 'hub'
             randtree.nodes[node]['color'] = 'pink'
-    host_chunks = split(list(hosts), len(randtree.nodes))
+    to_split = list(hosts)
+    shuffle(to_split)
+
+    host_chunks = split(to_split, len(randtree.nodes))
+
     tree_nodes = list(randtree.nodes)
     for host_chunk, node in zip(host_chunks, tree_nodes):
         for host in host_chunk:
@@ -861,12 +865,12 @@ def main():
     # type_dict = nx.get_node_attributes(randtree, 'type')
     # pprint(list(randtree.nodes))
 
-    # gerar e salvar grafos
-    graph_gen = \
-        random_graphs(new_switches, new_hubs, new_hosts, many=new_graphs)
     graph_path = '/home/akern/Documents/grafos/'
     file_name = \
         f'randomgraph_sw{new_switches:02}_hub{new_hubs:02}_host{new_hosts:03}_'
+    # gerar e salvar grafos
+    graph_gen = \
+        random_graphs(new_switches, new_hubs, new_hosts, many=new_graphs)
     for i, (graph, places, options) in enumerate(graph_gen):
         nx.nx_pydot.write_dot(graph, f'{graph_path}{file_name}{i+1:002}.txt')
 
