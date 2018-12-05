@@ -222,7 +222,7 @@ class Gns3(object):
                                 xyrange=(-635, 640, 100, 810))
             self.nodes(new=new_host)
 
-    # FIXME links_from_graph: links nao aleatorios para hosts
+    # HINT links_from_graph: bug links nao aleatorios para hosts
     def links_from_graph(self, graph):
         """
         Cria links GNS3 partindo de um grafo
@@ -436,7 +436,7 @@ def set_switch(name_index=1, pos=None, xyrange=None):
 
 def set_hub(name_index=1, pos=None, xyrange=None):
     false, null, true = False, None, True
-    name = f"SW-HUB{name_index}"
+    name = f"HUB{name_index}"
     if not pos:
         if xyrange:
             pos = rand_pos(*xyrange)
@@ -454,7 +454,7 @@ def set_hub(name_index=1, pos=None, xyrange=None):
             # "label": {
             #     "rotation": 0,
             #     "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
-            #     "text": "SW-HUB",
+            #     "text": "HUB",
             #     "x": 14,
             #     "y": -24
             # },
@@ -637,12 +637,12 @@ def random_graph(sw_nodes, hub_nodes, host_nodes, plot=None):
         if not randtree.nodes[node].get('type'):
             randtree.nodes[node]['type'] = 'hub'
             randtree.nodes[node]['color'] = 'pink'
-    to_split = list(hosts)
-    shuffle(to_split)
-
-    host_chunks = split(to_split, len(randtree.nodes))
 
     tree_nodes = list(randtree.nodes)
+    to_split = list(hosts)
+    randtree.add_nodes_from(to_split)
+    shuffle(to_split)
+    host_chunks = split(to_split, len(tree_nodes))
     for host_chunk, node in zip(host_chunks, tree_nodes):
         for host in host_chunk:
             randtree.add_edge(host, node)
@@ -866,13 +866,14 @@ def main():
     # pprint(list(randtree.nodes))
 
     graph_path = '/home/akern/Documents/grafos/'
+    graph_path = '/mnt/hgfs/Projeto Final Dissertacao/snakebones/grafos_rand/'
     file_name = \
         f'randomgraph_sw{new_switches:02}_hub{new_hubs:02}_host{new_hosts:03}_'
-    # gerar e salvar grafos
-    graph_gen = \
-        random_graphs(new_switches, new_hubs, new_hosts, many=new_graphs)
-    for i, (graph, places, options) in enumerate(graph_gen):
-        nx.nx_pydot.write_dot(graph, f'{graph_path}{file_name}{i+1:002}.txt')
+    # # gerar e salvar grafos
+    # graph_gen = \
+    #     random_graphs(new_switches, new_hubs, new_hosts, many=new_graphs)
+    # for i, (graph, places, options) in enumerate(graph_gen):
+    #     nx.nx_pydot.write_dot(graph, f'{graph_path}{file_name}{i+1:002}.txt')
 
     # ler e fazer plot dos grafos
     graph_list = list()
@@ -898,7 +899,7 @@ def main():
     # pprint(pc.nodes())
     # pprint(pc.nodes_amouts())
 
-    # Cria noes e links no GNS3
+    # Cria nodes e links no GNS3
     for graph in graph_list[:2]:
         pc.nodes_from_graph(graph, subnets=3)
         pc.clear_links()
@@ -973,11 +974,11 @@ HUB model
     "label": {
         "rotation": 0,
         "style": "font-family: TypeWriter;font-size: 10.0;font-weight: bold;fill: #000000;fill-opacity: 1.0;",
-        "text": "SW-HUB",
+        "text": "HUB",
         "x": 14,
         "y": -24
     },
-    "name": "SW-HUB",
+    "name": "HUB",
     "node_id": "3c59e645-08af-4d77-90b9-1c212f67929f",
     "node_type": "ethernet_switch",
     "port_name_format": "Ethernet{0}",
