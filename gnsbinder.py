@@ -342,6 +342,7 @@ def rand_pos(xstart=None, xstop=None, ystart=None, ystop=None, step=None):
     return {'x': x_pos, 'y': y_pos}
 
 
+# HINT set_switch: corrigido carregamento do sistema operacional simulado
 def set_switch(name_index=1, pos=None, xyrange=None):
     """
     Opcao de posicao para nodes definicao ou aleatoria
@@ -352,6 +353,15 @@ def set_switch(name_index=1, pos=None, xyrange=None):
     :return:
     """
     name = f"v{name_index}"
+    hda_disk_image = "vios_l2-adventerprisek9-m.vmdk.SSA.152-4.0.55.E"
+    hda_disk_image_md5sum = "1a3a21f5697cae64bb930895b986d71e"
+    hda_disk_interface = "virtio"
+    linked_clone = True
+    options = "-nographic"
+    process_priority = "normal"
+    usage = "There is no default password and enable password. " \
+            "There is no default configuration present."
+
     if not pos:
         if xyrange:
             pos = rand_pos(*xyrange)
@@ -397,9 +407,9 @@ def set_switch(name_index=1, pos=None, xyrange=None):
                 # "cdrom_image_md5sum": null,
                 # "cpu_throttling": 0,
                 # "cpus": 1,
-                # "hda_disk_image": "vios_l2-adventerprisek9-m.vmdk.SSA.152-4.0.55.E",
-                # "hda_disk_image_md5sum": "1a3a21f5697cae64bb930895b986d71e",
-                # "hda_disk_interface": "virtio",
+                "hda_disk_image": hda_disk_image,
+                "hda_disk_image_md5sum": hda_disk_image_md5sum,
+                "hda_disk_interface": hda_disk_interface,
                 # "hdb_disk_image": "",
                 # "hdb_disk_image_md5sum": null,
                 # "hdb_disk_interface": "ide",
@@ -415,15 +425,14 @@ def set_switch(name_index=1, pos=None, xyrange=None):
                 # "kernel_image": "",
                 # "kernel_image_md5sum": null,
                 # "legacy_networking": false,
-                # "linked_clone": true,
+                "linked_clone": linked_clone,
                 # # "mac_address": "00:3e:5c:01:00:00",
-                # "options": "-nographic",
+                "options": options,
                 # "platform": "x86_64",
-                # "process_priority": "normal",
+                "process_priority": process_priority,
                 "qemu_path": "/usr/bin/qemu-system-x86_64",
                 "ram": 768,
-                # "usage": "There is no default password and enable password.
-                # There is no default configuration present."
+                "usage": usage
             },
             "symbol": ":/symbols/multilayer_switch.svg",
             # "width": 51,
