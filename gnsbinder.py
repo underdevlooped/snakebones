@@ -800,7 +800,7 @@ def graph_nodes_amouts(graph):
 def subnet_host_ips(subnets=1, ips=30, prefix=None):
     """
     Retorna gerador com total de IPs distribuido uniformemente por subnet.
-    prefixo de 2 octedos em decima: '10.0' (padrao), '192.168'
+    prefixo de 2 octedos em decimal: '10.0' (padrao), '192.168'
 
     :param subnets:
     :param ips:
