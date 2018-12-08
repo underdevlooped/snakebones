@@ -29,7 +29,7 @@ from pdb import set_trace as breakpoint
 from esqueleto import (to_bytes, ip_mac_to_arp_table, nms_config, ping_ip,
                        auto_arp_table_data, auto_snmp_data, is_internal_node,
                        is_leaf_node, set_arp_table, get_mymac, get_myip,
-                       aft_fdb)
+                       aft_fdb, config_nms)
 from ipaddress import IPv4Interface, IPv4Network  # ,IPv4Address
 from itertools import combinations
 from collections import Counter, defaultdict
@@ -52,7 +52,7 @@ YES = ON = START = True
 NO = OFF = STOP = False
 
 # %% Configuracao
-AUTOFILL_MODE = False
+AUTOFILL_MODE = True
 POST_MODE = ON
 mymac = None
 
@@ -1888,7 +1888,7 @@ def main():
         ----
     """
     global mymac, SNMP_DATA, ARP_TABLE_DATA, AUTOFILL_MODE
-    AUTOFILL_MODE = False
+    AUTOFILL_MODE = True
 
     # 1) OBTENDO DADOS
 
