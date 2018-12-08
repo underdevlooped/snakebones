@@ -78,15 +78,33 @@ class Gns3(object):
                       if node['node_type'] != 'vmware']
         sw_nodes = [node['node_id'] for node in topo_nodes
                     if node['node_type'] == 'qemu']
-        hub_nodes = [node['node_id'] for node in topo_nodes
-                     if node['node_type'] == 'ethernet_switch']
         host_nodes = [node['node_id'] for node in topo_nodes
                       if node['node_type'] == 'vpcs']
-        for node_id in topo_nodes:
+        for node_id in sw_nodes + host_nodes:
             curl_post(server=self.server,
                       port=self.port,
                       project_id=project_id,
                       cmd=f'nodes/{node_id}/start',
+                      data='{}')
+
+    # HINT Gns3: metodo stop_nodes para desligar nodes criados
+    def stop_nodes(self, project_id=None):
+        # .../{project_id}/nodes/{node_id}/start" -d "{}"
+        if not project_id:
+            project_id = self.project_id
+        topo_nodes = [node for node in self.nodes()
+                      if node['node_type'] != 'vmware']
+        sw_nodes = [node['node_id'] for node in topo_nodes
+                    if node['node_type'] == 'qemu']
+        hub_nodes = [node['node_id'] for node in topo_nodes
+                     if node['node_type'] == 'ethernet_switch']
+        host_nodes = [node['node_id'] for node in topo_nodes
+                      if node['node_type'] == 'vpcs']
+        for node in topo_nodes:
+            curl_post(server=self.server,
+                      port=self.port,
+                      project_id=project_id,
+                      cmd=f'nodes/{node["node_id"]}/stop',
                       data='{}')
 
     def nodes_amouts(self,
