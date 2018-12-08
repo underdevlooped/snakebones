@@ -223,14 +223,22 @@ class Gns3(object):
             self.nodes(new=new_host)
 
     # HINT links_from_graph: bug links nao aleatorios para hosts
+    # HINT links_from_graph: bug links para tipos errados
     def links_from_graph(self, graph):
         """
         Cria links GNS3 partindo de um grafo
 
         :param graph:
         """
-        nodes_pairs = dict(zip(graph.nodes,
-                               (node['node_id'] for node in self.nodes())))
+        topo_nodes = [node for node in self.nodes()
+                      if node['node_type'] != 'vmware']
+        sw_nodes = [node['node_id'] for node in topo_nodes
+                    if node['node_type'] == 'qemu']
+        hub_nodes = [node['node_id'] for node in topo_nodes
+                     if node['node_type'] == 'ethernet_switch']
+        host_nodes = [node['node_id'] for node in topo_nodes
+                      if node['node_type'] == 'vpcs']
+        nodes_pairs = dict(zip(graph.nodes, sw_nodes + hub_nodes + host_nodes))
         for edge in graph.edges:
             node_a = nodes_pairs[edge[0]]
             node_b = nodes_pairs[edge[1]]
@@ -893,7 +901,7 @@ def main():
         graph_list.append(graph_loaded)
         # plot_graph(graph_loaded, randtree_pos, randtree_opt)
 
-    breakpoint()
+    # breakpoint()
 
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
     # curl "http://192.168.139.128:3080/v2/computes"
@@ -912,6 +920,7 @@ def main():
     for graph in graph_list[:2]:
         pc.nodes_from_graph(graph, subnets=3)
         pc.clear_links()
+        # breakpoint()
         pc.links_from_graph(graph)
         breakpoint()
         sleep(2)
