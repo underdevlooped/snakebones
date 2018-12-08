@@ -1862,6 +1862,25 @@ def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
     return nets
 
 
+# HINT subnet_ips: gerador de enderecos IP de rede
+def subnet_ips(subnets=3, prefix=None, mask=None):
+    """
+    Retorna gerador com IP de subnets.
+    prefixo de 2 octedos em decimal: '10.0' (padrao), '192.168'
+
+    :param subnets:
+    :param ips:
+    :param prefix:
+    :return:
+    """
+    if not prefix:
+        prefix = '10.0'
+    if not mask:
+        mask = 24
+    return (f'{prefix}.{subnet+1}.0/{mask}'
+            for subnet in range(subnets))
+
+
 # %% main
 def main():
     """
