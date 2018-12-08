@@ -192,7 +192,8 @@ class Gns3(object):
                          cmd='links')
         return links
 
-    def clear_links(self, project_id=None):
+    # HINT clear_links: atributo keep mantem links ligados aos nodes fornecidos
+    def clear_links(self, project_id=None, keep=None):
         if not project_id:
             project_id = self.project_id
         links = curl_get(server=self.server,
@@ -200,6 +201,11 @@ class Gns3(object):
                          project_id=project_id,
                          cmd='links')
         for link in links:
+            if not keep:
+                pass
+            elif link['nodes'][0]['node_id'] in keep \
+                    or link['nodes'][1]['node_id'] in keep:
+                continue
             curl_delete(server=self.server,
                         port=self.port,
                         project_id=project_id,
@@ -920,7 +926,7 @@ def main():
     # type_dict = nx.get_node_attributes(randtree, 'type')
     # pprint(list(randtree.nodes))
 
-    graph_path = '/home/akern/Documents/grafos/'
+    # graph_path = '/home/akern/Documents/grafos/'
     graph_path = '/mnt/hgfs/Projeto Final Dissertacao/snakebones/grafos_rand/'
     file_name = \
         f'randomgraph_sw{new_switches:02}_hub{new_hubs:02}_host{new_hosts:03}_'
@@ -939,9 +945,8 @@ def main():
         graph_list.append(graph_loaded)
         # plot_graph(graph_loaded, randtree_pos, randtree_opt)
 
-    # breakpoint()
-
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
+    nms_id = 'a296b0ec-209a-47a5-ae11-fe13f25e7b73'
     # curl "http://192.168.139.128:3080/v2/computes"
     # vm = Gns3('192.168.139.128')
 
@@ -954,16 +959,14 @@ def main():
     # pprint(pc.nodes())
     # pprint(pc.nodes_amouts())
 
-    breakpoint()
+    # breakpoint()
 
     # Cria nodes e links no GNS3
     for graph in graph_list[:2]:
         pc.nodes_from_graph(graph, subnets=3)
-        pc.clear_links()
-        # breakpoint()
+        pc.clear_links(keep=(nms_id,))
         pc.links_from_graph(graph)
         breakpoint()
-        sleep(2)
 
     pc.clear_links()
 
