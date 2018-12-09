@@ -11,9 +11,11 @@ domingo, 8‎ de ‎dezembro‎ de ‎2018, ‏‎11:50:24
 Execucao da descoberta de topologia fisica da LAN Ethernet explorada  por meio
 da SkeletonTree
 """
+
 import snakebones as sk
 import gnsbinder as gb
 from pdb import set_trace as breakpoint
+from pprint import pprint
 
 
 def main():
@@ -84,7 +86,22 @@ def main():
                          ipmax=ipmax)
         ARP_TABLE_DATA[rede.compressed] = rede.arp_table
     SNMP_DATA = sk.get_snmp_data(*internal_nodes)
+
+    for rede in redes:
+        rede.set_all_nodes()
+    for inode in sw_subnet.internal_nodes:
+        inode.set_associated_subnets()
+    for my_ip in sk.get_myip():
+        sk.set_root(my_ip)
+
+    print("\n" + f"Nodes descobertos: ({len(sk.Node._all)})")
+    pprint(sk.Node._all)
+
+    print("\n" + f"Inodes: ({len(sk.InternalNode._allinodes_set)})")
+    pprint(sk.InternalNode._allinodes_set)
+
     breakpoint()
+
 
 
 if __name__ == '__main__':
