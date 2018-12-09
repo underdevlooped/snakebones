@@ -31,28 +31,28 @@ def main():
     file_name = \
         f'randomgraph_sw{new_switches:02}_hub{new_hubs:02}_host{new_hosts:03}_'
 
-    # ler grafos aleatorios
-    graph_list = list()
-    for i in range(new_graphs):
-        graph_loaded = gb.nx.Graph(
-            gb.nx.nx_pydot.read_dot(f'{graph_path}{file_name}{i+1:002}.txt')
-        )
-        graph_list.append(graph_loaded)
+    # # ler grafos aleatorios
+    # graph_list = list()
+    # for i in range(new_graphs):
+    #     graph_loaded = gb.nx.Graph(
+    #         gb.nx.nx_pydot.read_dot(f'{graph_path}{file_name}{i+1:002}.txt')
+    #     )
+    #     graph_list.append(graph_loaded)
 
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
     nms_id = 'a296b0ec-209a-47a5-ae11-fe13f25e7b73'  # NMS (lubuntu-MESTRADO)
 
     pc = gb.Gns3('192.168.139.1', project_id=project_id)
-    breakpoint()
 
-    # Cria nodes e links no GNS3
-    for graph in graph_list[0]:
-        pc.clear_links(keep=(nms_id,))
-        pc.nodes_from_graph(graph, subnets=3)
-        pc.links_from_graph(graph)
-        breakpoint()
-
-    # pc.clear_links(keep=(nms_id,))
+    # # Cria nodes e links no GNS3 a partir dos grafos
+    # for graph in graph_list[0]:
+    #     pc.clear_links(keep=(nms_id,))
+    #     pc.nodes_from_graph(graph, subnets=3)
+    #     pc.links_from_graph(graph)
+    #     pc.start_nodes()
+    #     breakpoint()
+    #
+    # # pc.clear_links(keep=(nms_id,))
 
     # 1) OBTENDO DADOS
     sw_subnet = '10.0.0.0/24'  # subnet que contem switches gerenciaveis (snmp)
@@ -60,23 +60,26 @@ def main():
         sw_subnet)  # , '10.0.10.0/24', '10.0.20.0/24', '10.0.30.0/24')
     for rede in sk.subnet_ips(new_subnets):
         redes.update(sk.subnet_creator(rede))
-    breakpoint()
     sw_subnet = sk.get_subnet(sw_subnet)
     internal_nodes = \
-        ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4', '10.0.0.5', '10.0.0.6']
+        [h.compressed for h in sw_subnet.hosts()][:new_switches]
 
-    sk.nms_config(True)
+    sk.config_nms(redes=redes)
+
+    # breakpoint()
+
     ARP_TABLE_DATA = dict()
     for rede in redes:
+        breakpoint()
         rede.arp_table = \
-            sk.set_arp_table(rede,
-                             probes=1,
-                             timeout=3,
-                             include_me=True,
-                             mode='arp')
+            sk.arp_table(rede,
+                         probes=1,
+                         timeout=3,
+                         include_me=True,
+                         mode='arp')
         ARP_TABLE_DATA[rede.compressed] = rede.arp_table
-    # breakpoint()
     SNMP_DATA = sk.get_snmp_data(*internal_nodes)
+    breakpoint()
 
 
 if __name__ == '__main__':
