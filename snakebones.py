@@ -1520,7 +1520,7 @@ class SkeletonTree(object):
             self.name = f"('bone_{len(SkeletonTree._all)+1}')"
 
         if remove:
-            remove_set = {get_node(node) for node in remove}
+            remove_set = {get_node(node) for node in remove if get_node(node)}
             self.nodes = set(nodes) - remove_set  # Vn
             self.netnodes = set(netnodes) - remove_set  # N
         else:
