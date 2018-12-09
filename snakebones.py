@@ -1265,6 +1265,7 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
 
     snmp_data = dict()
     for node in inodes:
+        print(f'Iniciando coleta SNMP em {node}...')
         if isinstance(node, (Node, InternalNode, LeafNode)):
             host_key = node.compressed
             node_ip = node.ip.compressed
