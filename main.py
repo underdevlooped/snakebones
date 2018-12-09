@@ -16,6 +16,7 @@ import snakebones as sk
 import gnsbinder as gb
 from pdb import set_trace as breakpoint
 from pprint import pprint
+from typing import List
 
 
 def main():
@@ -58,10 +59,8 @@ def main():
 
     # 1) OBTENDO DADOS
     sw_subnet = '10.0.0.0/24'  # subnet que contem switches gerenciaveis (snmp)
-    redes = sk.subnet_creator(
-        sw_subnet)  # , '10.0.10.0/24', '10.0.20.0/24', '10.0.30.0/24')
-    for rede in sk.subnet_ips(new_subnets):
-        redes.update(sk.subnet_creator(rede))
+    leaf_subnet = [leaf for leaf in sk.subnet_ips(new_subnets)]
+    redes = sk.subnet_creator(sw_subnet, *leaf_subnet)
     sw_subnet = sk.get_subnet(sw_subnet)
     internal_nodes = \
         [h.compressed for h in sw_subnet.hosts()][:new_switches]
@@ -100,8 +99,50 @@ def main():
     print("\n" + f"Inodes: ({len(sk.InternalNode._allinodes_set)})")
     pprint(sk.InternalNode._allinodes_set)
 
-    breakpoint()
+    # 2) INFERINDO TOPOLOGIA
+    skeletons: List[sk.SkeletonTree] = list()
+    for subnet in sk.SubNet._all:  # subnet Ni ∈ 'N'
+        if subnet._has_switches:
+            continue
+        # SkeletonTree(Ni,Vni,ri,AFTs)
+        if not AUTOFILL_MODE:
+            sk.set_root(subnet=subnet)
+        skeletons.append(sk.SkeletonTree(subnet.leaf_nodes,  # Ni
+                                         subnet.nodes_set,  # Vni
+                                         sk.get_root(subnet),  # ri
+                                         subnet))
 
+        bone: sk.SkeletonTree = skeletons[-1]  # Hi(Yi,Ai)
+        # ExtendedAFTs(yj,X H(Y,A))
+        sk.ext_aft(bone.root_vertex,  # yj
+                   bone.anchors,  # X
+                   bone)  # H(Y,A)
+        sk.boneprint(bone)
+
+    while len(skeletons) >= 2 and skeletons[0].anchors & skeletons[1].anchors:
+        first, second = skeletons[0], skeletons[1]  # Hi and Hj
+        new_netnodes = first.netnodes | second.netnodes  # Nk = Ni U Nj
+        anchors_inter = first.anchors & second.anchors
+        new_root = anchors_inter.pop()  # rk = any node in Xi ∩ Xj
+        new_nodes = first.nodes | second.nodes  # VNk = VNi U VNj
+        remove = [interface.ip.compressed for interface in sk.get_myip()]
+        # FIXME erro ao criar SkeletonTree
+        breakpoint()
+        new_skeleton = sk.SkeletonTree(new_netnodes,
+                                       new_nodes,
+                                       new_root,
+                                       remove=remove[1:])
+        sk.ext_aft(new_skeleton.root_vertex,
+                   new_skeleton.anchors,
+                   new_skeleton)
+        skeletons.remove(first)
+        skeletons.remove(second)
+        skeletons.append(new_skeleton)
+    united_skeleton = skeletons.pop()
+    sk.boneprint(united_skeleton)
+    sk.boneprint(united_skeleton, verbose=False)
+
+    breakpoint()
 
 
 if __name__ == '__main__':
