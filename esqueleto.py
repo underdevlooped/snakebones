@@ -1010,6 +1010,99 @@ def set_arp_table(subnet: SubNet,
     return arp_table_list
 
 
+# HINT arp_table: alterado para probes segmentados
+# %% funcao set_arp_table
+def arp_table(subnet: SubNet,
+              probes: int = 1,
+              auto_fill: Optional[bool] = None,
+              manual_fill: Optional[List[Tuple[str, str]]] = None,
+              include_me: Optional[bool] = None,
+              timeout: int = 4,
+              mode: str = 'arp',
+              step=30) \
+        -> Optional[ArpTable]:
+    """
+    Envia pacotes ARP em broadcast p/ atualizar a tabela MAC dos elementos
+    Retorna tupla para cada rede fornecida contendo lista de IPs, de MACs e
+    total de elementos
+        - Usa Rede fornecida [subnet.address] como destino de quadros L2.
+
+    :param subnet: Rede a ter elementos rastreados
+    :param probes: quantidade de quadros para cada endereco da rede destino
+    :param include_me: True para incluir o NMS na arp table
+    :param timeout: tempo para considerar sem reposta (segundos)
+    :param mode: 'arp' 'ping' 'multping'
+    :return: Lista com tupla (IPv4Interface, EUI) dos elementos identificados
+    :rtype: Optional[List[Tupla[IPv4Interface, EUI]]]
+    """
+    subnet_prefix = subnet.network_address.compressed.rsplit(".", 1)[0]
+    mode = mode.lower()
+    myip = None
+    arp_table_list = None
+    ip_list, mac_list = [], []
+    if include_me:
+        for ip in get_myip():
+            if ip in subnet:
+                myip = ip
+                ip_list.append(ip)
+        mac_list.append(get_mymac())
+        mac_list[-1].dialect = mac_cisco
+    ips = []
+    for ip_obj in subnet.hosts():
+        if ip_obj.compressed != myip.ip.compressed:
+            ips.append(ip_obj.compressed)
+
+    if mode == 'arp':
+        destinos = [l for l in chunks(list(range(1,255)), step)]
+        for dest in destinos:
+            for _ in range(probes):
+                ans, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff") /
+                             ARP(pdst=f'{subnet_prefix}.{dest[0]}-{dest[-1]}'),
+                             timeout=timeout)
+            for _, recebe in ans:
+                ip_list.append(
+                    IPv4Interface(recebe[0][1].summary().split()[5]
+                                  + '/'
+                                  + str(subnet.prefixlen))
+                )
+                mac_list.append(
+                    EUI(
+                        recebe[0][1].summary().split()[3].replace(':', '')
+                    )
+                )
+                mac_list[-1].dialect = mac_cisco
+
+        arp_table_list = sorted(list(zip(ip_list, mac_list)))
+    elif mode == 'multping':
+        # ips = (ip_obj.compressed for ip_obj in hosts)
+        # for ip in ips:
+        #     if myip.ip.compressed in ips:
+        #         continue
+        # print(f"Iniciando envio de ({len(ips)*probes}) "
+        #       f"multi-ping para {subnet!r}...")
+        alives = list()
+        for ip_chunk in chunks(ips, step):
+            print(f"Iniciando envio de ({len(ip_chunk)*probes}) "
+                  f"multi-ping para '{ip_chunk[0]}-{ip_chunk[-1]}'...")
+            # resposta = ping_nmap(ip_chunk, probes, timeout)
+            alives.extend(ping_nmap(ip_chunk, probes, timeout))
+        if alives:
+            for ip in alives:
+                ip_list.append(IPv4Interface(ip + '/' + str(subnet.prefixlen)))
+                arp_out = subprocess.run("arp -n".split() + [ip],
+                                         stdout=subprocess.PIPE,
+                                         universal_newlines=True)
+                arp = arp_out.stdout.split('\n')[1].split(maxsplit=3)[2]
+                mac_list.append(EUI(arp.replace(':', '')))
+                mac_list[-1].dialect = mac_cisco
+        arp_table_list = sorted(list(zip(ip_list, mac_list)))
+
+    if not arp_table_list:
+        print(f'Tabela ARP nao definida para rede {subnet.address!r}')
+        return None
+    return arp_table_list
+
+
 # %% funcao get_mymac
 def get_mymac(interface: str = 'ens33', vendor: str = 'unix') -> EUI:
     """
@@ -1448,6 +1541,18 @@ def is_leaf_node(node: str) -> bool:
     :rtype: bool
     """
     return not is_internal_node(node)
+
+
+def chunks(iterable, n):
+    """
+    Dividir em partes de n por vez.
+
+    :param iterable:
+    :param n:
+    """
+    for i in range(0, len(iterable), n):
+        yield iterable[i:i + n]
+
 
 # %% scapy functions
 #    executar como super-user (sudo) para gerar pacotes
