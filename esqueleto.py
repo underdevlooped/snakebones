@@ -1011,6 +1011,7 @@ def set_arp_table(subnet: SubNet,
 
 
 # HINT arp_table: alterado para probes segmentados
+# HINT arp_table: parametro ipmax para definir ultimo ip do range
 # %% funcao set_arp_table
 def arp_table(subnet: SubNet,
               probes: int = 1,
@@ -1019,7 +1020,8 @@ def arp_table(subnet: SubNet,
               include_me: Optional[bool] = None,
               timeout: int = 4,
               mode: str = 'arp',
-              step=30) \
+              step=30,
+              ipmax=254) \
         -> Optional[ArpTable]:
     """
     Envia pacotes ARP em broadcast p/ atualizar a tabela MAC dos elementos
@@ -1048,12 +1050,14 @@ def arp_table(subnet: SubNet,
         mac_list.append(get_mymac())
         mac_list[-1].dialect = mac_cisco
     ips = []
-    for ip_obj in subnet.hosts():
+    for num, ip_obj in enumerate(subnet.hosts(), 1):
         if ip_obj.compressed != myip.ip.compressed:
             ips.append(ip_obj.compressed)
+        if num >= ipmax:
+            break
 
     if mode == 'arp':
-        destinos = [l for l in chunks(list(range(1,255)), step)]
+        destinos = [l for l in chunks(list(range(1,ipmax+1)), step)]
         for dest in destinos:
             for _ in range(probes):
                 ans, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff") /
@@ -1074,21 +1078,16 @@ def arp_table(subnet: SubNet,
 
         arp_table_list = sorted(list(zip(ip_list, mac_list)))
     elif mode == 'multping':
-        # ips = (ip_obj.compressed for ip_obj in hosts)
-        # for ip in ips:
-        #     if myip.ip.compressed in ips:
-        #         continue
-        # print(f"Iniciando envio de ({len(ips)*probes}) "
-        #       f"multi-ping para {subnet!r}...")
         alives = list()
         for ip_chunk in chunks(ips, step):
-            print(f"Iniciando envio de ({len(ip_chunk)*probes}) "
+            print(f"Iniciando envio de '{len(ip_chunk)*probes}' "
                   f"multi-ping para '{ip_chunk[0]}-{ip_chunk[-1]}'...")
             # resposta = ping_nmap(ip_chunk, probes, timeout)
             alives.extend(ping_nmap(ip_chunk, probes, timeout))
         if alives:
             for ip in alives:
                 ip_list.append(IPv4Interface(ip + '/' + str(subnet.prefixlen)))
+                ping_nmap([ip], probes, timeout)
                 arp_out = subprocess.run("arp -n".split() + [ip],
                                          stdout=subprocess.PIPE,
                                          universal_newlines=True)
