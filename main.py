@@ -70,13 +70,18 @@ def main():
 
     ARP_TABLE_DATA = dict()
     for rede in redes:
-        breakpoint()
+        if sw_subnet == rede:
+            ipmax = new_switches
+        else:
+            div, mod = divmod(new_hosts, new_subnets)
+            ipmax = div + mod
         rede.arp_table = \
             sk.arp_table(rede,
                          probes=1,
-                         timeout=3,
+                         timeout=1,
                          include_me=True,
-                         mode='arp')
+                         mode='multping',
+                         ipmax=ipmax)
         ARP_TABLE_DATA[rede.compressed] = rede.arp_table
     SNMP_DATA = sk.get_snmp_data(*internal_nodes)
     breakpoint()
