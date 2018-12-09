@@ -1372,6 +1372,43 @@ def nms_config(mode: bool = START) -> None:
         print('Pronto.')
 
 
+# %% subprocess config_nms
+# HINT config_nms: configura intefaces do NMS com base nas redes fornecidas
+def config_nms(redes=None, ip=250, interface_name='ens33') -> None:
+    """
+    Define IP e mascara, com base em redes de estrada, de cada interface do
+    terminal para atuar como NMS
+    """
+    if not redes:
+        return None
+    print('Iniciando configuracao das Interfaces do NMS...')
+    for rede_num, rede in enumerate(sorted([red for red in redes])):
+        rede_prefix = rede.network_address.compressed.rsplit(".", 1)[0]
+        interface_ip = f'{rede_prefix}.{ip}'
+        interface = f'{interface_name}:{rede_num}'
+        ifconfig = subprocess.run(['ifconfig'],
+                                  stdout=subprocess.PIPE,
+                                  universal_newlines=True)
+        route_table = subprocess.run('route -n'.split(),
+                                     stdout=subprocess.PIPE,
+                                     universal_newlines=True)
+        print(f'Configurando inteface {interface!r} com ip {interface_ip!r}...')
+        while f'inet {interface_ip}' not in ifconfig.stdout \
+                and f'{rede_prefix}.0' not in route_table.stdout:
+            subprocess.run(f'sudo ifconfig {interface} {interface_ip} '
+                           f'netmask {rede.netmask.exploded}'.split(),
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+            ifconfig = subprocess.run(['ifconfig'],
+                                      stdout=subprocess.PIPE,
+                                      universal_newlines=True)
+            route_table = subprocess.run('route -n'.split(),
+                                         stdout=subprocess.PIPE,
+                                         universal_newlines=True)
+            conf.route.resync()
+    return print('Configuracao do NMS concluida.')
+
+
 # %% test_snmp
 # =============================================================================
 # By sending appropriate SNMP queries to each detected element,
