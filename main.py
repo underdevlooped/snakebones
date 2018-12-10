@@ -12,11 +12,13 @@ Execucao da descoberta de topologia fisica da LAN Ethernet explorada  por meio
 da SkeletonTree
 """
 
-import snakebones as sk
-import gnsbinder as gb
 from pdb import set_trace as breakpoint
 from pprint import pprint
+from time import sleep
 from typing import List
+
+import gnsbinder as gb
+import snakebones as sk
 
 
 def main():
@@ -24,46 +26,46 @@ def main():
     AUTOFILL_MODE = False
 
     # GERANDO TOPOLOGIAS
-    new_switches = 10
-    new_hubs = 10
-    new_hosts = 100
-    new_graphs = 10
-    new_subnets = 3
+    total_switches = 10
+    total_hubs = 10
+    total_hosts = 100
+    total_nodes = total_switches + total_hubs + total_hosts
+    total_graphs = 10
+    total_subnets = 3
 
     graph_path = '/mnt/hgfs/Projeto Final Dissertacao/snakebones/grafos_rand/'
     file_name = \
-        f'randomgraph_sw{new_switches:02}_hub{new_hubs:02}_host{new_hosts:03}_'
+        f'randomgraph_sw{total_switches:02}_hub{total_hubs:02}_host{total_hosts:03}_'
 
-    # # ler grafos aleatorios
-    # graph_list = list()
-    # for i in range(new_graphs):
-    #     graph_loaded = gb.nx.Graph(
-    #         gb.nx.nx_pydot.read_dot(f'{graph_path}{file_name}{i+1:002}.txt')
-    #     )
-    #     graph_list.append(graph_loaded)
+    # ler grafos aleatorios
+    graph_list = list()
+    for i in range(total_graphs):
+        graph_loaded = gb.nx.Graph(
+            gb.nx.nx_pydot.read_dot(f'{graph_path}{file_name}{i+1:002}.txt')
+        )
+        graph_list.append(graph_loaded)
 
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
     nms_id = 'a296b0ec-209a-47a5-ae11-fe13f25e7b73'  # NMS (lubuntu-MESTRADO)
 
     pc = gb.Gns3('192.168.139.1', project_id=project_id)
 
-    # # Cria nodes e links no GNS3 a partir dos grafos
-    # for graph in graph_list[0]:
-    #     pc.clear_links(keep=(nms_id,))
-    #     pc.nodes_from_graph(graph, subnets=3)
-    #     pc.links_from_graph(graph)
-    #     pc.start_nodes()
-    #     breakpoint()
-    #
-    # # pc.clear_links(keep=(nms_id,))
+    # HINT descoberta topologia gerada aleatoriamente
+    # Cria nodes e links no GNS3 a partir dos grafos
+    for graph in graph_list[0]:
+        pc.clear_links(keep=(nms_id,))
+        pc.nodes_from_graph(graph, subnets=3)
+        pc.links_from_graph(graph)
+        pc.start_nodes()
+        sleep(60)
 
     # 1) OBTENDO DADOS
     sw_subnet = '10.0.0.0/24'  # subnet que contem switches gerenciaveis (snmp)
-    leaf_subnet = [leaf for leaf in sk.subnet_ips(new_subnets)]
+    leaf_subnet = [leaf for leaf in sk.subnet_ips(total_subnets)]
     redes = sk.subnet_creator(sw_subnet, *leaf_subnet)
     sw_subnet = sk.get_subnet(sw_subnet)
     internal_nodes = \
-        [h.compressed for h in sw_subnet.hosts()][:new_switches]
+        [h.compressed for h in sw_subnet.hosts()][:total_switches]
 
     sk.config_nms(redes=redes)
 
@@ -71,15 +73,15 @@ def main():
 
     ARP_TABLE_DATA = dict()
     for rede in redes:
-        if sw_subnet == rede:
-            ipmax = new_switches
+        if rede == sw_subnet:
+            ipmax = total_switches
         else:
-            div, mod = divmod(new_hosts, new_subnets)
+            div, mod = divmod(total_hosts, total_subnets)
             ipmax = div + mod
         rede.arp_table = \
             sk.arp_table(rede,
-                         probes=1,
-                         timeout=1,
+                         probes=2,
+                         timeout=4,
                          include_me=True,
                          mode='multping',
                          ipmax=ipmax)
@@ -125,9 +127,9 @@ def main():
         anchors_inter = first.anchors & second.anchors
         new_root = anchors_inter.pop()  # rk = any node in Xi ∩ Xj
         new_nodes = first.nodes | second.nodes  # VNk = VNi U VNj
-        remove = [interface.ip.compressed for interface in sk.get_myip()]
+        remove = [interface.ip.compressed for interface in sk.get_myip()][1:]
         # FIXME erro ao criar SkeletonTree
-        breakpoint()
+        # breakpoint()
         new_skeleton = sk.SkeletonTree(new_netnodes,
                                        new_nodes,
                                        new_root,
@@ -139,8 +141,11 @@ def main():
         skeletons.remove(second)
         skeletons.append(new_skeleton)
     united_skeleton = skeletons.pop()
-    sk.boneprint(united_skeleton)
-    sk.boneprint(united_skeleton, verbose=False)
+    if united_skeleton.vertices == total_nodes:
+        sk.boneprint(united_skeleton)
+        sk.boneprint(united_skeleton, verbose=False)
+    else:
+        print('Rede nao aferida.')
 
     breakpoint()
 
