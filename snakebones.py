@@ -1570,6 +1570,8 @@ class SkeletonTree(object):
         while self.sorted_l:
             node = self.sorted_l.pop(0)  # v'
             arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
+            if not arch_a:
+                continue
             vertex = arch_a._endpoint_a  # y = start a in Y
             if vertex.value_n == node.value_nv:
                 vertex._nodes_set.add(node)  # Cy U {v'}
