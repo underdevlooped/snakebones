@@ -1865,7 +1865,6 @@ def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
     return nets
 
 
-# HINT subnet_ips: gerador de enderecos IP de rede
 def subnet_ips(subnets=3, prefix=None, mask=None):
     """
     Retorna gerador com IP de subnets.
