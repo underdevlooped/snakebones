@@ -69,7 +69,6 @@ class Gns3(object):
                          cmd='nodes')
         return nodes
 
-    # HINT Gns3: metodo start_nodes para inicar nodes criados
     def start_nodes(self, project_id=None):
         # .../{project_id}/nodes/{node_id}/start" -d "{}"
         if not project_id:
@@ -87,7 +86,6 @@ class Gns3(object):
                       cmd=f'nodes/{node_id}/start',
                       data='{}')
 
-    # HINT Gns3: metodo stop_nodes para desligar nodes criados
     def stop_nodes(self, project_id=None):
         # .../{project_id}/nodes/{node_id}/start" -d "{}"
         if not project_id:
@@ -192,7 +190,6 @@ class Gns3(object):
                          cmd='links')
         return links
 
-    # HINT clear_links: atributo keep mantem links ligados aos nodes fornecidos
     def clear_links(self, project_id=None, keep=None):
         if not project_id:
             project_id = self.project_id
@@ -232,7 +229,9 @@ class Gns3(object):
                         ports.remove(node['port_number'])
         return ports
 
-    def nodes_from_graph(self, graph=None, subnets=1, host_ips=None):
+    # HINT nodes_from_graph: atributo steps para alterar a densidade de nodes
+    def nodes_from_graph(
+            self, graph=None, subnets=1, host_ips=None, steps: dict = None):
         """
         Cria nodes GNS3 a partir de um grafo
 
@@ -248,26 +247,36 @@ class Gns3(object):
         hub_tocreate = hub_graph_amout - hub_gns_amout
         host_tocreate = host_graph_amout - host_gns_amout
 
+        if not steps:
+            steps = {'sw': 150, 'hub': 150, 'host':150}
+        if not steps.get('sw'):
+            steps['sw'] = 150
+        if not steps.get('hub'):
+            steps['hub'] = 150
+        if not steps.get('host'):
+            steps['host'] = 150
+
         # Cria switches
         for i in range(sw_tocreate):
             new_switch = set_switch(name_index=sw_gns_amout + 1 + i,
-                                    xyrange=(-635, 640, -841, -300))
+                                    xyrange=(-635, 640, -841, -300),
+                                    step=steps['sw'])
             self.nodes(new=new_switch)
 
         # Cria hubs
         for i in range(hub_tocreate):
             new_hub = set_hub(name_index=hub_gns_amout + 1 + i,
-                              xyrange=(-635, 640, -300, 100))
+                              xyrange=(-635, 640, -300, 100),
+                              step=steps['hub'])
             self.nodes(new=new_hub)
 
         # Cria hosts
         for i in range(host_tocreate):
             new_host = set_host(host_ips[host_gns_amout + i],
-                                xyrange=(-635, 640, 100, 810))
+                                xyrange=(-635, 640, 100, 810),
+                                step=steps['host'])
             self.nodes(new=new_host)
 
-    # HINT links_from_graph: bug links nao aleatorios para hosts
-    # HINT links_from_graph: bug links para tipos errados
     def links_from_graph(self, graph):
         """
         Cria links GNS3 partindo de um grafo
@@ -394,8 +403,7 @@ def rand_pos(xstart=None, xstop=None, ystart=None, ystop=None, step=None):
     return {'x': x_pos, 'y': y_pos}
 
 
-# HINT set_switch: corrigido carregamento do sistema operacional simulado
-def set_switch(name_index=1, pos=None, xyrange=None):
+def set_switch(name_index=1, pos=None, xyrange=None, step=None):
     """
     Opcao de posicao para nodes definicao ou aleatoria
 
@@ -413,12 +421,13 @@ def set_switch(name_index=1, pos=None, xyrange=None):
     process_priority = "normal"
     usage = "There is no default password and enable password. " \
             "There is no default configuration present."
-
+    if not step:
+        step = 150
     if not pos:
         if xyrange:
-            pos = rand_pos(*xyrange)
+            pos = rand_pos(*xyrange, step=step)
         else:
-            pos = rand_pos()
+            pos = rand_pos(step=step)
     else:
         pos['x'], pos['y'] = pos
     false, null, true = False, None, True
@@ -495,14 +504,16 @@ def set_switch(name_index=1, pos=None, xyrange=None):
     return switch_cfg
 
 
-def set_hub(name_index=1, pos=None, xyrange=None):
+def set_hub(name_index=1, pos=None, xyrange=None, step=None):
     false, null, true = False, None, True
     name = f"HUB{name_index}"
+    if not step:
+        step = 150
     if not pos:
         if xyrange:
-            pos = rand_pos(*xyrange)
+            pos = rand_pos(*xyrange, step=step)
         else:
-            pos = rand_pos()
+            pos = rand_pos(step=step)
     else:
         pos['x'], pos['y'] = pos
     hub_cfg = \
@@ -585,17 +596,20 @@ def set_hub(name_index=1, pos=None, xyrange=None):
     return hub_cfg
 
 
-def set_host(ip=None, prefix='24', gateway=None, pos=None, xyrange=None):
+def set_host(
+        ip=None, prefix='24', gateway=None, pos=None, xyrange=None, step=None):
     false, null, true = False, None, True
+    if not step:
+        step = 150
     if gateway:
         starturp_script = f"set pcname -{ip}-\nip {ip} {gateway} {prefix}\n"
     else:
         starturp_script = f"set pcname -{ip}-\nip {ip} {prefix}\n"
     if not pos:
         if xyrange:
-            pos = rand_pos(*xyrange)
+            pos = rand_pos(*xyrange, step=step)
         else:
-            pos = rand_pos()
+            pos = rand_pos(step=step)
     else:
         pos['x'], pos['y'] = pos
     node_cfg = \
@@ -667,7 +681,6 @@ def split(iterable, n):
             for i in range(n))
 
 
-# HINT random_graph: corrigido bug hosts nao aleatorios no grafo
 def random_graph(sw_nodes, hub_nodes, host_nodes, plot=None):
     """
     Criacao e plot (opcional) de arvore aleatoria para alimentar GNS3.
