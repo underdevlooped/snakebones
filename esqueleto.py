@@ -1010,8 +1010,7 @@ def set_arp_table(subnet: SubNet,
     return arp_table_list
 
 
-# HINT arp_table: alterado para probes segmentados
-# HINT arp_table: parametro ipmax para definir ultimo ip do range
+# HINT arp_table: corrigido erro qd mac e esquecido com tentativa automatica de autalizacao
 # %% funcao set_arp_table
 def arp_table(subnet: SubNet,
               probes: int = 1,
@@ -1086,14 +1085,25 @@ def arp_table(subnet: SubNet,
             alives.extend(ping_nmap(ip_chunk, probes, timeout))
         if alives:
             for ip in alives:
+                for attempt in range(3):
+                    try:
+                        arp_out = subprocess.run("arp -n".split() + [ip],
+                                                 stdout=subprocess.PIPE,
+                                                 universal_newlines=True)
+                        arp = arp_out.stdout.split('\n')[1].split(maxsplit=3)[2]
+                        mac_list.append(EUI(arp.replace(':', '')))
+                        mac_list[-1].dialect = mac_cisco
+                    except IndexError as err:
+                        print(f'Erro {err} ao coletar mac. '
+                              f'tentativa {attempt+1}/3...')
+                        ping_ip(ip, repete=1, espera=timeout)
+                        sleep(1)
+                    else:
+                        break
+                else:
+                    print(f'Erro coleta mac. {attempt+1} tentativas sem sucesso.')
+                    raise ValueError(f'MAC nao encontrado para ip {ip}')
                 ip_list.append(IPv4Interface(ip + '/' + str(subnet.prefixlen)))
-                ping_nmap([ip], probes, timeout)
-                arp_out = subprocess.run("arp -n".split() + [ip],
-                                         stdout=subprocess.PIPE,
-                                         universal_newlines=True)
-                arp = arp_out.stdout.split('\n')[1].split(maxsplit=3)[2]
-                mac_list.append(EUI(arp.replace(':', '')))
-                mac_list[-1].dialect = mac_cisco
         arp_table_list = sorted(list(zip(ip_list, mac_list)))
 
     if not arp_table_list:
@@ -1465,7 +1475,6 @@ def nms_config(mode: bool = START) -> None:
 
 
 # %% subprocess config_nms
-# HINT config_nms: configura intefaces do NMS com base nas redes fornecidas
 def config_nms(redes=None, ip=250, interface_name='ens33') -> None:
     """
     Define IP e mascara, com base em redes de estrada, de cada interface do
