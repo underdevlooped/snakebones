@@ -20,6 +20,7 @@ from time import sleep
 from typing import List
 
 import gnsbinder as gb
+import logging
 import snakebones as sk
 
 
@@ -32,21 +33,42 @@ def main():
     total_hubs = 10
     total_hosts = 100
     total_nodes = total_switches + total_hubs + total_hosts
-    total_graphs = 10
+    total_graphs = 5
     total_subnets = 3
     resultados = list()
 
-    graph_path = '/mnt/hgfs/Projeto Final Dissertacao/snakebones/grafos_rand/'
+    graph_path = '/mnt/hgfs/Projeto Final Dissertacao/snakebones/grafos_rand'
     file_name = \
-        f'randomgraph_sw{total_switches:02}_hub{total_hubs:02}_host{total_hosts:03}_'
+        f'randomgraph_sw{total_switches:02}_hub{total_hubs:02}_host{total_hosts:03}'
+
+    logging.basicConfig(filename=f'{graph_path}/Logs/{file_name}_'
+                                 f'{total_graphs}.log',
+                        format='%(asctime)s : %(module)-11s : %(levelname)-8s : '
+                               '%(lineno)-4d : %(message)s',
+                        # datefmt='%Y-%m-%d %H:%M:%S',
+                        level=logging.DEBUG)
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+
+    formatter = logging.Formatter('%(name)-11s: %(levelname)-8s : %(message)s')
+    console.setFormatter(formatter)
+    logging.getLogger('').addHandler(console)
+
+    logger = logging.getLogger(__name__)
+
+    logger.info('Inicio.')
+    logger.debug(f'Totais: sw:{total_switches} hub:{total_hubs} '
+                  f'host:{total_hosts} subnets:{total_subnets} '
+                  f'grafos:{total_graphs}')
 
     # ler grafos aleatorios
     graph_list = list()
     for i in range(total_graphs):
         graph_loaded = gb.nx.Graph(
-            gb.nx.nx_pydot.read_dot(f'{graph_path}{file_name}{i+1:002}.txt')
+            gb.nx.nx_pydot.read_dot(f'{graph_path}/{file_name}_{i+1:002}.txt')
         )
         graph_list.append(graph_loaded)
+    logger.info(f'{len(graph_list)} grafos lidos')
 
     project_id = '389dde3d-08ac-447b-8d54-b053a3f6ed19'  # scritp-test.gns3
     nms_id = 'a296b0ec-209a-47a5-ae11-fe13f25e7b73'  # NMS (lubuntu-MESTRADO)
@@ -61,24 +83,30 @@ def main():
     internal_nodes = \
         [h.compressed for h in sw_subnet.hosts()][:total_switches]
 
+    logger.info(f'configurando interfaces do NMS...')
     sk.config_nms(redes=redes)
+    logger.info(f'Interfaces do NMS configuradas para {len(redes)} redes')
 
     # breakpoint()
 
     # Cria nodes e links no GNS3 a partir dos grafos
-    for graph in graph_list:
+    for num_g, graph in enumerate(graph_list, 1):
+        logger.info(f'Criando topologia {num_g} no GNS3...')
         pc.clear_links(keep=(nms_id,))
-        # breakpoint()
         pc.nodes_from_graph(graph, subnets=total_subnets, steps={'host': 75})
         pc.links_from_graph(graph)
         pc.start_nodes()
         hosts_ips = list(
             gb.subnet_host_ips(subnets=total_subnets, ips=total_hosts))
+        logger.info(f'Topologia {num_g} criada no GNS3 com {total_hosts} hosts'
+                    f'em {total_subnets} redes')
         sleep(120)
 
         # 1) OBTENDO DADOS
         ARP_TABLE_DATA = dict()
         for rede in redes:
+            logger.info(f'Criando tabela ARP topo {num_g} '
+                         f'rede {rede.compressed}...')
             if rede == sw_subnet:
                 ipmax = total_switches
             else:
@@ -92,35 +120,68 @@ def main():
                              mode='multping',
                              ipmax=ipmax)
             ARP_TABLE_DATA[rede.compressed] = rede.arp_table
+            logger.info(f'Tabela ARP criada rede {rede.compressed}. '
+                         f'Total: {len(rede.arp_table)}.')
+            logger.debug(rede.arp_table)
+
         SNMP_DATA = dict()
         for internal_node in internal_nodes:
             # breakpoint()
+            logger.info(f'Atualizando tabela ARP para coleta SNMP '
+                         f'{internal_node} ...')
+
             ping_nmap(hosts_ips)
+            logger.info(f'Iniciando coleta SNMP {internal_node}...')
             for attempt in range(3):
+                logger.debug(f'Tentativa {attempt+1} de '
+                             f'coletar {internal_node}')
                 try:
                     SNMP_DATA.update(sk.get_snmp_data(internal_node))
                 except Exception as err:
-                    print(f'Erro {err} coleta snmp. tentativa {attempt+1}/3...')
-                    sk.ping_ip(internal_node.ip_address)
+                    logger.warning(f'Erro {err} coleta snmp. '
+                                   f'Tentativa {attempt+1}/3...')
+                    sk.ping_ip(internal_node)
                     sleep(1)
                 else:
+                    logger.info(f'SNMP {internal_node} coletado com sucesso')
+                    logger.debug(SNMP_DATA[internal_node + '/24'])
                     break
             else:
-                print(f'Erro coleta snmp. {attempt+1} tentativas sem sucesso.')
+                logger.error(f'Erro coleta snmp. {attempt+1} tentativas '
+                             f'sem sucesso.')
                 raise TimeoutError('Erro tentando coletar snmp')
 
+        logger.info(f'Definindo nodes das redes...')
         for rede in redes:
+            logger.debug(f'Definindo nodes para rede {rede}...')
             rede.set_all_nodes()
+            logger.debug(f'Nodes definidos para rede {rede}. '
+                         f'Total: {len(rede.nodes)}')
+        logger.info(f'Nodes definidos para {len(redes)}.')
+        logger.info(f'Definindo redes associadas...')
         for inode in sw_subnet.internal_nodes:
+            logger.debug(f'Definindo redes associadas a {inode}...')
             inode.set_associated_subnets()
+            logger.debug(f'Redes associadas {inode}. '
+                         f'Total: {len(inode.associated_subnets)}')
         for my_ip in sk.get_myip():
             sk.set_root(my_ip)
 
-        print("\n" + f"Nodes descobertos: ({len(sk.Node._all)})")
-        pprint(sk.Node._all)
+        logger.info(f"total GNS3 Nodes: ({len(sk.Node._all)}). "
+                    f"Inodes: {len(sk.InternalNode._allinodes_set)}. "
+                    f"Leafs: {len(sk.LeafNode._all_leaves)}")
+        graph_nodes_labeled = total_hosts + total_switches + total_subnets + 1
+        num_allnodes = len(sk.Node._all)
+        if num_allnodes < (graph_nodes_labeled):
+            logging.error(f'Quantidade de nodes ({num_allnodes}) '
+                          f'inferior ao esperado ({graph_nodes_labeled})')
+        # print("\n" + f"Nodes descobertos: ({num_allnodes})")
+        # pprint(sk.Node._all)
+        logger.info(f"Nodes descobertos: ({num_allnodes})")
+        logger.debug(sk.Node._all)
 
-        print("\n" + f"Inodes: ({len(sk.InternalNode._allinodes_set)})")
-        pprint(sk.InternalNode._allinodes_set)
+        logger.info(f"Inodes: ({len(sk.InternalNode._allinodes_set)})")
+        logger.debug(sk.InternalNode._allinodes_set)
 
         # 2) INFERINDO TOPOLOGIA
         skeletons: List[sk.SkeletonTree] = list()
@@ -130,10 +191,16 @@ def main():
             # SkeletonTree(Ni,Vni,ri,AFTs)
             if not AUTOFILL_MODE:
                 sk.set_root(subnet=subnet)
+            logger.info(f'Criando Skeleton para {subnet}...')
+            root = sk.get_root(subnet)
+            logger.debug(subnet.leaf_nodes)
+            logger.debug(subnet.nodes_set)
+            logger.debug(root)
             skeletons.append(sk.SkeletonTree(subnet.leaf_nodes,  # Ni
                                              subnet.nodes_set,  # Vni
                                              sk.get_root(subnet),  # ri
                                              subnet))
+            logger.info(f'Skeleton {skeletons[-1]} criada para {subnet}.')
 
             bone: sk.SkeletonTree = skeletons[-1]  # Hi(Yi,Ai)
             # ExtendedAFTs(yj,X H(Y,A))
@@ -141,6 +208,7 @@ def main():
                        bone.anchors,  # X
                        bone)  # H(Y,A)
             sk.boneprint(bone)
+        breakpoint()
 
         while len(skeletons) >= 2 and skeletons[0].anchors & skeletons[1].anchors:
             first, second = skeletons[0], skeletons[1]  # Hi and Hj

@@ -23,6 +23,7 @@ sys.path.append(
     '/media/sf_Projeto_Final_Dissertacao/snakebones'
 )
 
+import logging
 import networkx as nx  # para trabalhar com grafos
 import matplotlib.pyplot as plt
 from pdb import set_trace as breakpoint
@@ -46,6 +47,8 @@ from easysnmp import Session
 # from scapy.all import *
 # from scapy.sendrecv import srp
 # from scapy.layers.l2 import Ether, ARP
+
+logger = logging.getLogger(__name__)
 
 # %% Constantes
 YES = ON = START = True
@@ -1265,7 +1268,7 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
 
     snmp_data = dict()
     for node in inodes:
-        print(f'Iniciando coleta SNMP em {node}...')
+        logger.info(f'Coletando SNMP em {node}...')
         if isinstance(node, (Node, InternalNode, LeafNode)):
             host_key = node.compressed
             node_ip = node.ip.compressed
@@ -1276,15 +1279,18 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
         snmp = Session(hostname=node_ip,
                        version=2,
                        community='public')
+        logger.debug(f'Coletando SNMP sys_name em {node}...')
         snmp_data[host_key]['sys_name'] = snmp.get('sysName.0').value
 
         dot1dstpport = 'mib-2.17.2.15.1.1'
+        logger.debug(f'Coletando SNMP portas dot1dstpport em {node}...')
         resposta_snmp = snmp.get_next(dot1dstpport)
         stp_port_indexes = []
         while dot1dstpport in resposta_snmp.oid:
             stp_port_indexes.append(
                 resposta_snmp.oid.rsplit(sep='.', maxsplit=1)[-1])
             resposta_snmp = snmp.get_next(resposta_snmp.oid)
+        logger.debug(f'SNMP portas dot1dstpport em {node}: {stp_port_indexes}')
 
         ifname = 'mib-2.31.1.1.1.1'  # 'iFname'
         # resposta_snmp = snmp.get(ifname)
@@ -1850,6 +1856,7 @@ def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
     :return: conjunto de redes
     :rtype: set
     """
+    logger.info('Criando SubNets...')
     found_subnet = get_subnet(sw_subnet)
     if found_subnet:
         found_subnet._has_switches = True
@@ -1862,6 +1869,7 @@ def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
             nets.update({found_subnet})
         else:
             nets.add(SubNet(subnet))
+    logger.info(f'SubNets criadas: {len(nets)}')
     return nets
 
 

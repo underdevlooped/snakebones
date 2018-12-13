@@ -7,6 +7,8 @@ Created on Thu May  3 21:24:09 2018
 Funcoes de suporte para a criacao da skeleton tree
 """
 import subprocess
+import logging
+import os, sys
 from time import sleep
 from scapy.all import *
 from easysnmp import Session
@@ -18,6 +20,8 @@ from netaddr import EUI
 from netaddr.strategy.eui48 import mac_cisco, mac_unix_expanded
 from pdb import set_trace as breakpoint
 from typing import Union, Tuple, List, Dict, Optional, TypeVar, Set
+
+logger = logging.getLogger(__name__)
 
 # Callable, Any
 
@@ -41,6 +45,16 @@ ArpTableData = Dict[Ip, ArpTable]
 YES = ON = START = True
 NO = OFF = STOP = False
 SubNet = TypeVar('SubNet')
+
+
+class HidePrint(object):
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
 
 
 def manual_aft() -> Aft:
@@ -1093,7 +1107,7 @@ def arp_table(subnet: SubNet,
                         arp = arp_out.stdout.split('\n')[1].split(maxsplit=3)[2]
                         mac_list.append(EUI(arp.replace(':', '')))
                         mac_list[-1].dialect = mac_cisco
-                    except IndexError as err:
+                    except Exception as err:
                         print(f'Erro {err} ao coletar mac. '
                               f'tentativa {attempt+1}/3...')
                         ping_ip(ip, repete=1, espera=timeout)
@@ -1493,9 +1507,14 @@ def config_nms(redes=None, ip=250, interface_name='ens33') -> None:
         route_table = subprocess.run('route -n'.split(),
                                      stdout=subprocess.PIPE,
                                      universal_newlines=True)
-        print(f'Configurando inteface {interface!r} com ip {interface_ip!r}...')
+        logger.info(f'Configurando inteface {interface!r} com '
+                    f'ip {interface_ip!r}...')
+        logger.debug(route_table)
+        try_net = 1
         while f'inet {interface_ip}' not in ifconfig.stdout \
                 and f'{rede_prefix}.0' not in route_table.stdout:
+            logger.debug(f'Tentativa {try_net} de configurar {interface} '
+                         f'{interface_ip}')
             subprocess.run(f'sudo ifconfig {interface} {interface_ip} '
                            f'netmask {rede.netmask.exploded}'.split(),
                            stdout=subprocess.PIPE,
@@ -1507,7 +1526,11 @@ def config_nms(redes=None, ip=250, interface_name='ens33') -> None:
                                          stdout=subprocess.PIPE,
                                          universal_newlines=True)
             conf.route.resync()
-    return print('Configuracao do NMS concluida.')
+        logger.debug(f"{interface} {interface_ip} configurada em {try_net} "
+                     f"tentativa(s)")
+
+    logger.info('Configuracao do NMS concluida.')
+    return None
 
 
 # %% test_snmp
@@ -1532,10 +1555,10 @@ def is_internal_node(node: str) -> bool:
     try:
         snmp.get_next('1.3.6.1.2.1.17')
     except (EasySNMPTimeoutError, EasySNMPUnknownObjectIDError) as err:
-        print(f'Node {node} SNMP bridge error, {err}')
+        logger.debug(f'Node {node} SNMP bridge error, {err}')
         return False
     else:
-        print('SNMP bridge: OK.')
+        logger.info(f'SNMP bridge node {node}: OK.')
         return True
 
 
