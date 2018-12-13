@@ -1269,6 +1269,7 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
     snmp_data = dict()
     for node in inodes:
         logger.info(f'Coletando SNMP em {node}...')
+        logger.disabled = True
         if isinstance(node, (Node, InternalNode, LeafNode)):
             host_key = node.compressed
             node_ip = node.ip.compressed
@@ -1328,6 +1329,8 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
             dot1d_tp_fdb_port.append(resposta_snmp.value)
             resposta_snmp = snmp.get_next(resposta_snmp.oid)
         snmp_data[host_key]['dot1d_tp_fdb_port'] = dot1d_tp_fdb_port
+
+        logger.disabled = False
     return snmp_data
 
 

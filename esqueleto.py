@@ -1004,7 +1004,7 @@ def set_arp_table(subnet: SubNet,
         # for ip in ips:
         #     if myip.ip.compressed in ips:
         #         continue
-        print(f"Iniciando envio de ({len(ips)*probes}) "
+        logger.info(f"Iniciando envio de ({len(ips)*probes}) "
               f"multi-ping para {subnet!r}...")
         alives = ping_nmap(ips, probes, timeout)
         if alives:

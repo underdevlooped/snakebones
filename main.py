@@ -39,20 +39,21 @@ def main():
 
     graph_path = '/mnt/hgfs/Projeto Final Dissertacao/snakebones/grafos_rand'
     file_name = \
-        f'randomgraph_sw{total_switches:02}_hub{total_hubs:02}_host{total_hosts:03}'
+        f'randomgraph_sw{total_switches:02}_hub{total_hubs:02}_' \
+        f'host{total_hosts:03}'
 
     logging.basicConfig(filename=f'{graph_path}/Logs/{file_name}_'
                                  f'{total_graphs}.log',
-                        format='%(asctime)s : %(module)-11s : %(levelname)-8s : '
-                               '%(lineno)-4d : %(message)s',
+                        format='%(asctime)s : %(module)-10s : %(levelname)-7s : '
+                               '%(lineno)-4d : %(funcName)s : %(message)s',
                         # datefmt='%Y-%m-%d %H:%M:%S',
                         level=logging.DEBUG)
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
 
-    formatter = logging.Formatter('%(name)-11s: %(levelname)-8s : %(message)s')
+    formatter = logging.Formatter('%(name)-10s: %(levelname)-7s : %(message)s')
     console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
+    logging.getLogger('console').addHandler(console)
 
     logger = logging.getLogger(__name__)
 
@@ -87,8 +88,6 @@ def main():
     sk.config_nms(redes=redes)
     logger.info(f'Interfaces do NMS configuradas para {len(redes)} redes')
 
-    # breakpoint()
-
     # Cria nodes e links no GNS3 a partir dos grafos
     for num_g, graph in enumerate(graph_list, 1):
         logger.info(f'Criando topologia {num_g} no GNS3...')
@@ -98,7 +97,7 @@ def main():
         pc.start_nodes()
         hosts_ips = list(
             gb.subnet_host_ips(subnets=total_subnets, ips=total_hosts))
-        logger.info(f'Topologia {num_g} criada no GNS3 com {total_hosts} hosts'
+        logger.info(f'Topologia {num_g} criada no GNS3 com {total_hosts} hosts '
                     f'em {total_subnets} redes')
         sleep(120)
 
@@ -126,7 +125,6 @@ def main():
 
         SNMP_DATA = dict()
         for internal_node in internal_nodes:
-            # breakpoint()
             logger.info(f'Atualizando tabela ARP para coleta SNMP '
                          f'{internal_node} ...')
 
@@ -208,7 +206,6 @@ def main():
                        bone.anchors,  # X
                        bone)  # H(Y,A)
             sk.boneprint(bone)
-        breakpoint()
 
         while len(skeletons) >= 2 and skeletons[0].anchors & skeletons[1].anchors:
             first, second = skeletons[0], skeletons[1]  # Hi and Hj
