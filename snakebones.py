@@ -82,6 +82,30 @@ def config(internal_nodes: List[Union[str, None]] = None,
         ARP_TABLE_DATA = dict()
 
 
+class LoggingContext(object):
+    def __init__(self, logger, level=None, handler=None, close=True):
+        self.logger = logger
+        self.level = level
+        self.handler = handler
+        self.close = close
+
+    def __enter__(self):
+        if self.level is not None:
+            self.old_level = self.logger.level
+            self.logger.setLevel(self.level)
+        if self.handler:
+            self.logger.addHandler(self.handler)
+
+    def __exit__(self, et, ev, tb):
+        if self.level is not None:
+            self.logger.setLevel(self.old_level)
+        if self.handler:
+            self.logger.removeHandler(self.handler)
+        if self.handler and self.close:
+            self.handler.close()
+        # implicit return of None => don't swallow exceptions
+
+
 # %% classe SubNet
 # propriedades basicas
 class SubNet(IPv4Network):
@@ -1267,9 +1291,10 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
         inodes = internal_nodes
 
     snmp_data = dict()
+    # HINT get_snmp_data: bloqueado propagacao de log para modulos importados
+    logging.getLogger('easysnmp').propagate = False
     for node in inodes:
         logger.info(f'Coletando SNMP em {node}...')
-        logger.disabled = True
         if isinstance(node, (Node, InternalNode, LeafNode)):
             host_key = node.compressed
             node_ip = node.ip.compressed
@@ -1280,11 +1305,11 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
         snmp = Session(hostname=node_ip,
                        version=2,
                        community='public')
-        logger.debug(f'Coletando SNMP sys_name em {node}...')
+        logger.info(f'Coletando SNMP sys_name em {node}...')
         snmp_data[host_key]['sys_name'] = snmp.get('sysName.0').value
 
         dot1dstpport = 'mib-2.17.2.15.1.1'
-        logger.debug(f'Coletando SNMP portas dot1dstpport em {node}...')
+        logger.info(f'Coletando SNMP portas dot1dstpport em {node}...')
         resposta_snmp = snmp.get_next(dot1dstpport)
         stp_port_indexes = []
         while dot1dstpport in resposta_snmp.oid:
@@ -1330,7 +1355,6 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
             resposta_snmp = snmp.get_next(resposta_snmp.oid)
         snmp_data[host_key]['dot1d_tp_fdb_port'] = dot1d_tp_fdb_port
 
-        logger.disabled = False
     return snmp_data
 
 
