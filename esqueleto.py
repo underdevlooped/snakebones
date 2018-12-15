@@ -1008,6 +1008,8 @@ def set_arp_table(subnet: SubNet,
               f"multi-ping para {subnet!r}...")
         alives = ping_nmap(ips, probes, timeout)
         if alives:
+            logger.info(f"Recebido {len(alives)} respostas de ({len(ips)}) IPs")
+            logger.debug(alives)
             for ip in alives:
                 ip_list.append(IPv4Interface(ip + '/' + str(subnet.prefixlen)))
                 arp_out = subprocess.run("arp -n".split() + [ip],
@@ -1017,9 +1019,11 @@ def set_arp_table(subnet: SubNet,
                 mac_list.append(EUI(arp.replace(':', '')))
                 mac_list[-1].dialect = mac_cisco
         arp_table_list = sorted(list(zip(ip_list, mac_list)))
+        logger.info('Tablea ARP definida')
+        logger.debug(arp_table_list)
 
     if not arp_table_list:
-        print(f'Tabela ARP nao definida para rede {subnet.address!r}')
+        logger.warning(f'Tabela ARP nao definida para rede {subnet.address!r}')
         return None
     return arp_table_list
 
@@ -1205,7 +1209,7 @@ def ping_ip(ip_address: str,
     :return: Resposta do ping
     :rtype: str
     """
-    print(f'===> Iniciando ping ICMP para IP {ip_address}')
+    logger.info(f'===> Iniciando ping ICMP para IP {ip_address}')
     comando = ['ping', '-s', str(tamanho),
                '-c', str(repete),
                '-W', str(espera),
@@ -1214,13 +1218,15 @@ def ping_ip(ip_address: str,
                           stdout=subprocess.PIPE,
                           universal_newlines=True)
     if not pong.stdout:
-        print(f'Falha ao iniciar PING para {ip_address!r}')
+        logger.warning(f'Falha ao iniciar PING para {ip_address!r}')
         return False
-    print(pong.stdout)
+    logger.debug(pong.stdout)
     resultado = pong.stdout.split(sep='\n')[-3]
-    print(f"PING para {ip_address!r}: {resultado}")
+    logger.info(f"Resultado {ip_address!r}: \"{resultado}\"")
     if '100% packet loss' in resultado:
+        logger.warning(f'Falha no ping ICMP para IP {ip_address}')
         return False
+    logger.info(f'Sucesso no ping ICMP para IP {ip_address}')
     return True
 
 
