@@ -94,6 +94,7 @@ def main():
         pc.clear_links(keep=(nms_id,))
         pc.nodes_from_graph(graph, subnets=total_subnets, steps={'host': 75})
         pc.links_from_graph(graph)
+        logger.info(f'Iniciando nodes da topologia {num_g} no GNS3...')
         pc.start_nodes()
         hosts_ips = list(
             gb.subnet_host_ips(subnets=total_subnets, ips=total_hosts))
@@ -105,7 +106,7 @@ def main():
         ARP_TABLE_DATA = dict()
         for rede in redes:
             logger.info(f'Criando tabela ARP topo {num_g} '
-                         f'rede {rede.compressed}...')
+                        f'rede {rede.compressed}...')
             if rede == sw_subnet:
                 ipmax = total_switches
             else:
@@ -120,18 +121,18 @@ def main():
                              ipmax=ipmax)
             ARP_TABLE_DATA[rede.compressed] = rede.arp_table
             logger.info(f'Tabela ARP criada rede {rede.compressed}. '
-                         f'Total: {len(rede.arp_table)}.')
+                        f'Total: {len(rede.arp_table)}.')
             logger.debug(rede.arp_table)
 
         SNMP_DATA = dict()
         for internal_node in internal_nodes:
             logger.info(f'Atualizando tabela ARP para coleta SNMP '
-                         f'{internal_node} ...')
+                        f'{internal_node} ...')
 
             ping_nmap(hosts_ips)
             logger.info(f'Iniciando coleta SNMP {internal_node}...')
             for attempt in range(3):
-                logger.debug(f'Tentativa {attempt+1} de '
+                logger.debug(f'Tentativa {attempt+1}/3 de '
                              f'coletar {internal_node}')
                 try:
                     SNMP_DATA.update(sk.get_snmp_data(internal_node))
