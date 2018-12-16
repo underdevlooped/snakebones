@@ -1112,14 +1112,15 @@ def arp_table(subnet: SubNet,
                         mac_list.append(EUI(arp.replace(':', '')))
                         mac_list[-1].dialect = mac_cisco
                     except Exception as err:
-                        print(f'Erro {err} ao coletar mac. '
-                              f'tentativa {attempt+1}/3...')
+                        logger.warning(f'Erro {err} ao coletar mac. '
+                                       f'tentativa {attempt+1}/3...')
                         ping_ip(ip, repete=1, espera=timeout)
                         sleep(1)
                     else:
                         break
                 else:
-                    print(f'Erro coleta mac. {attempt+1} tentativas sem sucesso.')
+                    logger.error(f'Erro coleta mac para ip {ip}. '
+                                 f'{attempt+1} tentativas sem sucesso.')
                     raise ValueError(f'MAC nao encontrado para ip {ip}')
                 ip_list.append(IPv4Interface(ip + '/' + str(subnet.prefixlen)))
         arp_table_list = sorted(list(zip(ip_list, mac_list)))
@@ -1515,7 +1516,7 @@ def config_nms(redes=None, ip=250, interface_name='ens33') -> None:
                                      universal_newlines=True)
         logger.info(f'Configurando inteface {interface!r} com '
                     f'ip {interface_ip!r}...')
-        logger.debug(route_table)
+        # logger.debug(route_table)
         try_net = 1
         while f'inet {interface_ip}' not in ifconfig.stdout \
                 and f'{rede_prefix}.0' not in route_table.stdout:
@@ -1561,7 +1562,7 @@ def is_internal_node(node: str) -> bool:
     try:
         snmp.get_next('1.3.6.1.2.1.17')
     except (EasySNMPTimeoutError, EasySNMPUnknownObjectIDError) as err:
-        logger.debug(f'Node {node} SNMP bridge error, {err}')
+        # logger.debug(f'Node {node} SNMP bridge error, {err}')
         return False
     else:
         logger.info(f'SNMP bridge node {node}: OK.')

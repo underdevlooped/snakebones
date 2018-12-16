@@ -675,7 +675,7 @@ class InternalNode(Node):
         if isinstance(value, str):
             self.snmp_data['sys_name'] = value
         else:
-            print(f'Valor {value} foi atribuido pq nao e string.')
+            print(f'Valor {value} nao foi atribuido pq nao e string.')
 
     @property
     def allinodes_set(self) -> set:
@@ -968,23 +968,24 @@ def set_root(node: Union[bytes, str, LeafNode, InternalNode] = None,
     if node:
         root_node = get_node(node)
         if not root_node:
-            print(f"Node não definido para {node}")
+            logger.warning(f"Root node nao definido para {node}")
             return None
         found_net = get_subnet(root_node.network.compressed)
         if not found_net:
-            print(f"Rede nao definida para {root_node}")
+            logger.warning(f"Rede nao definida para {root_node}")
             return None
         if found_net.leaf_nodes:
             for node in found_net.leaf_nodes:
                 if node == root_node:
                     root_node.is_root = True
+                    logger.debug(f'Root definido: {root_node}')
                 else:
                     node.is_root = False
             if not root_node.is_root:
-                print("Nao localizado")
+                logger.warning("Root Nao localizado")
                 return None
         else:
-            print(f"Rede {found_net} nao possui leaf_nodes definidos")
+            logger.warning(f"Rede {found_net} nao possui leaf_nodes definidos")
             return None
     elif subnet:
         found_net = get_subnet(subnet)
@@ -997,12 +998,15 @@ def set_root(node: Union[bytes, str, LeafNode, InternalNode] = None,
                     if ip in found_net:
                         root = get_node(ip)
                         root.is_root = True
+                        logger.debug(f'Root definido para {found_net}: '
+                                     f'{root}')
                 return None
             else:
-                print(f"Rede {found_net} nao possui leaf_nodes definidos")
+                logger.warning(f"Rede {found_net} "
+                               f"nao possui leaf_nodes definidos")
                 return None
         else:
-            print(f"Rede {subnet} nao localizada")
+            logger.warning(f"Rede {subnet} nao localizada")
 
 
 # %% Funcao get_root(subnet: SubNet) -> bool
@@ -1294,7 +1298,7 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
     # HINT get_snmp_data: bloqueado propagacao de log para modulos importados
     logging.getLogger('easysnmp').propagate = False
     for node in inodes:
-        logger.info(f'Coletando SNMP em {node}...')
+        # logger.info(f'Coletando SNMP em {node}...')
         if isinstance(node, (Node, InternalNode, LeafNode)):
             host_key = node.compressed
             node_ip = node.ip.compressed
@@ -1305,18 +1309,18 @@ def get_snmp_data(*internal_nodes, net_bits: int = 24) -> dict:
         snmp = Session(hostname=node_ip,
                        version=2,
                        community='public')
-        logger.info(f'Coletando SNMP sys_name em {node}...')
+        # logger.info(f'Coletando SNMP sys_name em {node}...')
         snmp_data[host_key]['sys_name'] = snmp.get('sysName.0').value
 
         dot1dstpport = 'mib-2.17.2.15.1.1'
-        logger.info(f'Coletando SNMP portas dot1dstpport em {node}...')
+        # logger.info(f'Coletando SNMP portas dot1dstpport em {node}...')
         resposta_snmp = snmp.get_next(dot1dstpport)
         stp_port_indexes = []
         while dot1dstpport in resposta_snmp.oid:
             stp_port_indexes.append(
                 resposta_snmp.oid.rsplit(sep='.', maxsplit=1)[-1])
             resposta_snmp = snmp.get_next(resposta_snmp.oid)
-        logger.debug(f'SNMP portas dot1dstpport em {node}: {stp_port_indexes}')
+        # logger.debug(f'SNMP portas dot1dstpport em {node}: {stp_port_indexes}')
 
         ifname = 'mib-2.31.1.1.1.1'  # 'iFname'
         # resposta_snmp = snmp.get(ifname)
@@ -1551,9 +1555,11 @@ class SkeletonTree(object):
             self.name = f"({self.subnet.compressed!r})"
         else:
             self.name = f"('bone_{len(SkeletonTree._all)+1}')"
+        logger.info(f'Iniciando skeleton {self.name }')
 
         if remove:
             remove_set = {get_node(node) for node in remove if get_node(node)}
+            logger.debug(f'Removendo {remove_set}')
             self.nodes = set(nodes) - remove_set  # Vn
             self.netnodes = set(netnodes) - remove_set  # N
         else:
@@ -1564,8 +1570,11 @@ class SkeletonTree(object):
         self.frontier_set = set()  # Z para arcos fronteira
         self.vertices = set()  # set Y de H(Y, A)
         self.arches: Set[Arch] = set()  # set A de H(Y, A)
+        logger.debug(f'Root {self.root} value_n {self.root._value_nv}')
 
         # definindo |Bv| de N para cada node com root em v
+        logger.info(
+            f'Definindo |Bv| de N para cada node com root em {self.root}')
         for node in self.nodes - {self.root}:
             if isinstance(node, InternalNode):
                 node.bv_set = set()  # Bv
@@ -1577,15 +1586,21 @@ class SkeletonTree(object):
                                     get_aft(node, port, *self.netnodes)}
                 if not node.bv_set:
                     self.nodes.remove(node)
+                    logger.debug(f'Removendo node {node}. Bv nao definido')
+                else:
+                    logger.debug(f'Bv para node {node} ({len(node.bv_set)}): '
+                                 f'{node.bv_set}')
 
             else:
                 node.bv_set = {node.mac}
+                logger.debug(f'Bv para node {node}: {node.bv_set}')
             # v ∈ N or |DNv| != 2
             if node in self.netnodes \
                     or len(get_active_ports(node, *self.netnodes)) != 2:
                 node._value_nv = len(node.bv_set) - 0.5  # nv = |Bv| - 1/2
             else:
                 node._value_nv = len(node.bv_set)  # nv = |Bv|
+            logger.debug(f'Value_nv para node {node}: {node._value_nv}')
 
         node_values = [(node.value_nv, node) for node in self.nodes]
         # L =  sorted Vn - {r}
@@ -1604,6 +1619,10 @@ class SkeletonTree(object):
             node = self.sorted_l.pop(0)  # v'
             arch_a = self.find_arch(node.bv_set)  # acha a de Bv'
             if not arch_a:
+                logger.error(f'Arco nao encontrado para {node}')
+                logger.debug(f"lista 'L' {self.sorted_l}")
+                logger.debug(f"Node' {node} Bv: {node.bv_set}")
+                # breakpoint()
                 continue
             vertex = arch_a._endpoint_a  # y = start a in Y
             if vertex.value_n == node.value_nv:
@@ -1656,6 +1675,17 @@ class SkeletonTree(object):
                     arch_a._endpoint_b = vertex_x  # x connect to a
                     arch_a1._endpoint_b = next_vertex  # y' to a1
         SkeletonTree._all.add(self)
+        logger.info(f"Criada Skeleton Tree H(Y, A): {self}")
+
+        sorted_l = sorted([(node.value_nv, node)
+                           for node in self.nodes], reverse=True)
+        logger.debug(f"Nodes em 'L': {sorted_l}")
+
+        logger.info(f">>> Vertices 'Y': ({len(self.vertices)})")
+        logger.debug(self.vertices)
+
+        logger.info(f">>> Arcos 'A': ({len(self.arches)})")
+        logger.debug(self.arches)
 
     def __repr__(self):
         if hasattr(self, 'subnet'):
@@ -1701,10 +1731,19 @@ class SkeletonTree(object):
         :return: Arco localizado
         :rtype: Arch
         """
+        total_leaves = len(reachable_leaves)
         for arch in self.frontier_set:
             if arch._reachable_nodes_set >= reachable_leaves \
                     or arch.reachable_mac >= reachable_leaves:
                 return arch
+            elif len(arch._reachable_nodes_set) >= total_leaves - 3 \
+                or len(arch.reachable_mac) >= total_leaves - 3:
+                logger.warning(f'Arco {arch} proximo.')
+                logger.debug(f'node_set {arch._reachable_nodes_set}')
+                logger.debug(f'mac_set {arch.reachable_mac}')
+
+        logger.warning(f'Arco nao encontrado para {reachable_leaves}')
+        logger.debug(f'arcos fronteira: {self.frontier_set}')
 
     def get_children(self, vertex: Vertex) -> List[Vertex]:
         """
@@ -1906,7 +1945,6 @@ def subnet_ips(subnets=3, prefix=None, mask=None):
     prefixo de 2 octedos em decimal: '10.0' (padrao), '192.168'
 
     :param subnets:
-    :param ips:
     :param prefix:
     :return:
     """
