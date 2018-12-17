@@ -1922,7 +1922,7 @@ def subnet_creator(sw_subnet: Union[str, IPv4Network, SubNet],
     :return: conjunto de redes
     :rtype: set
     """
-    logger.info('Criando SubNets...')
+    # logger.info('Criando SubNets...')
     found_subnet = get_subnet(sw_subnet)
     if found_subnet:
         found_subnet._has_switches = True
